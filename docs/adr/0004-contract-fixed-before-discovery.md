@@ -1,0 +1,3 @@
+# The Contract is fixed before discovery, not inferred from the run
+
+A capability's typed inputs, typed outputs and Outcome Codes are written by a Reviewer — proposed by an LLM from the natural-language goal, then confirmed — before a Discovery Run starts. The alternative, letting the model name parameters as it goes, is what other submissions did, and it leaked a credential in one of them when the model forgot to flag a value as sensitive. Fixing the Contract first also gives the Recorder exact values to search for and replace with placeholders, which is the bug every prior submission hit in one direction or the other. Discovery then discovers only *how*, never *what*, which keeps the interface the Calling Agent depends on stable across runs and versions.

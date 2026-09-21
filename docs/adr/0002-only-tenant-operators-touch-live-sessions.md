@@ -1,0 +1,3 @@
+# Only Tenant Operators touch live sessions; Reviewers see redacted evidence
+
+Two humans appear in the system: an Operator (staff at the institution) who takes control of a live session during an escalation, and a Reviewer (our engineer) who turns evidence into Watchers and approves Artifact versions. Only the Operator ever touches a live session, in any environment including non-production, because the institution's staff hold the credentials, the authority and the right to see member data, and because one rule with no environment-based exceptions keeps the production path the well-exercised one. The cost is that a stuck discovery run needs someone at the bank on hand, and that fixes a Reviewer could have made live must instead wait for an Artifact revision.
