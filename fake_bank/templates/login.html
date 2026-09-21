@@ -1,18 +1,23 @@
 {% extends "base.html" %}{% block body %}
-<div class="panel">
-<h2>Sign in</h2>
-{% if message %}<div class="err">{{ message }}</div>{% endif %}
+<table width="100%" height="420" cellpadding="0" cellspacing="0"><tr>
+<td align="center" valign="middle">
+
+<div class="panel" style="width:360px; font-size:14px; padding:22px 26px; text-align:left">
+<h2 style="font-size:16px; margin-bottom:14px">Sign in</h2>
+{% if message %}<div class="err" style="font-size:13px">{{ message }}</div>{% endif %}
 <form method="post" action="/login">
 <table><tr>
-  <td class="c1">User ID</td>
-  <td class="c1"><input type="text" name="{{ ctl('user') }}" size="24"></td>
+  <td class="c1" style="font-size:14px">User ID</td>
+  <td class="c1"><input type="text" name="{{ ctl('user') }}" size="24" style="font-size:14px; padding:3px"></td>
 </tr><tr>
-  <td class="c1">Password</td>
-  <td class="c1"><input type="password" name="{{ ctl('pass') }}" size="24"></td>
+  <td class="c1" style="font-size:14px">Password</td>
+  <td class="c1"><input type="password" name="{{ ctl('pass') }}" size="24" style="font-size:14px; padding:3px"></td>
 </tr><tr>
   <td class="c1"></td>
-  <td class="c1"><input class="btn" type="submit" value="Sign in"></td>
+  <td class="c1"><input class="btn" type="submit" value="Sign in" style="font-size:13px; padding:5px 16px; margin-top:6px"></td>
 </tr></table>
 </form>
 </div>
+
+</td></tr></table>
 {% endblock %}
