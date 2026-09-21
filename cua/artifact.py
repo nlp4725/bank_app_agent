@@ -184,7 +184,7 @@ class Retry(Strict):
 
 
 class VerifyEffect(Strict):
-    """How to find out whether a Consequential Step already took effect."""
+    """How to find out whether a Consequential Action already took effect."""
     goto: str | None = None
     predicate: Predicate
 

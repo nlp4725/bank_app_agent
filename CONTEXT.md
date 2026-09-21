@@ -67,7 +67,15 @@ A Predicate, plus where to look for it, that answers "did this Consequential Act
 _Avoid_: Idempotency check, dedupe
 
 **Target**:
-The control an Action acts on, described by an ordered list of ways to find it: by meaning first (role and name), then by position relative to visible text, then by picture. Replay tries them in order, records which one matched, and stops rather than guessing when none do.
+The control an Action acts on, named once and described by the frame it lives in plus an ordered ladder of ways to find it. Replay tries the rungs in order, records which one matched, and stops rather than guessing when none do. The ladder exists because each rung breaks for a different reason — see [docs/targeting.md](./docs/targeting.md):
+
+| Rung | Reads | Survives | Breaks on |
+|---|---|---|---|
+| `role_name` | the accessibility tree's computed name | moving, restyling | a rename |
+| `label_anchor` | visible words plus layout ("the textbox right of *Member number*") | a control being renamed | the caption moving or being renamed |
+| `picture` | a crop saved at record time | renames and re-layout | re-skinning |
+
+A Target stores the relationship, never a measurement: distances are recomputed from the live page every run.
 _Avoid_: Selector, locator (alone), element
 
 **Fallback Match**:
