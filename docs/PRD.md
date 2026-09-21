@@ -8,7 +8,7 @@ An AI agent talking to a credit-union member can answer questions but cannot *do
 
 ## Solution
 
-A model drives the app once, in a non-production environment, to work out how a task is done. That run is compiled into an **Artifact**: a versioned, reviewable capability holding a typed **Contract** (inputs, outputs, Outcome Codes) and a state machine of **Steps**, **Targets**, **Checkpoints** and **Watchers**. A human **Reviewer** approves it. Thereafter the **Replay Engine** executes the Artifact with no model in the loop, enforcing **Baseline ∩ Role ∩ Tenant grant ∩ Needs** before every action, classifying every surprise into one of four **Conditions**, and returning one of six **Run Results**. When it cannot safely proceed, it pauses and hands the live session to an **Operator** at the institution, then resumes on a re-checked Checkpoint.
+A model drives the app once, in a non-production environment, to work out how a task is done. That run is compiled into an **Artifact**: a versioned, reviewable capability holding a typed **Contract** (inputs, outputs, Outcome Codes) and a state machine of **States**, **Transitions**, **Targets**, **Checkpoints** and **Watchers**. A human **Reviewer** approves it. Thereafter the **Replay Engine** executes the Artifact with no model in the loop, enforcing **Baseline ∩ Role ∩ Tenant grant ∩ Needs** before every action, classifying every surprise into one of four **Conditions**, and returning one of six **Run Results**. When it cannot safely proceed, it pauses and hands the live session to an **Operator** at the institution, then resumes on a re-checked Checkpoint.
 
 The demo records one capability — `open_sub_account`, which reads the member's savings balance on the way through — against a deliberately hostile local Flask app standing in for a legacy servicing console.
 
@@ -34,17 +34,17 @@ The demo records one capability — `open_sub_account`, which reads the member's
 13. As a Reviewer, I want to write a goal in natural language and have an LLM propose a Contract I then confirm, so that discovery is directed without hand-writing YAML.
 14. As a Reviewer, I want the Contract fixed before discovery, so that inputs and outputs are never inferred from a transcript.
 15. As a Reviewer, I want the Recorder to drop wrong turns and keep the successful path, so that the Artifact is the flow and not the history.
-16. As a Reviewer, I want every discovery literal replaced by a placeholder in Steps, Checkpoints and Watchers alike, so that an Artifact recorded on one member replays for another.
+16. As a Reviewer, I want every discovery literal replaced by a placeholder in Transitions, Checkpoints and Watchers alike, so that an Artifact recorded on one member replays for another.
 17. As a Reviewer, I want a lint that fails when a discovery literal survives anywhere in the Artifact, so that the commonest bug in this problem space cannot ship.
 18. As a Reviewer, I want every click to arrive marked Consequential by default, so that I must deliberately downgrade each one to Safe.
 19. As a Reviewer, I want the Discovery LLM's risk suggestion shown as advice with its reason, so that I decide faster without the model deciding for me.
-20. As a Reviewer, I want interruptions recorded as Watchers rather than Steps, with a suggestion I confirm, so that replay for a member without the popup still works.
+20. As a Reviewer, I want interruptions recorded as Watchers rather than Transitions, with a suggestion I confirm, so that replay for a member without the popup still works.
 21. As a Reviewer, I want each Watcher to record its **Provenance**, so that a reader can tell what was discovered from what a human assumed.
 22. As a Reviewer, I want Needs derived from what the run actually used, and trimmable, so that a wrong turn does not grant permanent access.
 23. As a Reviewer, I want approval refused when Needs fall outside the declared Role, so that a capability cannot quietly gain power in a later version.
 24. As a Reviewer, I want approval gated on a clean verify-replay with different inputs, so that an Artifact that "runs but doesn't work" is never approved.
-25. As a Reviewer, I want an Artifact containing a Consequential Step to need Two-Person Approval, so that risky capabilities match bank change control.
-26. As a Reviewer, I want unattended approval refused unless every Consequential Step has a Verification Check, so that no unverifiable commit runs with nobody watching.
+25. As a Reviewer, I want an Artifact containing a Consequential Action to need Two-Person Approval, so that risky capabilities match bank change control.
+26. As a Reviewer, I want unattended approval refused unless every Consequential Action has a Verification Check, so that no unverifiable commit runs with nobody watching.
 27. As a Reviewer, I want to read redacted evidence from any run, so that I can diagnose without seeing member data.
 28. As a Reviewer, I want an Unknown State's evidence to contain the predicate expected, what was observed and which Target matched, so that I can turn it into a new Watcher.
 29. As a Reviewer, I want adding a Watcher to produce a new Artifact version, so that behaviour changes are reviewable and revertible.
@@ -56,8 +56,8 @@ The demo records one capability — `open_sub_account`, which reads the member's
 32. As an Operator, I want to take control of the *same* live session, so that I continue rather than start over.
 33. As an Operator, I want the automation unable to act while I hold control, so that we never fight over the screen.
 34. As an Operator, I want my actions recorded with my identity and values hidden, so that the audit trail is complete without leaking data.
-35. As an Operator, I want Resume to re-check the current Checkpoint and skip the Step if it already holds, so that my manual work is not repeated.
-36. As an Operator, I want an approval prompt before a Consequential Step that shows which Target matched and highlights it, so that I can catch a wrong match before the click.
+35. As an Operator, I want Resume to re-check the current Checkpoint and skip the Transition if it already holds, so that my manual work is not repeated.
+36. As an Operator, I want an approval prompt before a Consequential Action that shows which Target matched and highlights it, so that I can catch a wrong match before the click.
 37. As an Operator, I want Abort to return a distinct Run Result, so that my decision is not recorded as a system failure.
 38. As an Operator, I want an unanswered request to time out rather than hold a session open forever.
 
@@ -68,7 +68,7 @@ The demo records one capability — `open_sub_account`, which reads the member's
 41. As a Tenant, I want each Role bound to my own least-privilege Service Account, so that a read-only capability signs in as a login that cannot move money.
 42. As a Tenant, I want automation unable to reach any origin but mine, enforced in the browser, so that a planted link cannot exfiltrate member data.
 43. As a Tenant, I want no capability able to exceed the Baseline Policy, whatever is configured, so that "no unverified unattended commit" holds everywhere.
-44. As a Tenant, I want a Tenant Overlay to adjust only appearance, never steps, Contract or permissions, so that a cosmetic fix cannot change behaviour.
+44. As a Tenant, I want a Tenant Overlay to adjust only appearance, never transitions, Contract or permissions, so that a cosmetic fix cannot change behaviour.
 45. As a Tenant, I want an Artifact recorded on another institution's instance of the same vendor app to work on mine with a small Overlay, so that capabilities are not rebuilt per institution.
 
 **Member (indirect)**
@@ -93,11 +93,11 @@ The demo records one capability — `open_sub_account`, which reads the member's
 
 **Targets** are ordered ladders: role+name, then position relative to visible text, then picture. Replay records which rung matched; a non-first match is a Fallback Match and is logged. When no rung resolves, the run stops rather than guessing.
 
-**Replay Engine** is an interpreter over a closed action vocabulary (`click`, `type`, `select`, `read`, `wait`, `scroll`); actions outside it have no implementation and so cannot be expressed. Per Step, in order: Precondition → Policy check → resolve Target → risk gate → act → observe (Checkpoint, then Watchers, then Unknown State handling). Retry budgets are engine defaults, overridable per Step and visible in review.
+**Replay Engine** is an interpreter over a closed action vocabulary (`click`, `type`, `select`, `read`, `wait`, `scroll`); actions outside it have no implementation and so cannot be expressed. Per Transition, in order: Precondition → Policy check → resolve Target → risk gate → act → observe (Checkpoint, then Watchers, then Unknown State handling). Retry budgets are engine defaults, overridable per Transition and visible in review.
 
 **Values.** Three forms on a `type` action: a literal, a `{{placeholder}}` bound to a Contract input, or a `value_ref` naming a Secret resolved from a `SecretProvider` at the keystroke. Secrets never reach the model, the logs or the Artifact. `needs.secrets` is checked at the front door so a missing credential yields `Refused`, not a half-run.
 
-**Permissions** are `Baseline ∩ Role ∩ Tenant grant ∩ Needs`. A Role is a per-vendor-app bundle (pages, actions, whether Consequential Steps are permitted, and the Service Account it signs in as); an Artifact declares exactly one. Route interception aborts any request — including ones the page initiates — to a non-allowlisted origin.
+**Permissions** are `Baseline ∩ Role ∩ Tenant grant ∩ Needs`. A Role is a per-vendor-app bundle (pages, actions, whether Consequential Actions are permitted, and the Service Account it signs in as); an Artifact declares exactly one. Route interception aborts any request — including ones the page initiates — to a non-allowlisted origin.
 
 **Result envelope**, one shape with six statuses:
 
@@ -110,13 +110,13 @@ The demo records one capability — `open_sub_account`, which reads the member's
 {"status":"outcome_unknown","step":"","guidance":"Do not retry…","evidence_id":""}
 ```
 
-**Crash safety.** A write-ahead line is appended before and after every action. On restart, a run whose last line is `about_to` on a Consequential Step closes as `Outcome Unknown`. Consequential Steps are never retried, never reloaded after submit, and carry a Verification Check (a Predicate plus where to look) used whenever the outcome is unclear.
+**Crash safety.** A write-ahead line is appended before and after every action. On restart, a run whose last line is `about_to` on a Consequential Action closes as `Outcome Unknown`. Consequential Actions are never retried, never reloaded after submit, and carry a Verification Check (a Predicate plus where to look) used whenever the outcome is unclear.
 
 **Discovery.** Six endings: `goal_reached`, `report_outcome`, `ask_human`, `give_up` (the model's), `step_limit`/`timeout`, `stuck_detected` (the code's). Runs only against a Non-production Environment, bounded by its Role, with outbound redaction on the observation. A second discovery run on the not-found member ends `report_outcome` and contributes a Business Outcome Watcher — recognition, not route.
 
 **Recorder** produces a draft Artifact: drops wrong turns, collapses retries, replaces example values with placeholders everywhere they were used, builds Target ladders from what was captured at each action, marks every click Consequential, attaches suggestions, derives Needs, and links the discovery run by id without embedding the transcript.
 
-**Handoff.** One control state (`automation → awaiting_operator → operator_in_control → resuming`), a lease so only the holder may act, bounded at two escalations per Step, resume re-checking the current Checkpoint.
+**Handoff.** One control state (`automation → awaiting_operator → operator_in_control → resuming`), a lease so only the holder may act, bounded at two escalations per Transition, resume re-checking the current Checkpoint.
 
 **Target app.** Flask, server-rendered, table layout, no test IDs, full page reloads. Two Service Accounts (read-only, officer). Member numbers select the scenario (normal, not found, not authorized, popup, transient error, session expiry, app error). One unlabelled icon control. `SKIN=bank2` renames and moves controls for the Overlay demo. `/reset` restores state so runs are repeatable.
 
@@ -130,7 +130,7 @@ A good test here exercises **external behaviour through the highest seam** — i
 
 **Third seam: `Surface`**, so a fake surface can drive states that are awkward to produce live (a frozen page, a mid-step crash). Used sparingly — the Flask app can produce most conditions directly.
 
-Tests that are also controls: replay cannot import the model SDK; no module but `Surface` imports Playwright; an Artifact naming an unknown action is rejected by the schema; Needs exceeding Policy yields `Refused` before the browser opens; an Overlay adding a Step or widening Needs is rejected; a redaction canary never appears in evidence; a Business Outcome is never retried; automation and Operator cannot both hold control; replaying the same inputs five times gives identical results.
+Tests that are also controls: replay cannot import the model SDK; no module but `Surface` imports Playwright; an Artifact naming an unknown action is rejected by the schema; Needs exceeding Policy yields `Refused` before the browser opens; an Overlay adding a Transition or widening Needs is rejected; a redaction canary never appears in evidence; a Business Outcome is never retried; automation and Operator cannot both hold control; replaying the same inputs five times gives identical results.
 
 No prior art exists — this is a greenfield repo, so these seams set the pattern.
 

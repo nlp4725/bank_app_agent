@@ -23,7 +23,7 @@ An LLM-driven run that works out how to accomplish a goal on an app and produces
 _Avoid_: Recording session, training run, exploration
 
 **Recorder**:
-The code that turns a finished Discovery Run into a draft Artifact. It makes no final judgement calls — where it must guess (is a click Consequential? is this screen an interruption, i.e. a Watcher rather than a Step?), it attaches a suggestion for the Reviewer.
+The code that turns a finished Discovery Run into a draft Artifact. It makes no final judgement calls — where it must guess (is a click Consequential? is this screen an interruption, i.e. a Watcher rather than a Transition?), it attaches a suggestion for the Reviewer.
 _Avoid_: Compiler, trace compiler, emitter
 
 **Replay**:
@@ -35,39 +35,47 @@ The one interpreter that executes any Artifact. It holds every function — the 
 _Avoid_: Runner, executor, generated script
 
 **Tenant Overlay**:
-A small per-Tenant patch applied on top of an Artifact that may change how things look (origin, control labels/anchors, field positions, timeouts) but never how the Artifact behaves (steps, contract, or safety policy). If a Tenant needs different behavior, that is a different Artifact.
+A small per-Tenant patch applied on top of an Artifact that may change how things look (origin, control labels/anchors, field positions, timeouts) but never how the Artifact behaves (transitions, contract, or safety policy). If a Tenant needs different behavior, that is a different Artifact.
 _Avoid_: Override, variant, fork, per-bank artifact
 
-**Step**:
-One action in an Artifact's flow (click, type, read…) together with the Checkpoint it must reach.
-_Avoid_: Instruction, command
+**Action**:
+One thing done to the surface — click, type, select, read, wait, scroll — and nothing else: the engine implements exactly these, so an Artifact cannot name another.
+_Avoid_: Step, instruction, command, operation
+
+**State**:
+A named point in a flow, carrying the Checkpoint that must hold for the run to believe it is there.
+_Avoid_: Page, screen, node
+
+**Transition**:
+A move from one State to another, carrying the Action that makes it happen, that Action's risk label and, where the Action is Consequential, its Verification Check.
+_Avoid_: Step, edge, arrow
 
 **Predicate**:
-A machine-checkable claim about the screen, drawn from a small closed set (element present/absent, text present, field value, url matches, count). Every Checkpoint, Watcher trigger and Precondition is one. Prose belongs in a description beside it, never in its place.
+A machine-checkable claim about the screen, drawn from a small closed set (element present/absent, text present, field value, url matches, count). Every Checkpoint, Watcher trigger, Precondition and Verification Check is one. Prose belongs in a description beside it, never in its place.
 _Avoid_: Assertion, condition, rule
 
 **Precondition**:
-The Predicate a Step requires *before* acting — verify first, then act, so a click never lands on an unexpected screen.
+The Predicate a Transition requires *before* acting — verify first, then act, so a click never lands on an unexpected screen.
 _Avoid_: Guard, entry condition
 
 **Checkpoint**:
-The Predicate a Step must satisfy *after* acting; asserted rather than assumed. Never contains a Discovery Run's literal values.
+The Predicate that must hold for a State to be believed — asserted after every Action rather than assumed. Never contains a Discovery Run's literal values.
 _Avoid_: Assertion, expectation, success check (except for the Artifact's final one)
 
 **Verification Check**:
-A Predicate, plus where to look for it, that answers "did this Consequential Step already happen?" — used when the outcome is unclear, so the system looks instead of clicking again. Required before an Artifact may be approved for Unattended runs.
+A Predicate, plus where to look for it, that answers "did this Consequential Action already happen?" — used when the outcome is unclear, so the system looks instead of clicking again. Required before an Artifact may be approved for Unattended runs.
 _Avoid_: Idempotency check, dedupe
 
 **Target**:
-The control a Step acts on, described by an ordered list of ways to find it: by meaning first (role and name), then by position relative to visible text, then by picture. Replay tries them in order, records which one matched, and stops rather than guessing when none do.
+The control an Action acts on, described by an ordered list of ways to find it: by meaning first (role and name), then by position relative to visible text, then by picture. Replay tries them in order, records which one matched, and stops rather than guessing when none do.
 _Avoid_: Selector, locator (alone), element
 
 **Fallback Match**:
-A Target found by any way other than the first in its list. Allowed on any Step, always logged, and a rising rate of them for a Tenant is the signal that its app has drifted.
+A Target found by any way other than the first in its list. Allowed on any Action, always logged, and a rising rate of them for a Tenant is the signal that its app has drifted.
 _Avoid_: Retry, fuzzy match
 
-**Consequential Step**:
-A Step whose effect cannot safely be repeated or undone (e.g. the click that actually opens an account). Every click starts out Consequential; only a Reviewer may mark it **Safe**, with the discovery LLM's suggestion as advice, never as the decision.
+**Consequential Action**:
+An Action whose effect cannot safely be repeated or undone (e.g. the click that actually opens an account). Every click starts out Consequential; only a Reviewer may mark it **Safe**, with the discovery LLM's suggestion as advice, never as the decision.
 _Avoid_: Risky action, destructive action, irreversible action, dangerous step
 
 **Secret**:
@@ -79,7 +87,7 @@ The pages and action types an Artifact uses, derived from what its Discovery Run
 _Avoid_: Permissions, scopes, requirements
 
 **Watcher**:
-A recognisable surprise screen — a trigger Predicate, the Condition it represents, how to react, and where it came from. Evaluated at every state, so it does not belong to any one Step.
+A recognisable surprise screen — a trigger Predicate, the Condition it represents, how to react, and where it came from. Evaluated at every State, so it does not belong to any one Transition.
 _Avoid_: Handler, trap, exception rule
 
 **App Profile**:
@@ -127,12 +135,12 @@ Every runtime surprise is classified into one Condition. The test is **who can a
 | "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
 | "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
 | "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
-| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Steps only | **Failed** when the budget runs out |
+| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
 | Session expired, login page returns | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted** or **Failed** on timeout |
 | "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
 | A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
-| Frozen screen after a Consequential Step | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
-| System died mid-Consequential Step | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
+| Frozen screen after a Consequential Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
+| System died mid-Consequential Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
 
 ### Run Results (what the caller receives)
 
@@ -141,17 +149,17 @@ The single final answer a run returns to its caller: **Succeeded** (with outputs
 _Avoid_: Bucket, status (when meaning the final answer)
 
 **Outcome Unknown**:
-A Run Result meaning a Consequential Step was performed but its effect could never be confirmed (the system died, or the screen never resolved and no Verification Check settled it). Means *do not retry* — a person must check whether it took effect.
+A Run Result meaning a Consequential Action was performed but its effect could never be confirmed (the system died, or the screen never resolved and no Verification Check settled it). Means *do not retry* — a person must check whether it took effect.
 _Avoid_: Partial failure, timeout
 
 **Refused**:
-A Run Result meaning the run was rejected before touching the app (Needs not granted by Policy, Artifact not approved, a Consequential Step in an Unattended run, invalid inputs) — a guarantee of no side effects.
+A Run Result meaning the run was rejected before touching the app (Needs not granted by Policy, Artifact not approved, a Consequential Action in an Unattended run, invalid inputs) — a guarantee of no side effects.
 _Avoid_: Blocked, denied, rejected (as result names)
 
 ### Safety
 
 **Policy**:
-The Tenant-owned rules for what automation may do on one of its apps: its Allowlist, its Environment tag, and how Consequential Steps are handled. Separate from any Artifact; owned by the institution, not the automation provider.
+The Tenant-owned rules for what automation may do on one of its apps: its Allowlist, its Environment tag, and how Consequential Actions are handled. Separate from any Artifact; owned by the institution, not the automation provider.
 _Avoid_: Config, rules, guardrails (as a noun for this file)
 
 **Baseline Policy**:
@@ -163,7 +171,7 @@ The part of a Policy stating where automation may act (origins, routes) and whic
 _Avoid_: Whitelist, permitted list
 
 **Role**:
-A named permission bundle for one intent on one vendor app (e.g. `balance_reader`, `account_opener`), written before any discovery: the pages and action types it may use, whether it may perform Consequential Steps, and the Service Account it signs in as. An Artifact declares exactly one Role, and its Needs must fit inside it — checked at approval, not only at run time.
+A named permission bundle for one intent on one vendor app (e.g. `balance_reader`, `account_opener`), written before any discovery: the pages and action types it may use, whether it may perform Consequential Actions, and the Service Account it signs in as. An Artifact declares exactly one Role, and its Needs must fit inside it — checked at approval, not only at run time.
 _Avoid_: Permission set, profile, persona
 
 **Service Account**:
@@ -175,7 +183,7 @@ The single function every log line, evidence file, screenshot and returned outpu
 _Avoid_: Sanitizer, scrubber, filter
 
 **Two-Person Approval**:
-The rule that an Artifact containing a Consequential Step needs two named Reviewers before it may run.
+The rule that an Artifact containing a Consequential Action needs two named Reviewers before it may run.
 _Avoid_: Sign-off, double-check
 
 **Evidence**:
