@@ -1,0 +1,28 @@
+# Roles for one vendor app, written before any discovery. A capability declares
+# exactly one; its Needs must fit inside it. See ADR 0005.
+vendor_app: demo-core-servicing
+
+balance_reader:
+  intent: "View member information and balances."
+  pages:   ["/login", "/search", "/members/*"]
+  actions: ["type", "click", "read", "wait", "scroll"]
+  secrets: ["login_username", "login_password"]
+  consequential: forbidden
+  service_account: svc_read
+
+account_opener:
+  intent: "Open a sub-account for an existing member."
+  pages:   ["/login", "/search", "/members/*"]
+  actions: ["type", "click", "select", "read", "wait", "scroll"]
+  secrets: ["login_username", "login_password"]
+  consequential: allowed_with_approval
+  service_account: svc_officer
+
+funds_mover:
+  intent: "Move money between accounts."
+  pages:   ["/login", "/search", "/members/*", "/transfers/*"]
+  actions: ["type", "click", "select", "read", "wait", "scroll"]
+  secrets: ["login_username", "login_password"]
+  consequential: allowed_with_approval
+  requires: ["two_person_approval", "attended_only"]
+  service_account: svc_teller
