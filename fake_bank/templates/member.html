@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<table width="100%"><tr>
+  <td class="c1"><h2>Member {{ number }}</h2></td>
+  <td class="c1" align="right">{{ member.name }} &nbsp;|&nbsp; Member since {{ member.since }}</td>
+</tr></table>
+
+<table width="100%"><tr><td class="c1" valign="top" width="60%">
+  <iframe src="/members/{{ number }}/panel" width="100%" height="150" frameborder="0"></iframe>
+</td><td class="c1" valign="top">
+  <table><tr><td class="c2">Open Accounts</td></tr>
+  {% for sa in member.sub_accounts %}
+  <tr><td class="c1">{{ sa }}</td></tr>
+  {% else %}
+  <tr><td class="c1">None on file</td></tr>
+  {% endfor %}
+  </table>
+  <br>
+  <form method="get" action="/members/{{ number }}/subaccounts/new">
+    <input class="btn" type="submit" value="{{ skin.open_button }}">
+  </form>
+</td></tr></table>
+</div>
+{% endblock %}

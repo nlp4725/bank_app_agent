@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><title>{{ skin.institution }} — Member Servicing</title>
+<style>
+ body { font-family: Verdana, Geneva, sans-serif; font-size: 12px; margin:0; background:#eceff1; color:#111; }
+ table { border-collapse: collapse; }
+ .hdr { background:#123a5e; color:#fff; padding:8px 12px; font-size:14px; font-weight:bold; }
+ .nav { background:#2c5f8a; color:#dce7f0; padding:4px 12px; font-size:11px; }
+ .nav a { color:#dce7f0; }
+ .wrap { padding:14px; }
+ .panel { background:#fff; border:1px solid #9aa7b0; padding:10px; }
+ .c1 { padding:4px 6px; }
+ .c2 { padding:4px 6px; font-weight:bold; background:#f4f6f8; border:1px solid #c3ccd3; }
+ .msg { background:#fff6d8; border:1px solid #d9c26a; padding:6px 8px; margin-bottom:8px; }
+ .err { background:#ffe6e6; border:1px solid #d08b8b; padding:6px 8px; margin-bottom:8px; }
+ .btn { font-family: Verdana; font-size:11px; padding:3px 10px; }
+ .iconbtn { border:1px solid #9aa7b0; background:#f4f6f8; padding:2px 4px; vertical-align:middle; }
+ h2 { font-size:13px; margin:0 0 8px 0; }
+</style></head>
+<body>
+<div class="hdr">{{ skin.institution }} — Member Servicing Console</div>
+<div class="nav">
+  <table><tr>
+    <td class="c1"><a href="/search">Member Search</a></td>
+    <td class="c1"><a href="/admin">Administration</a></td>
+    <td class="c1"><a href="/logout">Sign out</a></td>
+  </tr></table>
+</div>
+<div class="wrap">{% block body %}{% endblock %}</div>
+</body></html>

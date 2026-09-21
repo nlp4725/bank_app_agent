@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>Member Search</h2>
+{% if message %}<div class="msg">{{ message }}</div>{% endif %}
+<form method="post" action="/members">
+<table><tr>
+{% if skin.icon_before_field %}
+  <td class="c1"><button class="iconbtn" type="submit"><img src="/static/icons/{{ skin.search_icon }}" width="16" height="16"></button></td>
+  <td class="c1">{{ skin.member_field_label }}</td>
+  <td class="c1"><input type="text" name="{{ ctl('member') }}" size="14"></td>
+{% else %}
+  <td class="c1">{{ skin.member_field_label }}</td>
+  <td class="c1"><input type="text" name="{{ ctl('member') }}" size="14"></td>
+  <td class="c1"><button class="iconbtn" type="submit"><img src="/static/icons/{{ skin.search_icon }}" width="16" height="16"></button></td>
+{% endif %}
+</tr></table>
+</form>
+</div>
+{% endblock %}

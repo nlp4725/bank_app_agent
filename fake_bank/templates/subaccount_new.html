@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>New sub-account for member {{ number }}</h2>
+{% if message %}<div class="err">{{ message }}</div>{% endif %}
+<form method="post" action="/members/{{ number }}/subaccounts/review">
+<table><tr>
+  <td class="c1">Account type</td>
+  <td class="c1"><select name="{{ ctl('acct_type') }}">
+    <option value="savings">Savings</option>
+    <option value="checking">Checking</option>
+    <option value="holiday">Holiday Club</option>
+  </select></td>
+</tr><tr>
+  <td class="c1">Nickname</td>
+  <td class="c1"><input type="text" name="{{ ctl('nickname') }}" size="24"></td>
+</tr><tr>
+  <td class="c1"></td>
+  <td class="c1"><input class="btn" type="submit" value="Review"></td>
+</tr></table>
+</form>
+</div>
+{% endblock %}

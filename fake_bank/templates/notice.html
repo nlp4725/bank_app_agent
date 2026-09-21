@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>System notice</h2>
+<div class="msg">Scheduled maintenance will occur this weekend. Member servicing may be unavailable from 02:00 to 04:00.</div>
+<form method="post" action="/members">
+<input type="hidden" name="{{ ctl('member') }}" value="{{ number }}">
+<input class="btn" type="submit" value="OK">
+</form>
+</div>
+{% endblock %}

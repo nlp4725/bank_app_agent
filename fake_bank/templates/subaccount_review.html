@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>Review sub-account</h2>
+{% if message %}<div class="err">{{ message }}</div>{% endif %}
+<table>
+ <tr><td class="c1">Member</td><td class="c1">{{ number }} — {{ member.name }}</td></tr>
+ <tr><td class="c1">Account type</td><td class="c1">{{ account_type }}</td></tr>
+ <tr><td class="c1">Nickname</td><td class="c1">{{ nickname }}</td></tr>
+</table>
+<br>
+<form method="post" action="/members/{{ number }}/subaccounts/commit">
+ <input type="hidden" name="{{ ctl('acct_type') }}" value="{{ account_type }}">
+ <input type="hidden" name="{{ ctl('nickname') }}" value="{{ nickname }}">
+ <input class="btn" type="submit" value="{{ skin.commit_button }}">
+</form>
+</div>
+{% endblock %}

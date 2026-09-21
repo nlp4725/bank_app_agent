@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>Sign in</h2>
+{% if message %}<div class="err">{{ message }}</div>{% endif %}
+<form method="post" action="/login">
+<table><tr>
+  <td class="c1">User ID</td>
+  <td class="c1"><input type="text" name="{{ ctl('user') }}" size="24"></td>
+</tr><tr>
+  <td class="c1">Password</td>
+  <td class="c1"><input type="password" name="{{ ctl('pass') }}" size="24"></td>
+</tr><tr>
+  <td class="c1"></td>
+  <td class="c1"><input class="btn" type="submit" value="Sign in"></td>
+</tr></table>
+</form>
+</div>
+{% endblock %}
