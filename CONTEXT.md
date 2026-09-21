@@ -39,7 +39,7 @@ A small per-Tenant patch applied on top of an Artifact that may change how thing
 _Avoid_: Override, variant, fork, per-bank artifact
 
 **Action**:
-One thing done to the surface — click, type, select, read, wait, scroll — and nothing else: the engine implements exactly these, so an Artifact cannot name another.
+One thing done to the surface — **click, type, select, read** — and nothing else: the engine implements exactly these four, so an Artifact cannot name another. Waiting is a property of a Transition (its timeout), not an Action; scrolling is the driver's job.
 _Avoid_: Step, instruction, command, operation
 
 **State**:
@@ -51,7 +51,7 @@ A move from one State to another, carrying the Action that makes it happen, that
 _Avoid_: Step, edge, arrow
 
 **Predicate**:
-A machine-checkable claim about the screen, drawn from a small closed set (element present/absent, text present, field value, url matches, count). Every Checkpoint, Watcher trigger, Precondition and Verification Check is one. Prose belongs in a description beside it, never in its place.
+A machine-checkable claim about the screen, drawn from a closed set of four (**element present, text present, field value, url matches**) plus `all` / `any`. Every Checkpoint, Watcher trigger, Precondition and Verification Check is one. Prose belongs in a description beside it, never in its place.
 _Avoid_: Assertion, condition, rule
 
 **Precondition**:

@@ -8,7 +8,16 @@ caller that nothing can produce.
 from cua.artifact import Artifact
 from cua.lint import lint
 
-from .fixtures import artifact_dict, overlay_dict
+from .fixtures import app_profile_dict, artifact_dict, overlay_dict
+
+
+def transition_to(d, target):
+    """The transition whose action acts on `target` — tests should not depend on order."""
+    return next(t for t in d["transitions"] if t["action"].get("target") == target)
+
+
+def state(d, state_id):
+    return next(s for s in d["states"] if s["id"] == state_id)
 
 
 def codes(issues):
@@ -21,13 +30,13 @@ def test_a_clean_artifact_has_no_issues():
 
 def test_a_discovery_literal_in_a_step_is_rejected():
     d = artifact_dict()
-    d["transitions"][1]["action"]["value"] = "54321"  # the member used during discovery
+    transition_to(d, "t_member_field")["action"]["value"] = "54321"  # the discovery member
     assert "discovery_literal" in codes(lint(Artifact.model_validate(d)))
 
 
 def test_a_discovery_literal_in_a_checkpoint_is_rejected():
     d = artifact_dict()
-    d["states"][2]["checkpoint"] = {"type": "text_present", "value": "Member 54321"}
+    state(d, "member_open")["checkpoint"] = {"type": "text_present", "value": "Member 54321"}
     assert "discovery_literal" in codes(lint(Artifact.model_validate(d)))
 
 
@@ -39,7 +48,7 @@ def test_a_discovery_literal_in_a_watcher_is_rejected():
 
 def test_a_placeholder_with_no_matching_input_is_rejected():
     d = artifact_dict()
-    d["transitions"][1]["action"]["value"] = "{{branch_code}}"
+    transition_to(d, "t_member_field")["action"]["value"] = "{{branch_code}}"
     assert "unknown_placeholder" in codes(lint(Artifact.model_validate(d)))
 
 
@@ -47,6 +56,14 @@ def test_a_watcher_naming_an_undeclared_outcome_is_rejected():
     d = artifact_dict()
     d["watchers"][0]["outcome"] = "ACCOUNT_FROZEN"
     assert "undeclared_outcome" in codes(lint(Artifact.model_validate(d)))
+
+
+def test_the_held_out_condition_is_absent_on_purpose():
+    """MAX_ACCOUNTS_REACHED is deliberately not in the artifact: member 33333 must
+    produce an Unknown State until a Reviewer adds the Watcher (see docs/evaluation.md)."""
+    d = artifact_dict()
+    assert "MAX_ACCOUNTS_REACHED" not in [o["code"] for o in d["contract"]["outcomes"]]
+    assert lint(Artifact.model_validate(d)) == []
 
 
 def test_a_declared_outcome_no_watcher_can_produce_is_rejected():
@@ -59,7 +76,7 @@ def test_a_declared_outcome_no_watcher_can_produce_is_rejected():
 
 def test_a_non_terminal_state_without_a_checkpoint_is_rejected():
     d = artifact_dict()
-    d["states"][2]["checkpoint"] = None
+    state(d, "member_open")["checkpoint"] = None
     assert "missing_checkpoint" in codes(lint(Artifact.model_validate(d)))
 
 
@@ -77,7 +94,7 @@ def test_a_transition_between_states_that_do_not_exist_is_rejected():
 
 def test_a_target_referenced_but_not_defined_is_rejected():
     d = artifact_dict()
-    d["transitions"][0]["action"]["target"] = "t_missing"
+    transition_to(d, "t_signin")["action"]["target"] = "t_missing"
     assert "unknown_target" in codes(lint(Artifact.model_validate(d)))
 
 
@@ -139,3 +156,38 @@ def test_an_overlay_cannot_widen_needs():
     o["needs"] = {"pages": ["/transfers/*"]}
     issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
     assert "overlay_widens_needs" in sorted(i.code for i in issues)
+
+
+# ── App Profile: what every capability on one vendor app shares ───────────────
+
+def test_app_wide_watchers_reach_every_artifact():
+    from cua.artifact import AppProfile, merged
+    art = Artifact.model_validate(artifact_dict())
+    profile = AppProfile.model_validate(app_profile_dict())
+    assert [w.id for w in art.watchers] == ["w_not_found", "w_not_authorized", "w_validation"]
+    full = merged(art, profile)
+    assert "w_session_expired" in [w.id for w in full.watchers]
+    assert "t_ok" in full.targets              # the profile's targets come too
+    assert lint(full) == []
+
+
+def test_an_artifacts_own_watcher_wins_over_the_profiles():
+    from cua.artifact import AppProfile, merged
+    d = artifact_dict()
+    d["watchers"].append({
+        "id": "w_system_notice",
+        "trigger": {"type": "text_present", "value": "System notice for this capability"},
+        "condition": "hard_failure", "provenance": "reviewer:nasi"})
+    full = merged(Artifact.model_validate(d), AppProfile.model_validate(app_profile_dict()))
+    notice = [w for w in full.watchers if w.id == "w_system_notice"]
+    assert len(notice) == 1
+    assert notice[0].condition == "hard_failure"      # the artifact's, not the profile's
+
+
+def test_a_profile_for_another_app_is_refused():
+    import pytest
+    from cua.artifact import AppProfile, merged
+    p = app_profile_dict()
+    p["app_profile"] = "some-other-product"
+    with pytest.raises(ValueError):
+        merged(Artifact.model_validate(artifact_dict()), AppProfile.model_validate(p))

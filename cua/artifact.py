@@ -22,12 +22,6 @@ class ElementPresent(Strict):
     timeout_ms: int | None = None
 
 
-class ElementAbsent(Strict):
-    type: Literal["element_absent"]
-    target: str
-    timeout_ms: int | None = None
-
-
 class TextPresent(Strict):
     type: Literal["text_present"]
     value: str
@@ -45,12 +39,6 @@ class UrlMatches(Strict):
     pattern: str
 
 
-class CountIs(Strict):
-    type: Literal["count"]
-    target: str
-    equals: int
-
-
 class AllOf(Strict):
     type: Literal["all"]
     of: list["Predicate"]
@@ -62,7 +50,7 @@ class AnyOf(Strict):
 
 
 Predicate = Annotated[
-    Union[ElementPresent, ElementAbsent, TextPresent, FieldValue, UrlMatches, CountIs, AllOf, AnyOf],
+    Union[ElementPresent, TextPresent, FieldValue, UrlMatches, AllOf, AnyOf],
     Field(discriminator="type"),
 ]
 
@@ -75,10 +63,15 @@ class RoleName(Strict):
     name: str
 
 
-class RightOfText(Strict):
-    kind: Literal["right_of_text"]
+class LabelAnchor(Strict):
+    """Find the visible words, then the nearest control of `role` in `relation`.
+
+    Stores the relationship, never a measured distance: see docs/targeting.md.
+    """
+    kind: Literal["label_anchor"]
     anchor: str
     role: str | None = None
+    relation: Literal["right_of", "below", "nearest"] = "right_of"
 
 
 class PictureMatch(Strict):
@@ -87,7 +80,18 @@ class PictureMatch(Strict):
     threshold: float = 0.94
 
 
-TargetRung = Annotated[Union[RoleName, RightOfText, PictureMatch], Field(discriminator="kind")]
+TargetRung = Annotated[Union[RoleName, LabelAnchor, PictureMatch], Field(discriminator="kind")]
+
+
+class FrameRef(Strict):
+    """Which document to look in. Absent means the main one."""
+    url_contains: str
+
+
+class Target(Strict):
+    frame: FrameRef | None = None
+    rungs: list[TargetRung]
+    description: str | None = None
 
 
 # ── Actions: the engine's entire vocabulary ───────────────────────────────────
@@ -122,19 +126,8 @@ class ReadValue(Strict):
     into: str
 
 
-class WaitFor(Strict):
-    type: Literal["wait"]
-    predicate: Predicate | None = None
-    ms: int | None = None
-
-
-class Scroll(Strict):
-    type: Literal["scroll"]
-    target: str | None = None
-
-
 Action = Annotated[
-    Union[Click, TypeText, SelectOption, ReadValue, WaitFor, Scroll], Field(discriminator="type")
+    Union[Click, TypeText, SelectOption, ReadValue], Field(discriminator="type")
 ]
 
 
@@ -194,7 +187,6 @@ class Transition(Strict):
     to_state: str
     action: Action
     risk: Literal["safe", "consequential"] = "consequential"
-    precondition: Predicate | None = None
     timeout_ms: int | None = None
     retry: Retry | None = None
     verify_effect: VerifyEffect | None = None
@@ -242,9 +234,37 @@ class Artifact(Strict):
     needs: Needs
     states: list[State]
     transitions: list[Transition]
-    targets: dict[str, list[TargetRung]]
+    targets: dict[str, Target]
     watchers: list[Watcher] = Field(default_factory=list)
     provenance: Provenance = Field(default_factory=Provenance)
 
     def state(self, state_id: str) -> State | None:
         return next((s for s in self.states if s.id == state_id), None)
+
+
+class AppProfile(Strict):
+    """What every capability on one vendor app shares.
+
+    Session expiry, interstitials and error pages are properties of the app, not of
+    any one capability: learnt once, they reach every Artifact. See CONTEXT.md.
+    """
+    app_profile: str
+    watchers: list[Watcher] = Field(default_factory=list)
+    targets: dict[str, Target] = Field(default_factory=dict)
+
+
+def merged(artifact: Artifact, profile: AppProfile | None) -> Artifact:
+    """App-wide watchers and targets, with the Artifact's own winning on a clash."""
+    if profile is None:
+        return artifact
+    if profile.app_profile != artifact.capability.vendor_app:
+        raise ValueError(
+            f"profile {profile.app_profile!r} does not match app {artifact.capability.vendor_app!r}"
+        )
+    data = artifact.model_dump(mode="python")
+    own_watchers = {w["id"] for w in data["watchers"]}
+    data["watchers"] = [w for w in profile.model_dump(mode="python")["watchers"]
+                        if w["id"] not in own_watchers] + data["watchers"]
+    for name, target in profile.model_dump(mode="python")["targets"].items():
+        data["targets"].setdefault(name, target)
+    return Artifact.model_validate(data)

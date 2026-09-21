@@ -41,12 +41,12 @@ def lint_overlay(base: Artifact, overlay: dict) -> list[Issue]:
         elif key not in APPEARANCE_KEYS and key != "needs":
             issues.append(Issue("overlay_unknown_key", key, "not an appearance key"))
 
-    for name, rungs in overlay.get("targets", {}).items():
+    for name, target in overlay.get("targets", {}).items():
         if name not in base.targets:
             issues.append(Issue("overlay_unknown_target", f"targets.{name}",
                                 "an overlay may only patch targets the artifact defines"))
             continue
-        for rung in rungs:
+        for rung in target.get("rungs", []):
             if "kind" not in rung:
                 issues.append(Issue("overlay_bad_target", f"targets.{name}", "rung has no kind"))
 
@@ -56,6 +56,6 @@ def lint_overlay(base: Artifact, overlay: dict) -> list[Issue]:
 def apply_overlay(base: Artifact, overlay: dict) -> Artifact:
     """Merge an overlay onto an artifact. Caller must lint the overlay first."""
     data = base.model_dump(mode="python")
-    for name, rungs in overlay.get("targets", {}).items():
-        data["targets"][name] = rungs
+    for name, target in overlay.get("targets", {}).items():
+        data["targets"][name] = target
     return Artifact.model_validate(data)
