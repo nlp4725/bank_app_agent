@@ -1,0 +1,12 @@
+# A second institution running the same vendor product, configured differently.
+# Same roles, same rules — only the address and the branding differ.
+tenant: lakeside
+vendor_app: demo-core-servicing
+origin: http://127.0.0.1:5002
+environment: non_production
+
+roles_granted:
+  balance_reader: {service_account: svc_read}
+  account_opener: {service_account: svc_officer}
+
+pages: ["/login", "/search", "/members", "/members/*"]

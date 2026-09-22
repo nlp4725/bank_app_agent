@@ -41,9 +41,28 @@ def bank_app():
         proc.terminate()
 
 
+@pytest.fixture(scope="session")
+def bank2_app():
+    """The same product as a second institution: renamed controls, moved icon."""
+    port = PORT + 1
+    origin = f"http://127.0.0.1:{port}"
+    env = dict(os.environ, PORT=str(port), SKIN="bank2")
+    with socket.socket() as s:
+        running = s.connect_ex(("127.0.0.1", port)) == 0
+    proc = None
+    if not running:
+        proc = subprocess.Popen([sys.executable, "-m", "fake_bank.app"], env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        assert _up(f"{origin}/login"), "the second institution did not start"
+    yield origin
+    if proc:
+        proc.terminate()
+
+
 @pytest.fixture(autouse=True)
 def reset_app(request):
     """Every test starts from the seed data, so runs are repeatable."""
-    if "bank_app" in request.fixturenames:
-        urllib.request.urlopen(f"{ORIGIN}/reset", timeout=5).read()
+    for name, origin in (("bank_app", ORIGIN), ("bank2_app", f"http://127.0.0.1:{PORT + 1}")):
+        if name in request.fixturenames:
+            urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
     yield

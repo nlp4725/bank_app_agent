@@ -191,3 +191,19 @@ keep a person answering the same question forever.
 Two things this cost: the session-expiry scenario now fires once per member (an expiry
 that repeats forever is not an expiry, it is a wall), and I lost twenty minutes to a
 Flask server still running the old code — the fix was right, the process was stale.
+
+## 2026-09-22 — step 9: the two demonstrations
+**B1.** get_by_role("button", name="Search") returns 0 matches on the search page —
+the control is an <img> in a <button> with no alt and no label, so the browser
+computes no name. The recorded ladder has no role_name rung at all, because there was
+nothing to record; label_anchor "Member number" finds it, and the run log names the
+rung that matched for every target. A text-only agent cannot see this control.
+
+**B2.** The artifact recorded at First Credit Union fails at Lakeside Savings without
+an Overlay (unknown_state at the first checkpoint, because the field is called "Find
+member by #"), and succeeds unchanged with a 20-line Overlay that patches four
+targets. The search icon also moved to the left of the field there, so its rung needs
+relation "nearest" rather than right_of — a nice illustration of why the relation is
+part of the recording rather than an assumption.
+
+An Overlay that tries to add a transition is refused before the browser opens.

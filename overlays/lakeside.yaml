@@ -1,0 +1,26 @@
+# Lakeside Savings runs the same product as First Credit Union, branded differently.
+# An Overlay may change how things LOOK — origin, labels, where a control sits — and
+# nothing about how the capability BEHAVES. No transitions, no contract, no wider
+# needs; cua/overlay.py rejects all three.
+base_artifact: member.open_sub_account@1.0.0
+tenant: lakeside
+origin: http://127.0.0.1:5002
+
+targets:
+  # "Member number" is called "Find member by #" here
+  t_member_number:
+    rungs:
+      - {kind: label_anchor, anchor: "Find member by #", role: textbox, relation: right_of}
+
+  # ...and the search icon moved to the LEFT of the field, so right_of would miss it
+  t_member_number_button:
+    rungs:
+      - {kind: label_anchor, anchor: "Find member by #", role: button, relation: nearest}
+
+  # "Open" is called "Create", "Continue" is called "Submit"
+  t_open:
+    rungs:
+      - {kind: role_name, role: button, name: "Create"}
+  t_continue:
+    rungs:
+      - {kind: role_name, role: button, name: "Submit"}

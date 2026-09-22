@@ -68,6 +68,10 @@ class RunContext:
     # run waits for a decision file, which is what an operator console would write.
     operator: object | None = None
     operator_timeout_s: float = 120.0
+    # A Tenant Overlay: appearance only. Linted before it is applied, so a patch that
+    # tried to add a transition, change the contract or widen needs is refused here
+    # rather than quietly taking effect.
+    overlay: dict | None = None
 
 
 def render(value: str, inputs: dict) -> str:
@@ -129,6 +133,15 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
             ctx.secrets.get(name)
         except MissingSecret:
             return evidence.refused(run_id, f"secret {name!r} does not resolve")
+
+    if ctx.overlay:
+        from .overlay import apply_overlay, lint_overlay
+        problems = lint_overlay(artifact, ctx.overlay)
+        if problems:
+            return evidence.refused(run_id, f"overlay rejected: {problems[0]}")
+        artifact = apply_overlay(artifact, ctx.overlay)
+        evidence.event(run_id, "overlay_applied", tenant=ctx.overlay.get("tenant"),
+                       targets=sorted(ctx.overlay.get("targets", {})))
 
     surface = Surface(ctx.origin, headless=ctx.headless, allowed_origins=[ctx.origin])
     try:
