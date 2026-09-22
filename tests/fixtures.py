@@ -153,6 +153,9 @@ _APP_PROFILE = {
     "readable_regions": ["t_balance", "t_new_number"],
     # pixels: deny-list — only these are painted black, or the model would be blinded
     "sensitive_regions": ["t_member_name", "t_member_since"],
+    # values during discovery, keyed by the caption a human reads: the goal needs these
+    # two and nothing else, so a member's name and date of birth stay hidden by default
+    "readable_anchors": ["Savings balance", "New account number"],
     "watchers": [
         {"id": "w_session_expired",
          "trigger": {"type": "text_present", "value": "session has expired"},

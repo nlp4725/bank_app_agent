@@ -97,13 +97,14 @@ class DiscoveryRequest:
     evidence_root: str = "runs"
     headless: bool = True
     secrets: object | None = None
-    # Masking is OFF for discovery. The demo app holds synthetic members, so there is
-    # nothing to protect, and masking can only cost accuracy: a value the model cannot
-    # read or a control it cannot see changes what it does. The machinery exists and is
-    # tested (tests/test_pii.py); turn these on for an environment that may hold real
-    # data. See CONTEXT.md, "Redaction" -> not yet wired into discovery.
-    mask_values: bool = False
-    mask_pixels: bool = False
+    # Masking is ON, in layers (see CONTEXT.md, "Redaction"):
+    #   structural — a password is never read, whatever is declared
+    #   origin     — a value is hidden unless its caption is a Readable Region
+    #   pattern    — what does flow through still passes the net
+    #   pixels     — declared Sensitive Regions are painted black at capture
+    # Pixels stay a deny-list: blacking out an undeclared control would blind the model.
+    mask_values: bool = True
+    mask_pixels: bool = True
 
 
 @dataclass
@@ -137,7 +138,8 @@ def observation(surface: Surface, readable: set[str], mask: bool = False) -> tup
         value = ""
         if c["role"] == "text":
             shown = (mask_value(c["anchor"], c["text"], readable) if mask else c["text"])
-            lines.append(f'[{c["index"]}] text  "{c["anchor"]}": {shown}   (readable)')
+            note = "" if shown == c["text"] else "   (masked)"
+            lines.append(f'[{c["index"]}] text  "{c["anchor"]}": {shown}{note}')
             continue
         if c["role"] in ("textbox", "combobox"):
             try:
@@ -165,7 +167,8 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
         return DiscoveryResult("refused", run_id, str(trace.dir), 0,
                                detail="production environment")
 
-    readable = set(request.app_profile.readable_regions if request.app_profile else [])
+    readable = set((request.app_profile.readable_anchors + request.app_profile.readable_regions)
+                   if request.app_profile else [])
     # Pixels use a declared deny-list rather than default-deny: painting every
     # undeclared control black would hide controls the model has to act on. This is
     # the residual risk recorded in docs/security-model.md.

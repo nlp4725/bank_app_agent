@@ -270,8 +270,11 @@ class AppProfile(Strict):
     # Masking is declared data, not code. The two channels take opposite defaults,
     # deliberately: hiding a VALUE costs nothing (the model needs structure, not
     # contents), but blacking out a CONTROL would blind it to something it must use.
-    readable_regions: list[str] = Field(default_factory=list)   # values: allowlist
+    readable_regions: list[str] = Field(default_factory=list)   # values: allowlist (by Target)
     sensitive_regions: list[str] = Field(default_factory=list)  # pixels: painted black
+    # During discovery there are no Targets yet, so the same allowlist is expressed by
+    # the caption a human reads beside the value.
+    readable_anchors: list[str] = Field(default_factory=list)
 
 
 def merged(artifact: Artifact, profile: AppProfile | None) -> Artifact:

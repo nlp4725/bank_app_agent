@@ -207,3 +207,13 @@ relation "nearest" rather than right_of — a nice illustration of why the relat
 part of the recording rather than an assumption.
 
 An Overlay that tries to add a transition is refused before the browser opens.
+
+## 2026-09-22 — masking back on for discovery, in four layers
+Turned it on and re-ran: goal still reached (14 turns), outputs still correct. The
+run is the argument — the model saw "Member name: (hidden)" and "Savings balance:
+$*,***.**" and worked fine, because what it needs is the LABEL that tells it which
+cell to read, not the value in it. The read action returns the true figure either way.
+
+One gap this exposed: readable_regions names Targets, which do not exist yet during
+discovery, so the same allowlist is also expressed by caption (readable_anchors).
+Same declaration, two keys, because the two phases know different things.

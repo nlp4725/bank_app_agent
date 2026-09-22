@@ -258,13 +258,33 @@ Where each channel stands:
 And above all of it: **discovery only ever runs against a Non-production Environment,
 and Replay calls no model at all**, so nothing leaves the institution during production.
 
-**Not yet wired in — deliberately.** The demo app holds synthetic members, so masking
-during discovery protects nothing and can only cost accuracy: a value the model cannot
-read, or a control it cannot see, changes what it does. Value and pixel masking are
-therefore **off** in `DiscoveryRequest` (`mask_values`, `mask_pixels`). The mechanism
-is built and tested (`tests/test_pii.py`); switching it on is a flag, and belongs with
-the first environment that may hold real data. Replay is unaffected — its evidence has
-been masked throughout.
+**Four layers, in order, during discovery.** Each catches what the one below cannot:
+
+```
+  1. STRUCTURAL   a password is never read, whatever anyone declared
+  2. ORIGIN       a value is hidden unless its caption is a Readable Region
+                  ← the only layer that can hide a name or a date of birth
+  3. PATTERN      what does come through still passes the net
+                  SSN · card · email · phone · date · currency
+  4. PIXELS       declared Sensitive Regions painted black at capture,
+                  cropped and downscaled
+```
+
+Measured on a real run with all four on, the model saw:
+
+```
+[5] text "Member name":      (hidden)     ← layer 2; no pattern could find a name
+[6] text "Member since":     (hidden)     ← nor a birthday
+[7] text "Savings balance":  $*,***.**    ← declared readable, still masked by layer 3
+[8] text "Checking balance": (hidden)     ← the goal does not need it
+```
+
+and still reached the goal: **the model needs the label to know which cell to read, not
+the value**, and the `read` action returns the true figure into outputs regardless.
+
+Layers 1–3 are an allowlist. Layer 4 is a deny-list, because painting every undeclared
+control black would blind the model to something it must click — which is why pixels
+remain the weaker channel and the residual risk.
 
 ### People and modes
 
