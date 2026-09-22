@@ -10,6 +10,10 @@ Lets AI agents operate legacy bank back-office apps that have no API: an LLM dis
 A versioned, reviewable recording of one task on one vendor app, holding both the contract (typed inputs, typed outputs, business outcomes) and the flow that fulfils it. Called a **Capability** when speaking from the Calling Agent's point of view — same object, not a separate thing.
 _Avoid_: Workflow, script, macro, recording, SOP
 
+**Capability Store**:
+Where approved Artifacts live and the one answer to "which Artifact is live?". Asked by capability id, it returns the approved version with its App Profile already merged, and knows each Tenant's address and Overlay. Every caller — the Replay Engine's entry points, the demo tools, the tests — asks it rather than opening a file, so there is one model of a capability and not two, and the tests exercise the Artifact that actually ships.
+_Avoid_: Registry, catalogue, repository
+
 **Contract**:
 The part of an Artifact a Calling Agent relies on: named, typed inputs; named, typed outputs; and the Outcome Codes it may return. Fixed by a Reviewer before discovery starts — never inferred from what happened during a run.
 _Avoid_: Signature, interface, schema (alone)
@@ -187,7 +191,7 @@ The login the automation uses on a Tenant's app, holding the narrowest role that
 _Avoid_: Bot user, robot account, credentials
 
 **Redaction Chokepoint**:
-The single function every log line, evidence file, screenshot and returned output passes through, and the same gate on the outbound path before screen content reaches a model. How it decides what to hide is below.
+The single module every log line, evidence file, screenshot and returned output passes through, and the same gate on the outbound path before screen content reaches a model. Built from the App Profile, so the four layers below apply identically to a Discovery Run's captures and to a replay's failure and intervention screenshots — no caller can capture around it. How it decides what to hide is below.
 
 **Readable Region**:
 A Target whose **value** may be seen — by the model, and in evidence. Everything else is hidden, so a screen nobody has reviewed is safe by default. Declared in the App Profile, because what is sensitive is a property of the app, not of one capability.

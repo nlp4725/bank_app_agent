@@ -5,20 +5,16 @@
 
 import urllib.request
 
-import yaml
-
-from cua.artifact import AppProfile, Artifact, merged
 from cua.engine import RunContext, replay
+from cua.store import load_capability, origin_for
 from cua.surface import Surface
-from tests.fixtures import app_profile_dict
 
-ORIGIN = "http://127.0.0.1:5001"
-ARTIFACT = "artifacts/open_sub_account.1.0.0.yaml"
+CAPABILITY = "member.open_sub_account"
+ORIGIN = origin_for("bank_a", "demo-core-servicing")
 
 
 def main():
-    art = merged(Artifact.model_validate(yaml.safe_load(open(ARTIFACT))),
-                 AppProfile.model_validate(app_profile_dict()))
+    art = load_capability(CAPABILITY)
 
     print("The search control, as the browser describes it")
     print("-" * 64)

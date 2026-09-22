@@ -1,0 +1,72 @@
+# What every capability on one vendor app shares. Session expiry, interstitials and
+# error pages are properties of the app, not of any one capability: learnt once, they
+# reach every Artifact. Owned by a Reviewer, read by the Replay Engine, the Discovery
+# Run and the tests alike — this file is the only App Profile for this vendor app.
+# See CONTEXT.md, "App Profile".
+app_profile: demo-core-servicing
+
+targets:
+  t_ok:
+    rungs: [{kind: role_name, role: button, name: OK}]
+  t_nav_search:
+    rungs: [{kind: role_name, role: link, name: Member Search}]
+  t_member_name:
+    rungs: [{kind: label_anchor, anchor: Member name}]
+  t_member_since:
+    rungs: [{kind: label_anchor, anchor: Member since}]
+
+# Default-deny: every value is hidden from the model and from evidence unless its
+# Target is listed here. t_member_name is deliberately absent — a name has no shape a
+# pattern could find, so origin is what hides it.
+readable_regions: [t_balance, t_new_number]
+
+# Pixels take the opposite default: only these are painted black, because blacking out
+# an undeclared control would blind the model to something it must act on.
+sensitive_regions: [t_member_name, t_member_since]
+
+# During discovery there are no Targets yet, so the same allowlist is expressed by the
+# caption a human reads beside the value. The goal needs these two and nothing else.
+readable_anchors: ["Savings balance", "New account number"]
+
+watchers:
+  # Not an escalation: we hold the service account credential, so the system can
+  # re-authenticate itself. Found by watching a run do exactly that after a human
+  # pressed Resume without typing anything. Budget 2 — if signing in twice does not
+  # fix it, something else is wrong and a person should look.
+  - id: w_session_expired
+    trigger: {type: text_present, value: session has expired}
+    condition: recoverable
+    budget: 2
+    reason: Session expired; sign in again with the service account.
+    provenance: reviewer:nasi
+
+  - id: w_system_notice
+    trigger: {type: text_present, value: System notice}
+    condition: recoverable
+    recovery: {type: click, target: t_ok}
+    budget: 2
+    provenance: discovery_run_1
+
+  - id: w_app_error
+    trigger: {type: text_present, value: Application error}
+    condition: recoverable
+    budget: 2
+    recovery: {type: click, target: t_nav_search}
+    resume_at: search_ready
+    provenance: discovery_run_1
+
+  # The one condition no Role can resolve: the credential belongs to a person.
+  - id: w_approval_required
+    trigger: {type: text_present, value: Supervisor approval required}
+    condition: escalate
+    reason: This member is flagged; only a supervisor may clear it.
+    operator_instruction: >-
+      Sign off on the screen in front of you with your own supervisor ID and PIN,
+      then Acknowledge. The run continues by itself once the flag is cleared. The
+      automation does not hold these credentials.
+    provenance: reviewer:nasi
+
+  - id: w_not_permitted
+    trigger: {type: text_present, value: not permitted to perform}
+    condition: hard_failure
+    provenance: reviewer:nasi

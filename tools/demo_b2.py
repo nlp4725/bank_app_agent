@@ -8,13 +8,12 @@ renamed the controls and moved the search icon — first without an Overlay, the
 
 import urllib.request
 
-import yaml
-
-from cua.artifact import AppProfile, Artifact, merged
 from cua.engine import RunContext, replay
-from tests.fixtures import app_profile_dict
+from cua.store import load_capability, origin_for, overlay_for
 
-BANK1, BANK2 = "http://127.0.0.1:5001", "http://127.0.0.1:5002"
+CAPABILITY = "member.open_sub_account"
+BANK1 = origin_for("bank_a", "demo-core-servicing")
+BANK2 = origin_for("lakeside", "demo-core-servicing")
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "B2 demo"}
 
 
@@ -24,10 +23,8 @@ def run(art, origin, tenant, overlay=None):
 
 
 def main():
-    art = merged(Artifact.model_validate(
-        yaml.safe_load(open("artifacts/open_sub_account.1.0.0.yaml"))),
-        AppProfile.model_validate(app_profile_dict()))
-    overlay = yaml.safe_load(open("overlays/lakeside.yaml"))
+    art = load_capability(CAPABILITY)
+    overlay = overlay_for("lakeside")
 
     print("1. First Credit Union — the institution it was recorded on")
     print(f"   {run(art, BANK1, 'bank_a')}\n")

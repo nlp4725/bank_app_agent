@@ -13,6 +13,7 @@ Condition in the error taxonomy.
 import os
 import random
 import time
+from functools import wraps
 
 from flask import (
     Flask,
@@ -83,10 +84,34 @@ def can_open_accounts():
     return bool(user and user["can_open_accounts"])
 
 
+def requires_login(view):
+    """The guard that was copied into eight routes."""
+    @wraps(view)
+    def guarded(*args, **kwargs):
+        if not logged_in():
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return guarded
+
+
+def requires_officer(view):
+    """And the one that was copied into three. The application itself refuses, which
+    is what makes a read-only Service Account meaningful."""
+    @wraps(view)
+    def guarded(*args, **kwargs):
+        if not can_open_accounts():
+            return render_template("not_permitted.html")
+        return view(*args, **kwargs)
+    return guarded
+
+
+def no_such_member():
+    return render_template("search.html", message=data.NO_RECORDS)
+
+
 @app.route("/")
+@requires_login
 def index():
-    if not logged_in():
-        return redirect(url_for("login"))
     return redirect(url_for("search"))
 
 
@@ -110,51 +135,68 @@ def logout():
 
 
 @app.route("/search", methods=["GET"])
+@requires_login
 def search():
-    if not logged_in():
-        return redirect(url_for("login"))
     return render_template("search.html", message=None)
 
 
+def _session_expired(number):
+    session.clear()
+    return render_template("login.html",
+                           message="Your session has expired. Please sign in again.")
+
+
+def _transient_error(number):
+    response = make_response(render_template("app_error.html", transient=True))
+    response.status_code = 200  # legacy apps love a 200 with an error page
+    return response
+
+
+# One row per Condition the search submission can raise: which scenario, whether it
+# fires only on the first visit, and what the app puts on screen. A new Condition is
+# a row here rather than another branch in the middle of a route.
+LOOKUP_SCENARIOS = (
+    (data.SCENARIO_NOT_AUTHORIZED, False,
+     lambda n: render_template("not_authorized.html", number=n)),
+    (data.SCENARIO_SESSION_EXPIRY, True, _session_expired),
+    (data.SCENARIO_TRANSIENT, True, _transient_error),
+    (data.SCENARIO_APPROVAL, True,
+     lambda n: render_template("approval_required.html", number=n)),
+    (data.SCENARIO_NOTICE, True, lambda n: render_template("notice.html", number=n)),
+)
+
+
+def scenario_response(member, number):
+    """What this member's scenario does here, or None to carry on normally."""
+    for scenario, once, respond in LOOKUP_SCENARIOS:
+        if member["scenario"] != scenario:
+            continue
+        if once and not store.fire_once(scenario, number):
+            return None
+        return respond(number)
+    return None
+
+
 @app.route("/members", methods=["POST"])
+@requires_login
 def member_lookup():
     """Search submission. Scenarios fire here, before the detail page."""
-    if not logged_in():
-        return redirect(url_for("login"))
-
     number = (request.form.get(ctl("member"), "") or "").strip()
     member = store.get(number)
-
     if member is None:
-        return render_template("search.html", message="No records found")
+        return no_such_member()
 
-    scenario = member["scenario"]
-
-    if scenario == data.SCENARIO_NOT_AUTHORIZED:
-        return render_template("not_authorized.html", number=number)
-
-    if scenario == data.SCENARIO_SESSION_EXPIRY and store.fire_once(f"expiry:{number}"):
-        session.clear()
-        return render_template("login.html", message="Your session has expired. Please sign in again.")
-
-    if scenario == data.SCENARIO_TRANSIENT and store.fire_once(f"transient:{number}"):
-        response = make_response(render_template("app_error.html", transient=True))
-        response.status_code = 200  # legacy apps love a 200 with an error page
-        return response
-
-    if scenario == data.SCENARIO_NOTICE and store.fire_once(f"notice:{number}"):
-        return render_template("notice.html", number=number)
-
-    return redirect(url_for("member_detail", number=number))
+    raised = scenario_response(member, number)
+    return raised if raised is not None else redirect(
+        url_for("member_detail", number=number))
 
 
 @app.route("/members/<number>")
+@requires_login
 def member_detail(number):
-    if not logged_in():
-        return redirect(url_for("login"))
     member = store.get(number)
     if member is None:
-        return render_template("search.html", message="No records found")
+        return no_such_member()
     return render_template("member.html", number=number, member=member)
 
 
@@ -174,23 +216,19 @@ def member_panel(number):
 
 
 @app.route("/members/<number>/subaccounts/new", methods=["GET"])
+@requires_login
+@requires_officer
 def subaccount_new(number):
-    if not logged_in():
-        return redirect(url_for("login"))
-    if not can_open_accounts():
-        return render_template("not_permitted.html")
     member = store.get(number)
     if member is None:
-        return render_template("search.html", message="No records found")
+        return no_such_member()
     return render_template("subaccount_new.html", number=number, member=member, message=None)
 
 
 @app.route("/members/<number>/subaccounts/review", methods=["POST"])
+@requires_login
+@requires_officer
 def subaccount_review(number):
-    if not logged_in():
-        return redirect(url_for("login"))
-    if not can_open_accounts():
-        return render_template("not_permitted.html")
     member = store.get(number)
     account_type = request.form.get(ctl("acct_type"), "")
     nickname = (request.form.get(ctl("nickname"), "") or "").strip()
@@ -213,12 +251,10 @@ def subaccount_review(number):
 
 
 @app.route("/members/<number>/subaccounts/commit", methods=["POST"])
+@requires_login
+@requires_officer
 def subaccount_commit(number):
     """The Consequential Action: this really creates the account."""
-    if not logged_in():
-        return redirect(url_for("login"))
-    if not can_open_accounts():
-        return render_template("not_permitted.html")
 
     member = store.get(number)
     account_type = request.form.get(ctl("acct_type"), "")
@@ -236,6 +272,21 @@ def subaccount_commit(number):
         "subaccount_done.html", number=number, member=member,
         account_type=account_type, nickname=nickname, new_number=new_number,
     )
+
+
+@app.route("/members/approve", methods=["POST"])
+@requires_login
+def approve_flag():
+    """Clearing a flag needs a supervisor's own ID and PIN, not a service account."""
+    number = request.form.get(ctl("member"), "")
+    supervisor = request.form.get(ctl("sup"), "")
+    pin = request.form.get(ctl("pin"), "")
+    if data.SUPERVISORS.get(supervisor) != pin:
+        return render_template("approval_required.html", number=number,
+                               message="Supervisor ID or PIN not recognised.")
+    store.clear(data.SCENARIO_APPROVAL, number)   # the flag is cleared for this member
+    store.approvals.append({"member": number, "by": supervisor})
+    return redirect(url_for("member_detail", number=number))
 
 
 @app.route("/admin")

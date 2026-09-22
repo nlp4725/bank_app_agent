@@ -9,6 +9,13 @@ import urllib.request
 
 import pytest
 
+from cua.artifact import Artifact, merged
+from cua.profile import load_profile
+
+from .fixtures import artifact_dict
+
+VENDOR_APP = "demo-core-servicing"
+
 PORT = 5099
 ORIGIN = f"http://127.0.0.1:{PORT}"
 
@@ -66,3 +73,13 @@ def reset_app(request):
         if name in request.fixturenames:
             urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
     yield
+
+
+@pytest.fixture
+def artifact():
+    """The hand-written reference Artifact, with its App Profile merged.
+
+    One definition: four test modules used to carry a copy of this, and they drifted
+    apart the moment the App Profile moved.
+    """
+    return merged(Artifact.model_validate(artifact_dict()), load_profile(VENDOR_APP))

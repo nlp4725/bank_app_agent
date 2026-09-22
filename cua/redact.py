@@ -51,3 +51,75 @@ def mask_value(target_name: str | None, value: str, readable: set[str],
     if target_name and target_name in readable:
         return redact_text(value)      # readable, but still through the net
     return HIDDEN
+
+
+class Redactor:
+    """The Redaction Chokepoint: one module every channel passes through.
+
+    The four layers of CONTEXT.md, "Redaction", in one place — structural (a password
+    is never read), origin (a value is hidden unless its Target is a Readable Region),
+    pattern (the net under what does come through), and pixels (declared Sensitive
+    Regions painted black at capture). Built from the App Profile, because what is
+    sensitive is a property of the app, not of one capability.
+
+    Pixels alone are a deny-list, deliberately: hiding a value costs nothing, but
+    blacking out a control the model must act on would blind it. That asymmetry is
+    the residual risk recorded in docs/security-model.md.
+    """
+
+    def __init__(self, profile=None, *, mask_values: bool = True, mask_pixels: bool = True):
+        self.profile = profile
+        self.mask_values = mask_values
+        self.mask_pixels = mask_pixels
+
+    # ── what a value is allowed to be ────────────────────────────────────────
+
+    @property
+    def readable(self) -> set[str]:
+        if self.profile is None:
+            return set()
+        return set(self.profile.readable_regions) | set(self.profile.readable_anchors)
+
+    def text(self, value: str) -> str:
+        return redact_text(value)
+
+    def fields(self, value, keep_values: bool = False):
+        """Log fields and returned outputs. Outputs are the answer, so they pass
+        through in full; the record of them is masked."""
+        return redact(value, keep_values=keep_values)
+
+    def value(self, anchor: str | None, raw: str, is_password: bool = False) -> str:
+        """One value on screen, on its way to a model or to evidence."""
+        if not self.mask_values:
+            return PROTECTED if is_password else raw
+        return mask_value(anchor, raw, self.readable, is_password=is_password)
+
+    # ── pixels ───────────────────────────────────────────────────────────────
+
+    def masked_targets(self) -> list:
+        if self.profile is None or not self.mask_pixels:
+            return []
+        return [self.profile.targets[name] for name in self.profile.sensitive_regions
+                if name in self.profile.targets]
+
+    def screenshot(self, surface, path: str, scale: str = "css") -> str:
+        """Capture with the declared Sensitive Regions already black.
+
+        Text redaction cannot clean pixels, so this happens at capture rather than
+        afterwards — and it happens here, so no caller can capture around it.
+        """
+        try:
+            surface.screenshot(path, mask_targets=self.masked_targets(), scale=scale)
+        except Exception:
+            return ""
+        return path
+
+
+def for_app(vendor_app: str, **flags) -> Redactor:
+    """The Redactor for one vendor app. An app with no Profile still gets the text
+    and pattern layers, never nothing."""
+    from .profile import UnknownProfile, load_profile
+    try:
+        return Redactor(load_profile(vendor_app), **flags)
+    except UnknownProfile:
+        return Redactor(None, **flags)

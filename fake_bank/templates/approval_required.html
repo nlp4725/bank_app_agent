@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block body %}
+<div class="panel">
+<h2>Supervisor approval required</h2>
+<div class="msg">Member {{ number }} is flagged. A supervisor must sign off before
+servicing can continue. Service accounts cannot clear a flag.</div>
+{% if message %}<div class="err">{{ message }}</div>{% endif %}
+<form method="post" action="/members/approve">
+<input type="hidden" name="{{ ctl('member') }}" value="{{ number }}">
+<table><tr>
+  <td class="c1">Supervisor ID</td>
+  <td class="c1"><input type="text" name="{{ ctl('sup') }}" size="18"></td>
+</tr><tr>
+  <td class="c1">PIN</td>
+  <td class="c1"><input type="password" name="{{ ctl('pin') }}" size="10"></td>
+</tr><tr>
+  <td class="c1"></td>
+  <td class="c1"><input class="btn" type="submit" value="Acknowledge"></td>
+</tr></table>
+</form>
+</div>
+{% endblock %}

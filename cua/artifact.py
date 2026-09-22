@@ -218,6 +218,9 @@ class Watcher(Strict):
     resume_at: str | None = None   # which State to continue from after a recovery
     extract: dict[str, Extract] = Field(default_factory=dict)
     reason: str | None = None
+    # What to tell the Operator, in their words. Data, so a Reviewer writes it once
+    # and every escalation on this screen says the same thing.
+    operator_instruction: str | None = None
     provenance: str
 
 

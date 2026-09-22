@@ -11,19 +11,14 @@ from pathlib import Path
 import pytest
 
 from cua.artifact import AppProfile, Artifact, merged
+from cua.profile import load_profile
 from cua.engine import RunContext, replay
 from cua.policy import Policy, load_baseline, load_tenant_policy
 
-from .fixtures import app_profile_dict, artifact_dict
+from .fixtures import artifact_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 CUA = Path(__file__).resolve().parent.parent / "cua"
-
-
-@pytest.fixture
-def artifact():
-    return merged(Artifact.model_validate(artifact_dict()),
-                  AppProfile.model_validate(app_profile_dict()))
 
 
 # ── the front door ────────────────────────────────────────────────────────────
@@ -37,7 +32,7 @@ def test_a_capability_whose_role_the_tenant_has_not_granted_is_refused(artifact,
 def test_needs_outside_the_tenants_grant_are_refused(artifact, bank_app):
     d = artifact_dict()
     d["needs"]["pages"] = d["needs"]["pages"] + ["/transfers/*"]
-    art = merged(Artifact.model_validate(d), AppProfile.model_validate(app_profile_dict()))
+    art = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
     r = replay(art, INPUTS, RunContext(origin=bank_app))
     assert r.status == "refused"
     assert "/transfers/*" in r.reason
@@ -46,7 +41,7 @@ def test_needs_outside_the_tenants_grant_are_refused(artifact, bank_app):
 def test_an_action_type_the_baseline_forbids_is_refused(artifact, bank_app):
     d = artifact_dict()
     d["needs"]["actions"] = d["needs"]["actions"] + ["download"]
-    art = merged(Artifact.model_validate(d), AppProfile.model_validate(app_profile_dict()))
+    art = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
     r = replay(art, INPUTS, RunContext(origin=bank_app))
     assert r.status == "refused"
     assert "download" in r.reason
@@ -177,3 +172,48 @@ def test_only_the_surface_module_touches_playwright():
         if path.name == "surface.py":
             continue
         assert "playwright" not in imports_of(path), f"{path.name} imports playwright"
+
+
+# ── the Surface seam: two interfaces, and nothing reaching past them ──────────
+
+ACTING = {"origin", "allowed_origins", "blocked_requests", "url", "goto", "text",
+          "wait", "close", "screenshot", "resolve", "click", "type", "select",
+          "read", "value_of", "frame_urls"}
+
+
+def _attributes_used_on(path, variable):
+    """Every `variable.X` in a module, statically."""
+    import ast
+    tree = ast.parse(Path(path).read_text())
+    return {n.attr for n in ast.walk(tree)
+            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
+            and n.value.id == variable}
+
+
+def test_the_replay_path_uses_only_the_acting_interface():
+    """Not 'it happens to work' — the engine may not reach for a driver object.
+
+    This is the assertion that makes a scripted Surface possible: the engine used to
+    read `surface.page.frames` and call the private `_tick`.
+    """
+    used = _attributes_used_on(CUA / "engine.py", "surface")
+    assert used <= ACTING, f"the engine reaches past the acting interface: {used - ACTING}"
+
+
+def test_the_predicate_evaluator_needs_only_four_observations():
+    used = _attributes_used_on(CUA / "predicates.py", "surface")
+    assert used <= {"text", "url", "resolve", "value_of", "wait", "goto"}, used
+
+
+def test_the_recording_interface_does_not_offer_the_acting_one():
+    """A Discovery Run enumerates and describes; it does not get a driver handle."""
+    from cua.surface import RecordingSurface
+    for name in ("resolve", "click", "type", "select", "read", "value_of", "page"):
+        assert not hasattr(RecordingSurface, name), \
+            f"RecordingSurface exposes {name!r}, so the union interface is back"
+
+
+def test_discovery_acts_through_the_recording_interface_not_on_a_locator():
+    used = _attributes_used_on(CUA / "discovery.py", "surface")
+    assert "act_on" in used
+    assert not ({"click", "type", "select", "read", "page"} & used), used

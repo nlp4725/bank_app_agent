@@ -8,9 +8,10 @@ import pytest
 from pydantic import ValidationError
 
 from cua.artifact import AppProfile, Artifact, Watcher, merged
+from cua.profile import load_profile
 from cua.redact import HIDDEN, PROTECTED, mask_value, redact_text
 
-from .fixtures import app_profile_dict, artifact_dict
+from .fixtures import artifact_dict
 
 
 # ── by origin: what patterns cannot catch ────────────────────────────────────
@@ -87,7 +88,7 @@ def test_an_extract_pattern_without_a_capture_group_is_rejected():
 # ── declared regions live in the App Profile, reviewable as data ─────────────
 
 def test_readable_regions_are_declared_on_the_app_profile():
-    profile = AppProfile.model_validate(app_profile_dict())
+    profile = load_profile("demo-core-servicing")
     assert "t_balance" in profile.readable_regions
     assert "t_member_name" not in profile.readable_regions
 
@@ -96,7 +97,7 @@ def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
     """Masking protects the record, never the answer."""
     from cua.engine import RunContext, replay
     art = merged(Artifact.model_validate(artifact_dict()),
-                 AppProfile.model_validate(app_profile_dict()))
+                 load_profile("demo-core-servicing"))
     r = replay(art, {"member_number": "12345", "account_type": "savings",
                      "nickname": "Holiday fund"}, RunContext(origin=bank_app))
     assert r.outputs["savings_balance"] == "$4210.00"
@@ -105,7 +106,7 @@ def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
 # ── the two channels take opposite defaults, on purpose ──────────────────────
 
 def test_values_are_allowlisted_but_pixels_are_deny_listed():
-    profile = AppProfile.model_validate(app_profile_dict())
+    profile = load_profile("demo-core-servicing")
     assert profile.readable_regions == ["t_balance", "t_new_number"]
     assert profile.sensitive_regions == ["t_member_name", "t_member_since"]
     # a control the model must use is readable in pixels though its value is hidden
@@ -115,7 +116,7 @@ def test_values_are_allowlisted_but_pixels_are_deny_listed():
 
 def test_a_declared_sensitive_region_is_painted_black(bank_app):
     from cua.surface import Surface
-    profile = AppProfile.model_validate(app_profile_dict())
+    profile = load_profile("demo-core-servicing")
     masked = [profile.targets[n] for n in profile.sensitive_regions if n in profile.targets]
     surface = Surface(bank_app)
     try:
@@ -132,3 +133,47 @@ def test_a_declared_sensitive_region_is_painted_black(bank_app):
         assert open("/tmp/_plain.png", "rb").read() != open("/tmp/_masked.png", "rb").read()
     finally:
         surface.close()
+
+
+# ── the chokepoint is one module, and replay goes through it too ─────────────
+
+def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
+    """The gap this closed: EvidenceWriter.snap used to capture unmasked, so a
+    failure screenshot and an Operator's intervention bypassed layer 4."""
+    from cua.evidence import EvidenceWriter
+    from cua.redact import for_app
+
+    redactor = for_app("demo-core-servicing")
+    assert len(redactor.masked_targets()) == 2
+
+    class Recorder:
+        """Stands in for the browser: records what it was asked to mask."""
+        def __init__(self): self.asked = None
+        def screenshot(self, path, mask_targets=None, scale="css"):
+            self.asked = mask_targets
+            pathlib_write(path)
+
+    def pathlib_write(path):
+        from pathlib import Path
+        Path(path).write_bytes(b"png")
+
+    surface = Recorder()
+    writer = EvidenceWriter(tmp(), None, redactor=redactor)
+    writer.snap(surface)
+    writer.close()
+    assert surface.asked and len(surface.asked) == 2, \
+        "a replay screenshot was captured without the declared Sensitive Regions"
+
+
+def test_a_writer_with_no_profile_still_masks_text_and_patterns():
+    from cua.evidence import EvidenceWriter
+    writer = EvidenceWriter(tmp(), None)
+    record = writer.event("run_x", "observed", note="card 4111 1111 1111 1111")
+    writer.close()
+    assert "[card]" in record["note"]
+
+
+def tmp():
+    import tempfile
+    from pathlib import Path
+    return Path(tempfile.mkdtemp())

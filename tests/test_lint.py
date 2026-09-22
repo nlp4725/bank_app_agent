@@ -5,10 +5,11 @@ frozen into the recording, a placeholder nothing fills, an outcome promised to t
 caller that nothing can produce.
 """
 
+from cua.profile import load_profile
 from cua.artifact import Artifact
 from cua.lint import lint
 
-from .fixtures import app_profile_dict, artifact_dict, overlay_dict
+from .fixtures import artifact_dict, overlay_dict
 
 
 def transition_to(d, target):
@@ -163,7 +164,7 @@ def test_an_overlay_cannot_widen_needs():
 def test_app_wide_watchers_reach_every_artifact():
     from cua.artifact import AppProfile, merged
     art = Artifact.model_validate(artifact_dict())
-    profile = AppProfile.model_validate(app_profile_dict())
+    profile = load_profile("demo-core-servicing")
     assert [w.id for w in art.watchers] == ["w_not_found", "w_not_authorized", "w_validation"]
     full = merged(art, profile)
     assert "w_session_expired" in [w.id for w in full.watchers]
@@ -178,7 +179,7 @@ def test_an_artifacts_own_watcher_wins_over_the_profiles():
         "id": "w_system_notice",
         "trigger": {"type": "text_present", "value": "System notice for this capability"},
         "condition": "hard_failure", "provenance": "reviewer:nasi"})
-    full = merged(Artifact.model_validate(d), AppProfile.model_validate(app_profile_dict()))
+    full = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
     notice = [w for w in full.watchers if w.id == "w_system_notice"]
     assert len(notice) == 1
     assert notice[0].condition == "hard_failure"      # the artifact's, not the profile's
@@ -187,7 +188,7 @@ def test_an_artifacts_own_watcher_wins_over_the_profiles():
 def test_a_profile_for_another_app_is_refused():
     import pytest
     from cua.artifact import AppProfile, merged
-    p = app_profile_dict()
+    p = load_profile("demo-core-servicing").model_dump(mode="python")
     p["app_profile"] = "some-other-product"
     with pytest.raises(ValueError):
         merged(Artifact.model_validate(artifact_dict()), AppProfile.model_validate(p))

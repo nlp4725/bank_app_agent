@@ -4,6 +4,9 @@ An LLM discovers how a task is done in a legacy bank application once; the run i
 compiled into a reviewable **Artifact**; thereafter the **Replay Engine** executes it
 deterministically, with no model in the loop.
 
+Write-up: **[REPORT.md](./REPORT.md)** · worked runs: **[evidence/](./evidence/)** (a real
+discovery run, and five replays including an escalation, a business outcome and a refusal).
+
 Design: [CONTEXT.md](./CONTEXT.md) (language) · [docs/PRD.md](./docs/PRD.md) ·
 [docs/error-taxonomy.md](./docs/error-taxonomy.md) · [docs/security-model.md](./docs/security-model.md) ·
 [docs/adr](./docs/adr) (decisions)
@@ -33,8 +36,9 @@ Member numbers select the scenario:
 | 22222 | "not authorized to view" | Business Outcome |
 | 54321 | system notice once, then normal | Recoverable (interstitial) |
 | 77777 | application error once, then normal | Recoverable (transient) |
-| 88888 | session expires | Escalate |
+| 88888 | session expires | Recoverable — the system signs in again |
 | 66666 | balances panel takes 3s | Recoverable (slow load) |
-| 33333 | already holds 3 sub-accounts | Business Outcome on commit |
+| 44444 | flagged: needs a supervisor ID + PIN | Escalate — automation holds no such credential |
+| 33333 | already holds 3 sub-accounts | held out: Unknown State on commit |
 
 `GET /reset` restores the seed data so runs are repeatable.

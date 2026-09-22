@@ -2,7 +2,7 @@
 # this file; in the demo it stands in for them.
 tenant: bank_a
 vendor_app: demo-core-servicing
-origin: http://127.0.0.1:5099
+origin: http://127.0.0.1:5001
 environment: non_production
 
 roles_granted:

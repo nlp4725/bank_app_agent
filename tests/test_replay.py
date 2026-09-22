@@ -7,19 +7,12 @@ expect MEMBER_NOT_FOUND" with nothing mocked.
 import pytest
 
 from cua.artifact import AppProfile, Artifact, merged
+from cua.profile import load_profile
 from cua.engine import RunContext, replay
 
-from .fixtures import app_profile_dict, artifact_dict
+from .fixtures import artifact_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
-
-
-@pytest.fixture
-def artifact():
-    return merged(
-        Artifact.model_validate(artifact_dict()),
-        AppProfile.model_validate(app_profile_dict()),
-    )
 
 
 def run(artifact, bank_app, member=None, attended=False, **overrides):
@@ -91,13 +84,27 @@ def test_a_slow_panel_is_waited_out_rather_than_slept_through(artifact, bank_app
     assert r.outputs["savings_balance"] == "$44.00"
 
 
-# ── escalation ────────────────────────────────────────────────────────────────
+# ── recovery and escalation ───────────────────────────────────────────────────
 
-def test_session_expiry_escalates_and_fails_when_no_operator_is_available(artifact, bank_app):
+def test_an_expired_session_is_signed_into_again_by_the_system(artifact, bank_app):
+    """The automation holds this credential, so no person is needed: Recoverable.
+
+    Nothing re-types the password by hand — the run re-observes, finds itself on the
+    sign-in screen, and walks the Artifact's own login transitions again.
+    """
     r = run(artifact, bank_app, "88888", attended=False)
+    assert r.status == "succeeded", r
+    events = [e["event"] for e in r.trail]
+    assert "watcher_matched" in events
+    assert "recovered" in events
+
+
+def test_a_flagged_member_escalates_and_fails_when_no_operator_is_available(artifact, bank_app):
+    """A supervisor ID and PIN belong to a person; no Role holds them."""
+    r = run(artifact, bank_app, "44444", attended=False)
     assert r.status == "failed"
     assert r.reason == "escalation_required"
-    assert r.watcher == "w_session_expired"
+    assert r.watcher == "w_approval_required"
 
 
 # ── the held-out condition ────────────────────────────────────────────────────
@@ -126,7 +133,7 @@ def test_an_input_failing_its_pattern_is_refused_before_the_browser_opens(artifa
 def test_a_draft_artifact_is_refused_for_an_unattended_run(artifact, bank_app):
     d = artifact_dict()
     d["capability"]["status"] = "draft"
-    draft = merged(Artifact.model_validate(d), AppProfile.model_validate(app_profile_dict()))
+    draft = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
     r = run(draft, bank_app, "12345")
     assert r.status == "refused"
     assert "approved" in r.reason

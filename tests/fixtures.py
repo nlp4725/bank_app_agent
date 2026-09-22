@@ -1,4 +1,8 @@
-"""The hand-written Artifact for `open_sub_account`, and the App Profile it runs under.
+"""The hand-written Artifact for `open_sub_account`, and a test-only Tenant Overlay.
+
+The App Profile that used to live here now has a home of its own —
+`config/profiles/demo-core-servicing.yaml`, read through `cua.profile.load_profile` —
+because it is governance data a Reviewer owns, not test scaffolding.
 
 Every Target here was checked against the running demo app with
 `tools/a11y_dump.py`: rung 1 (role+name) resolves buttons and links only, so every
@@ -138,47 +142,6 @@ _ARTIFACT = {
     },
 }
 
-_APP_PROFILE = {
-    "app_profile": "demo-core-servicing",
-    "targets": {
-        "t_ok": {"rungs": [{"kind": "role_name", "role": "button", "name": "OK"}]},
-        "t_nav_search": {"rungs": [{"kind": "role_name", "role": "link", "name": "Member Search"}]},
-        "t_member_name": {"rungs": [{"kind": "label_anchor", "anchor": "Member name"}]},
-        "t_member_since": {"rungs": [{"kind": "label_anchor", "anchor": "Member since"}]},
-    },
-    # Default-deny: every value is hidden from the model and from evidence unless its
-    # Target is listed here. t_member_name is deliberately absent — a name has no
-    # shape a pattern could find, so origin is what hides it.
-    # values: allowlist — everything else is hidden, which is what catches a name
-    "readable_regions": ["t_balance", "t_new_number"],
-    # pixels: deny-list — only these are painted black, or the model would be blinded
-    "sensitive_regions": ["t_member_name", "t_member_since"],
-    # values during discovery, keyed by the caption a human reads: the goal needs these
-    # two and nothing else, so a member's name and date of birth stay hidden by default
-    "readable_anchors": ["Savings balance", "New account number"],
-    "watchers": [
-        {"id": "w_session_expired",
-         "trigger": {"type": "text_present", "value": "session has expired"},
-         "condition": "escalate", "reason": "An Operator must sign in again.",
-         "provenance": "reviewer:nasi"},
-        {"id": "w_system_notice",
-         "trigger": {"type": "text_present", "value": "System notice"},
-         "condition": "recoverable",
-         "recovery": {"type": "click", "target": "t_ok"}, "budget": 2,
-         "provenance": "discovery_run_1"},
-        {"id": "w_app_error",
-         "trigger": {"type": "text_present", "value": "Application error"},
-         "condition": "recoverable", "budget": 2,
-         "recovery": {"type": "click", "target": "t_nav_search"},
-         "resume_at": "search_ready",
-         "provenance": "discovery_run_1"},
-        {"id": "w_not_permitted",
-         "trigger": {"type": "text_present", "value": "not permitted to perform"},
-         "condition": "hard_failure",
-         "provenance": "reviewer:nasi"},
-    ],
-}
-
 _OVERLAY = {
     "base_artifact": "member.open_sub_account@1.0.0",
     "tenant": "bank_b",
@@ -199,10 +162,6 @@ _OVERLAY = {
 
 def artifact_dict():
     return deepcopy(_ARTIFACT)
-
-
-def app_profile_dict():
-    return deepcopy(_APP_PROFILE)
 
 
 def overlay_dict():

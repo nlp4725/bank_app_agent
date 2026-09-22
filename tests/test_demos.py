@@ -7,22 +7,18 @@ B2: one artifact recorded at one institution runs at another with a small Overla
 import urllib.request
 
 import pytest
-import yaml
 
-from cua.artifact import AppProfile, Artifact, merged
 from cua.engine import RunContext, replay
+from cua.store import load_capability, overlay_for
 from cua.surface import Surface
-
-from .fixtures import app_profile_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Demo run"}
 
 
 @pytest.fixture
 def approved():
-    return merged(
-        Artifact.model_validate(yaml.safe_load(open("artifacts/open_sub_account.1.0.0.yaml"))),
-        AppProfile.model_validate(app_profile_dict()))
+    """The Artifact that actually ships — asked for by name, not opened by path."""
+    return load_capability("member.open_sub_account")
 
 
 def run(art, origin, tenant, overlay=None):
@@ -61,7 +57,7 @@ def test_the_artifact_fails_at_the_second_institution_without_an_overlay(approve
 
 
 def test_the_same_artifact_succeeds_there_with_an_overlay(approved, bank2_app):
-    overlay = yaml.safe_load(open("overlays/lakeside.yaml"))
+    overlay = overlay_for("lakeside")
     r = run(approved, bank2_app, "lakeside", overlay)
     assert r.status == "succeeded", r
     assert r.outputs["savings_balance"] == "$4210.00"
@@ -69,7 +65,7 @@ def test_the_same_artifact_succeeds_there_with_an_overlay(approved, bank2_app):
 
 
 def test_an_overlay_that_changes_behaviour_is_refused_before_the_browser_opens(approved, bank2_app):
-    overlay = yaml.safe_load(open("overlays/lakeside.yaml"))
+    overlay = overlay_for("lakeside")
     overlay["transitions"] = [{"from_state": "s1_login", "to_state": "s2_search",
                                "action": {"type": "click", "target": "t_open"}}]
     r = run(approved, bank2_app, "lakeside", overlay)

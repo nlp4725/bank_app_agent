@@ -8,14 +8,15 @@ from pathlib import Path
 
 import yaml
 
-from cua.artifact import AppProfile, Artifact, merged
+from cua.artifact import Artifact, merged
 from cua.engine import RunContext, replay
+from cua.profile import load_profile
 from cua.recorder import record_from_run
 from cua.review import apply_decisions, approve
-from tests.fixtures import app_profile_dict
+from cua.store import origin_for
 from tools.discover import CONTRACT
 
-ORIGIN = "http://127.0.0.1:5001"
+ORIGIN = origin_for("bank_a", "demo-core-servicing")
 VERIFY_INPUTS = {"member_number": "12345",      # NOT the member discovery used
                  "account_type": "savings", "nickname": "Verify run"}
 
@@ -39,7 +40,7 @@ def main():
           f"{len(candidate['watchers'])} watchers, "
           f"{sum(1 for t in candidate['transitions'] if t['risk'] == 'consequential')} consequential")
 
-    profile = AppProfile.model_validate(app_profile_dict())
+    profile = load_profile("demo-core-servicing")
 
     def verify(art: Artifact):
         import urllib.request

@@ -8,15 +8,19 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .redact import redact
+from .redact import Redactor
 from .result import RunResult
 
 
 class EvidenceWriter:
-    def __init__(self, directory: Path, artifact):
+    def __init__(self, directory: Path, artifact, redactor: Redactor | None = None):
         self.dir = Path(directory)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.artifact = artifact
+        # Every line and every image leaves through this one object. A writer built
+        # without one still masks text and patterns; it simply knows of no Sensitive
+        # Regions, because nobody told it which app it is writing about.
+        self.redactor = redactor or Redactor()
         self.trail = []
         self._fh = (self.dir / "trail.jsonl").open("a")
         self._shots = 0
@@ -26,7 +30,7 @@ class EvidenceWriter:
             "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
             "run_id": run_id,
             "event": event,
-            **redact(fields),
+            **self.redactor.fields(fields),
         }
         self.trail.append(record)
         self._fh.write(json.dumps(record) + "\n")
@@ -34,13 +38,14 @@ class EvidenceWriter:
         return record
 
     def snap(self, surface) -> str:
+        """A screenshot, with the declared Sensitive Regions already painted black.
+
+        This is the path a failure and an Operator intervention take, so it goes
+        through the same gate as a Discovery Run's captures rather than around it.
+        """
         self._shots += 1
         path = self.dir / f"screen_{self._shots}.png"
-        try:
-            surface.screenshot(str(path))
-        except Exception:
-            return ""
-        return str(path)
+        return self.redactor.screenshot(surface, str(path))
 
     # ── results ──────────────────────────────────────────────────────────────
 
@@ -53,7 +58,8 @@ class EvidenceWriter:
 
     def succeeded(self, run_id, outputs, **extra):
         return self._finish(RunResult(status="succeeded", run_id=run_id,
-                                      outputs=redact(outputs, keep_values=True), **extra))
+                                      outputs=self.redactor.fields(outputs, keep_values=True),
+                                      **extra))
 
     def business_outcome(self, run_id, spec):
         return self._finish(RunResult(

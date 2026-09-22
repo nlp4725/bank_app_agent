@@ -22,8 +22,8 @@ import anthropic
 from .artifact import AppProfile
 from .evidence import EvidenceWriter
 from .policy import policy_for
-from .redact import PROTECTED, mask_value, redact_text
-from .surface import Surface
+from .redact import PROTECTED, Redactor, for_app
+from .surface import RecordingSurface, Surface
 
 MODEL = os.environ.get("DISCOVERY_MODEL", "claude-opus-5")
 MAX_TURNS = 24
@@ -112,6 +112,7 @@ class DiscoveryRequest:
     mask_values: bool = True
     mask_pixels: bool = True
     verbose: bool = False      # narrate each turn to the console
+    slow_mo_ms: int = 0        # pace actions so a person can follow along
     # The Recorder is code and decides nothing, so it runs as soon as a successful run
     # finishes: a draft Artifact lands beside the trace. Approval stays with a person.
     compile_draft: bool = True
@@ -141,8 +142,12 @@ class DiscoveryResult:
         return " · ".join(bits)
 
 
-def observation(surface: Surface, readable: set[str], mask: bool = False) -> tuple[str, list[dict]]:
-    """The accessibility list, default-deny masked, annotated where a name is missing."""
+def observation(surface: RecordingSurface, redactor: Redactor) -> tuple[str, list[dict]]:
+    """The accessibility list on its way to the model, through the Redactor.
+
+    Nothing here decides what may be seen — the Redactor does, from the App Profile —
+    so the outbound path to a model and the path to evidence are masked by the same
+    declarations."""
     controls = surface.controls()
     controls += surface.values(start_index=len(controls) + 1)
     lines = []
@@ -151,7 +156,7 @@ def observation(surface: Surface, readable: set[str], mask: bool = False) -> tup
         hint = f'  near text: "{c["anchor"]}"' if c["anchor"] else ""
         value = ""
         if c["role"] == "text":
-            shown = (mask_value(c["anchor"], c["text"], readable) if mask else c["text"])
+            shown = redactor.value(c["anchor"], c["text"])
             note = "" if shown == c["text"] else "   (masked)"
             lines.append(f'[{c["index"]}] text  "{c["anchor"]}": {shown}{note}')
             continue
@@ -161,11 +166,9 @@ def observation(surface: Surface, readable: set[str], mask: bool = False) -> tup
             except Exception:
                 raw = ""
             if raw:
-                shown = (mask_value(c["anchor"], raw, readable, is_password=c["is_password"])
-                         if mask else (PROTECTED if c["is_password"] else raw))
-                value = f"  value: {shown}"
+                value = f'  value: {redactor.value(c["anchor"], raw, is_password=c["is_password"])}'
         lines.append(f'[{c["index"]}] {c["role"]} {label}{hint}{value}')
-    page_text = (redact_text(surface.text()) if mask else surface.text())[:1500]
+    page_text = redactor.text(surface.text())[:1500]
     return "\n".join(lines) + f"\n\nvisible text (masked):\n{page_text}", controls
 
 
@@ -181,22 +184,27 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
         return DiscoveryResult("refused", run_id, str(trace.dir), 0,
                                detail="production environment")
 
-    readable = set((request.app_profile.readable_anchors + request.app_profile.readable_regions)
-                   if request.app_profile else [])
-    # Pixels use a declared deny-list rather than default-deny: painting every
-    # undeclared control black would hide controls the model has to act on. This is
-    # the residual risk recorded in docs/security-model.md.
-    profile_targets = request.app_profile.targets if request.app_profile else {}
-    masked_targets = ([profile_targets[name]
-                       for name in (request.app_profile.sensitive_regions if request.app_profile else [])
-                       if name in profile_targets] if request.mask_pixels else [])
+    # One Redactor for both channels: what the model is shown, and what is written
+    # down. Pixels stay a declared deny-list — painting every undeclared control
+    # black would hide controls the model has to act on — which is the residual risk
+    # recorded in docs/security-model.md.
+    redactor = (Redactor(request.app_profile, mask_values=request.mask_values,
+                         mask_pixels=request.mask_pixels)
+                if request.app_profile is not None
+                else for_app(request.vendor_app, mask_values=request.mask_values,
+                             mask_pixels=request.mask_pixels))
+    trace.redactor = redactor
     secrets = request.secrets or _default_secrets(policy)
     secret_names = list(policy.role.get("secrets", []))
     outcome_codes = [o["code"] for o in request.contract.get("outcomes", [])]
     output_names = list(request.contract.get("outputs", {}))
 
     client = anthropic.Anthropic()
-    surface = Surface(request.origin, headless=request.headless, allowed_origins=[request.origin])
+    # The record-time interface: enumerate and describe. A Discovery Run never needs
+    # the Predicate side, and never holds a driver object.
+    surface = RecordingSurface(Surface(request.origin, headless=request.headless,
+                                       allowed_origins=[request.origin],
+                                       slow_mo_ms=request.slow_mo_ms))
     messages, actions, outputs = [], [], {}
     failures, seen, started = 0, [], time.time()
 
@@ -206,9 +214,8 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
             if time.time() - started > MAX_SECONDS:
                 return _end(trace, run_id, "timeout", turn, actions, outputs)
 
-            controls_text, controls = observation(surface, readable, mask=request.mask_values)
-            shot = str(shots / f"{turn:02d}.png")
-            surface.screenshot(shot, mask_targets=masked_targets, scale="css")
+            controls_text, controls = observation(surface, redactor)
+            shot = redactor.screenshot(surface, str(shots / f"{turn:02d}.png"))
             trace.event(run_id, "observed", turn=turn, url=surface.url,
                         controls=controls_text, screenshot=shot)
             _say(request.verbose,
@@ -320,28 +327,26 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
 
 def _perform(surface, call, control, secrets, outputs) -> dict:
     """Do it, and describe what was acted on in terms replay can reuse."""
-    from .surface import Resolved
-    resolved = Resolved(control["locator"], "discovery", 0)
-    target = surface.describe(control)
-    record = {"action": call.name, "target": target, "anchor": control["anchor"],
-              "name": control["name"], "role": control["role"]}
+    record = {"action": call.name, "target": surface.describe(control),
+              "anchor": control["anchor"], "name": control["name"], "role": control["role"]}
 
     if call.name == "click":
-        surface.click(resolved)
+        surface.act_on(control, "click")
     elif call.name == "type":
         if call.input.get("secret"):
-            surface.type(resolved, secrets.get(call.input["secret"]))
+            # The secret is resolved here and typed below this line: it is never in
+            # the record, never in the trace, and was never in the model's message.
+            surface.act_on(control, "type", secrets.get(call.input["secret"]))
             record["value_ref"] = call.input["secret"]
             record["value"] = PROTECTED
         else:
-            surface.type(resolved, call.input["value"])
+            surface.act_on(control, "type", call.input["value"])
             record["value"] = call.input["value"]
     elif call.name == "select":
-        surface.select(resolved, call.input["value"])
+        surface.act_on(control, "select", call.input["value"])
         record["value"] = call.input["value"]
     elif call.name == "read":
-        value = surface.read(resolved)
-        outputs[call.input["output_name"]] = value
+        outputs[call.input["output_name"]] = surface.act_on(control, "read")
         record["into"] = call.input["output_name"]
     return record
 

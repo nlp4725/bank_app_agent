@@ -16,11 +16,13 @@ from .artifact import Artifact
 from .evidence import EvidenceWriter
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
+from .narration import Silent
 from .policy import PolicyError, policy_for
+from .predicates import Predicates, render
+from .redact import for_app
 from .result import RunResult
 from .surface import Surface
 
-PLACEHOLDER = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
 OBSERVE = object()      # "a recovery ran: look at where it left us, do not re-act"
 DEFAULT_TIMEOUT_MS = 6000
 DEFAULT_RECOVERY_BUDGET = 2
@@ -72,21 +74,9 @@ class RunContext:
     # tried to add a transition, change the contract or widen needs is refused here
     # rather than quietly taking effect.
     overlay: dict | None = None
-
-
-def render(value: str, inputs: dict) -> str:
-    return PLACEHOLDER.sub(lambda m: str(inputs.get(m.group(1), m.group(0))), value)
-
-
-def rendered_predicate(predicate, inputs):
-    """Fill placeholders inside a predicate before evaluating it."""
-    data = predicate.model_copy(deep=True)
-    for attr in ("value", "pattern", "equals"):
-        if getattr(data, attr, None):
-            setattr(data, attr, render(getattr(data, attr), inputs))
-    if getattr(data, "of", None):
-        data.of = [rendered_predicate(p, inputs) for p in data.of]
-    return data
+    # How the run looks to a person watching it — pacing, narration, whether the
+    # browser is left open. Demo ergonomics, behind their own seam: see cua/narration.
+    narrator: object | None = None
 
 
 def validate_inputs(artifact: Artifact, inputs: dict) -> str | None:
@@ -107,7 +97,10 @@ def validate_inputs(artifact: Artifact, inputs: dict) -> str | None:
 
 def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     run_id = f"run_{uuid.uuid4().hex[:8]}"
-    evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id, artifact)
+    # The Redactor comes from the vendor app, so a replay's evidence is masked by the
+    # same declarations a Discovery Run's is — screenshots included.
+    evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id, artifact,
+                              redactor=for_app(artifact.capability.vendor_app))
 
     # ── the front door: nothing is touched if any of this fails ──────────────
     try:
@@ -143,288 +136,372 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
         evidence.event(run_id, "overlay_applied", tenant=ctx.overlay.get("tenant"),
                        targets=sorted(ctx.overlay.get("targets", {})))
 
-    surface = Surface(ctx.origin, headless=ctx.headless, allowed_origins=[ctx.origin])
+    narrator = ctx.narrator or Silent()
+    surface = Surface(ctx.origin, headless=ctx.headless, allowed_origins=[ctx.origin],
+                      slow_mo_ms=narrator.slow_mo_ms)
     try:
-        return _run(artifact, inputs, ctx, surface, evidence, run_id, policy)
+        return Run(artifact, inputs, ctx, surface, evidence, run_id, policy,
+                   narrator).execute()
     finally:
+        narrator.linger(surface)
         surface.close()
         evidence.close()
-
-
-def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
-    outputs, budgets = {}, {}
-    control = Control()
-    escalations: dict[str, int] = {}
-    surface.goto("/login")
-
-    index = 0
-    guard = 0
-    observe_only = False          # set after a recovery that should not re-act
-    while index < len(artifact.transitions):
-        guard += 1
-        if guard > 3 * len(artifact.transitions) + 10:
-            return evidence.failed(run_id, "loop_detected", step=artifact.transitions[index].from_state)
-
-        transition = artifact.transitions[index]
-        timeout = transition.timeout_ms or DEFAULT_TIMEOUT_MS
-
-        if observe_only:
-            # A recovery has just run. Where are we? Ask the Checkpoints rather than
-            # assume: the destination first (an interruption usually leaves us where
-            # the transition was heading), then any State whose Checkpoint holds.
-            observe_only = False
-            destination = artifact.state(transition.to_state)
-            if destination and destination.checkpoint and surface.holds(
-                rendered_predicate(destination.checkpoint, inputs), artifact, timeout_ms=timeout
-            ):
-                index += 1
-                continue
-            here = _where_are_we(artifact, inputs, surface)
-            if here is not None and here != index:
-                evidence.event(run_id, "reoriented", step=artifact.transitions[here].from_state)
-                index = here
-                continue
-
-        # 1. verify before acting: are we where this transition starts?
-        start = artifact.state(transition.from_state)
-        if start and start.checkpoint and not surface.holds(
-            rendered_predicate(start.checkpoint, inputs), artifact, timeout_ms=timeout
-        ):
-            outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "precondition", policy, control,
-                                       escalations)
-            if isinstance(outcome, RunResult):
-                return outcome
-            index, observe_only = _resume(artifact, outcome, index)
-            continue
-
-        # 2. resolve the Target
-        target = artifact.targets[transition.action.target]
-        found = surface.resolve(target, timeout_ms=timeout)
-        if found is None:
-            evidence.event(run_id, "target_unresolved", target=transition.action.target)
-            return evidence.failed(run_id, "target_not_found", step=transition.from_state,
-                                   expected=f"a control for {transition.action.target}",
-                                   observed=surface.url, screenshot=evidence.snap(surface))
-
-        # 2b. may we do this, here?
-        path = surface.url[len(ctx.origin):] or "/"
-        if not (policy.allows_page(path) and policy.allows_action(transition.action.type)):
-            evidence.event(run_id, "policy_deny", step=transition.from_state,
-                           path=path, action=transition.action.type)
-            return evidence.failed(run_id, "policy_denied", step=transition.from_state,
-                                   observed=path, screenshot=evidence.snap(surface))
-        evidence.event(run_id, "policy_allow", step=transition.from_state,
-                       path=path, action=transition.action.type)
-
-        # 3. risk gate
-        if transition.risk == "consequential" and ctx.attended:
-            evidence.event(run_id, "operator_approval_required",
-                           step=transition.from_state, matched_by=found.matched_by)
-
-        # 4. act
-        evidence.event(run_id, "about_to", step=transition.from_state,
-                       action=transition.action.type, target=transition.action.target,
-                       risk=transition.risk, matched_by=found.matched_by)
-        _act(surface, transition, found, inputs, ctx, outputs)
-        evidence.event(run_id, "done", step=transition.from_state,
-                       action=transition.action.type, target=transition.action.target,
-                       matched_by=found.matched_by)
-
-        # 5. observe: did it land where the artifact says?
-        destination = artifact.state(transition.to_state)
-        if destination and destination.checkpoint and not surface.holds(
-            rendered_predicate(destination.checkpoint, inputs), artifact, timeout_ms=timeout
-        ):
-            evidence.event(run_id, "checkpoint_missed", step=transition.to_state,
-                           predicate=destination.checkpoint.type,
-                           expected=getattr(destination.checkpoint, "target", None)
-                                    or getattr(destination.checkpoint, "value", None),
-                           url=surface.url, timeout_ms=timeout,
-                           blocked_requests=surface.blocked_requests[-3:],
-                           frames=[f.url for f in surface.page.frames])
-            outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "checkpoint", policy, control,
-                                       escalations)
-            if isinstance(outcome, RunResult):
-                return outcome
-            index, observe_only = _resume(artifact, outcome, index)
-            continue
-
-        index += 1
-
-    return evidence.succeeded(run_id, outputs)
-
-
-def _act(surface, transition, found, inputs, ctx, outputs):
-    action = transition.action
-    if action.type == "click":
-        surface.click(found)
-    elif action.type == "type":
-        value = ctx.secrets.get(action.value_ref) if action.value_ref else render(action.value, inputs)
-        surface.type(found, value)
-    elif action.type == "select":
-        surface.select(found, render(action.value, inputs))
-    elif action.type == "read":
-        outputs[action.into] = surface.read(found)
-
-
-def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transition, budgets,
-                     stage, policy=None, control=None, escalations=None):
-    """Checkpoint missed: ask the Watchers what this screen is, then react."""
-    for watcher in artifact.watchers:
-        if not surface.holds(rendered_predicate(watcher.trigger, inputs), artifact, timeout_ms=0):
-            continue
-        evidence.event(run_id, "watcher_matched", watcher=watcher.id,
-                       condition=watcher.condition, step=transition.from_state)
-
-        if watcher.condition == "business_outcome":
-            spec = next(o for o in artifact.contract.outcomes if o.code == watcher.outcome)
-            return evidence.business_outcome(run_id, spec)
-
-        if watcher.condition == "hard_failure":
-            return evidence.failed(run_id, "hard_failure", step=transition.from_state,
-                                   observed=watcher.id, screenshot=evidence.snap(surface))
-
-        if watcher.condition == "escalate":
-            if not ctx.attended:
-                return evidence.failed(run_id, "escalation_required", step=transition.from_state,
-                                       watcher=watcher.id, screenshot=evidence.snap(surface))
-            return _hand_over(artifact, inputs, ctx, surface, evidence, run_id,
-                              transition, control, watcher.id,
-                              watcher.reason or f"watcher {watcher.id}", escalations)
-
-        if watcher.condition == "recoverable":
-            budget = watcher.budget or DEFAULT_RECOVERY_BUDGET
-            used = budgets.get(watcher.id, 0)
-            if used >= budget:
-                return evidence.failed(run_id, "retries_exhausted", step=transition.from_state,
-                                       watcher=watcher.id, screenshot=evidence.snap(surface))
-            budgets[watcher.id] = used + 1
-            if watcher.recovery is not None:
-                recovery_path = surface.url[len(ctx.origin):] or "/"
-                if not (policy.allows_page(recovery_path)
-                        and policy.allows_action(watcher.recovery.type)):
-                    evidence.event(run_id, "policy_deny", step=transition.from_state,
-                                   path=recovery_path, action=watcher.recovery.type,
-                                   watcher=watcher.id)
-                    return evidence.failed(run_id, "policy_denied", step=transition.from_state,
-                                           observed=recovery_path, watcher=watcher.id)
-                recovery_target = artifact.targets[watcher.recovery.target]
-                found = surface.resolve(recovery_target, timeout_ms=4000)
-                if found is None:
-                    return evidence.failed(run_id, "recovery_target_not_found",
-                                           step=transition.from_state, watcher=watcher.id)
-                surface.click(found)
-            else:
-                surface._tick(400)
-            evidence.event(run_id, "recovered", watcher=watcher.id,
-                           attempt=budgets[watcher.id], resume_at=watcher.resume_at)
-            # No resume_at: dismissing an interruption usually leaves us where the
-            # transition was heading, so look before acting again.
-            return watcher.resume_at or OBSERVE
-
-    # Nothing recognises this screen.
-    if transition.risk == "consequential" and transition.verify_effect is not None:
-        took_effect = _verify_effect(artifact, inputs, surface, transition)
-        evidence.event(run_id, "verification_check", step=transition.from_state,
-                       took_effect=took_effect)
-        if took_effect:
-            return evidence.succeeded(run_id, {}, verified_effect=True)
-        return evidence.failed(run_id, "unknown_state", step=transition.from_state,
-                               expected=str(transition.to_state), observed=surface.url,
-                               screenshot=evidence.snap(surface), verified_effect=False)
-
-    if ctx.attended:
-        return _hand_over(artifact, inputs, ctx, surface, evidence, run_id, transition,
-                          control, None, "no Watcher recognises this screen", escalations)
-    return evidence.failed(run_id, "unknown_state", step=transition.from_state,
-                           expected=str(transition.to_state), observed=surface.url,
-                           screenshot=evidence.snap(surface))
 
 
 MAX_ESCALATIONS_PER_STATE = 2
 
 
-def _hand_over(artifact, inputs, ctx, surface, evidence, run_id, transition, control,
-               watcher_id, reason, escalations=None) -> RunResult:
-    """Pause, give the Operator this session, record what they did, resume or abort."""
-    escalations = escalations if escalations is not None else {}
-    used = escalations.get(transition.from_state, 0)
-    if used >= MAX_ESCALATIONS_PER_STATE:
-        # Bounded, so escalate -> resume -> escalate cannot become a loop that keeps
-        # a person answering the same question forever.
-        return evidence.failed(run_id, "escalation_budget_exhausted",
+class Run:
+    """One replay in progress: the state of a run, and everything done to it.
+
+    The state a run accumulates — outputs read so far, recovery budgets spent,
+    escalations raised, who holds the lease, where in the flow we are — lives here
+    rather than in a loop's locals, so the steps that need it are methods taking a
+    Transition rather than functions taking the whole world. Callers and tests cross
+    one interface: `execute()`.
+    """
+
+    def __init__(self, artifact, inputs, ctx, surface, evidence, run_id, policy,
+                 narrator=None):
+        self.artifact = artifact
+        self.inputs = inputs
+        self.ctx = ctx
+        self.surface = surface
+        self.evidence = evidence
+        self.run_id = run_id
+        self.policy = policy
+        self.narrator = narrator or Silent()
+        self.predicates = Predicates(surface, artifact, inputs)
+        self.origin = ctx.origin.rstrip("/")
+
+        self.outputs: dict = {}
+        self.budgets: dict[str, int] = {}          # recoveries spent, per Watcher
+        self.escalations: dict[str, int] = {}      # interventions raised, per State
+        self.control = Control()
+
+    # ── the interface ────────────────────────────────────────────────────────
+
+    def execute(self) -> RunResult:
+        """Walk the Artifact's transitions until one of them answers the caller."""
+        self.surface.goto("/login")
+        index, guard, observe_only = 0, 0, False
+
+        while index < len(self.artifact.transitions):
+            guard += 1
+            if guard > 3 * len(self.artifact.transitions) + 10:
+                return self.failed("loop_detected",
+                                   step=self.artifact.transitions[index].from_state)
+
+            transition = self.artifact.transitions[index]
+
+            if observe_only:
+                observe_only = False
+                here = self._reorient(transition, index)
+                if here is not None:
+                    index = here
+                    continue
+
+            outcome = self._step(transition)
+            if isinstance(outcome, RunResult):
+                return outcome
+            if outcome is None:
+                index += 1
+                continue
+            index, observe_only = self._resume_at(outcome, index)
+
+        return self.evidence.succeeded(self.run_id, self.outputs)
+
+    # ── one transition ───────────────────────────────────────────────────────
+
+    def _step(self, transition):
+        """None to advance, a directive to re-enter elsewhere, a RunResult to stop.
+
+        The order of checks is docs/error-taxonomy.md: verify where we are, resolve
+        the Target, ask the Policy, act, then verify where we landed.
+        """
+        timeout = transition.timeout_ms or DEFAULT_TIMEOUT_MS
+
+        # 1. verify before acting: are we where this transition starts?
+        start = self.artifact.state(transition.from_state)
+        if start and start.checkpoint and not self.predicates.holds(
+            start.checkpoint, timeout_ms=timeout
+        ):
+            return self._surprise(transition)
+
+        # 2. resolve the Target
+        target = self.artifact.targets[transition.action.target]
+        found = self.surface.resolve(target, timeout_ms=timeout)
+        if found is None:
+            self.event("target_unresolved", target=transition.action.target)
+            return self.failed("target_not_found", step=transition.from_state,
+                               expected=f"a control for {transition.action.target}",
+                               observed=self.surface.url, snap=True)
+
+        # 2b. may we do this, here?
+        denied = self._refuse_if_not_permitted(transition.from_state, transition.action.type)
+        if denied is not None:
+            return denied
+
+        # 3. risk gate
+        if transition.risk == "consequential" and self.ctx.attended:
+            self.event("operator_approval_required",
+                       step=transition.from_state, matched_by=found.matched_by)
+
+        # 4. act
+        self.narrator.transition(transition, found)
+        self.event("about_to", step=transition.from_state, action=transition.action.type,
+                   target=transition.action.target, risk=transition.risk,
+                   matched_by=found.matched_by)
+        self._act(transition, found)
+        self.event("done", step=transition.from_state, action=transition.action.type,
+                   target=transition.action.target, matched_by=found.matched_by)
+
+        # 5. observe: did it land where the artifact says?
+        destination = self.artifact.state(transition.to_state)
+        if destination and destination.checkpoint and not self.predicates.holds(
+            destination.checkpoint, timeout_ms=timeout
+        ):
+            self.event("checkpoint_missed", step=transition.to_state,
+                       predicate=destination.checkpoint.type,
+                       expected=getattr(destination.checkpoint, "target", None)
+                                or getattr(destination.checkpoint, "value", None),
+                       url=self.surface.url, timeout_ms=timeout,
+                       blocked_requests=self.surface.blocked_requests[-3:],
+                       frames=self.surface.frame_urls())
+            return self._surprise(transition)
+        return None
+
+    def _act(self, transition, found):
+        action = transition.action
+        if action.type == "click":
+            self.surface.click(found)
+        elif action.type == "type":
+            value = (self.ctx.secrets.get(action.value_ref) if action.value_ref
+                     else render(action.value, self.inputs))
+            self.surface.type(found, value)
+        elif action.type == "select":
+            self.surface.select(found, render(action.value, self.inputs))
+        elif action.type == "read":
+            self.outputs[action.into] = self.surface.read(found)
+
+    # ── surprises ────────────────────────────────────────────────────────────
+
+    def _surprise(self, transition):
+        """A Checkpoint did not hold: ask the Watchers what this screen is."""
+        for watcher in self.artifact.watchers:
+            if not self.predicates.holds(watcher.trigger, timeout_ms=0):
+                continue
+            self.event("watcher_matched", watcher=watcher.id,
+                       condition=watcher.condition, step=transition.from_state)
+            handler = getattr(self, f"_on_{watcher.condition}")
+            return handler(transition, watcher)
+        return self._unrecognised(transition)
+
+    def _on_business_outcome(self, transition, watcher):
+        spec = next(o for o in self.artifact.contract.outcomes if o.code == watcher.outcome)
+        return self.evidence.business_outcome(self.run_id, spec)
+
+    def _on_hard_failure(self, transition, watcher):
+        return self.failed("hard_failure", step=transition.from_state,
+                           observed=watcher.id, snap=True)
+
+    def _on_escalate(self, transition, watcher):
+        if not self.ctx.attended:
+            return self.failed("escalation_required", step=transition.from_state,
+                               watcher=watcher.id, snap=True)
+        return self._hand_over(transition, watcher.id,
+                               watcher.reason or f"watcher {watcher.id}")
+
+    def _on_recoverable(self, transition, watcher):
+        """Fix it within the run, within a budget, and never by acting twice."""
+        budget = watcher.budget or DEFAULT_RECOVERY_BUDGET
+        used = self.budgets.get(watcher.id, 0)
+        if used >= budget:
+            return self.failed("retries_exhausted", step=transition.from_state,
+                               watcher=watcher.id, snap=True)
+        self.budgets[watcher.id] = used + 1
+
+        if watcher.recovery is not None:
+            denied = self._refuse_if_not_permitted(transition.from_state,
+                                                   watcher.recovery.type, watcher=watcher.id)
+            if denied is not None:
+                return denied
+            found = self.surface.resolve(self.artifact.targets[watcher.recovery.target],
+                                         timeout_ms=4000)
+            if found is None:
+                return self.failed("recovery_target_not_found",
+                                   step=transition.from_state, watcher=watcher.id)
+            self.surface.click(found)
+        else:
+            self.surface.wait(400)
+
+        self.event("recovered", watcher=watcher.id, attempt=self.budgets[watcher.id],
+                   resume_at=watcher.resume_at)
+        # No resume_at: dismissing an interruption usually leaves us where the
+        # transition was heading, so look before acting again.
+        return watcher.resume_at or OBSERVE
+
+    def _unrecognised(self, transition):
+        """Nothing recognises this screen. Look before guessing, then ask a person."""
+        if transition.risk == "consequential" and transition.verify_effect is not None:
+            took_effect = self._verify(transition)
+            self.event("verification_check", step=transition.from_state,
+                       took_effect=took_effect)
+            if took_effect:
+                # The commit landed. The outputs read on the way here are still the
+                # answer, so they are returned rather than dropped.
+                return self.evidence.succeeded(self.run_id, self.outputs,
+                                               verified_effect=True)
+            return self.failed("unknown_state", step=transition.from_state,
+                               expected=str(transition.to_state),
+                               observed=self.surface.url, snap=True, verified_effect=False)
+
+        if self.ctx.attended:
+            return self._hand_over(transition, None,
+                                   "no Watcher recognises this screen")
+        return self.failed("unknown_state", step=transition.from_state,
+                           expected=str(transition.to_state),
+                           observed=self.surface.url, snap=True)
+
+    def _verify(self, transition) -> bool:
+        """Look, rather than clicking again."""
+        verify = transition.verify_effect
+        return self.predicates.after_going_to(verify.goto, verify.predicate)
+
+    # ── handing the session to a person ──────────────────────────────────────
+
+    def _hand_over(self, transition, watcher_id, reason) -> RunResult:
+        """Pause, give the Operator this session, record what they did, resume or abort."""
+        used = self.escalations.get(transition.from_state, 0)
+        if used >= MAX_ESCALATIONS_PER_STATE:
+            # Bounded, so escalate -> resume -> escalate cannot become a loop that
+            # keeps a person answering the same question forever.
+            return self.failed("escalation_budget_exhausted",
                                step=transition.from_state, watcher=watcher_id)
-    escalations[transition.from_state] = used + 1
-    shot = evidence.snap(surface)
-    control.move(AWAITING_OPERATOR, "operator")
-    request = Intervention(run_id=run_id, capability=artifact.capability.id,
-                           state=transition.from_state, reason=reason,
-                           watcher=watcher_id, url=surface.url, screenshot=shot)
-    path = request.write(evidence.dir)
-    evidence.event(run_id, "intervention_raised", step=transition.from_state,
+        self.escalations[transition.from_state] = used + 1
+
+        watcher = next((w for w in self.artifact.watchers if w.id == watcher_id), None)
+        shot = self.evidence.snap(self.surface)
+        self.control.move(AWAITING_OPERATOR, "operator")
+        request = Intervention(run_id=self.run_id, capability=self.artifact.capability.id,
+                               state=transition.from_state, reason=reason,
+                               watcher=watcher_id, url=self.surface.url, screenshot=shot,
+                               instruction=(watcher.operator_instruction if watcher else None))
+        path = request.write(self.evidence.dir)
+        self.event("intervention_raised", step=transition.from_state,
                    watcher=watcher_id, reason=reason, request=str(path))
 
-    before_url = surface.url
-    control.move(OPERATOR_IN_CONTROL, "operator")
-    if ctx.operator is not None:
-        decision, who = ctx.operator(request, surface), "operator:callback"
-    else:
-        decision, who = wait_for_decision(evidence.dir, ctx.operator_timeout_s, surface._tick)
+        before_url = self.surface.url
+        self.control.move(OPERATOR_IN_CONTROL, "operator")
+        decision, who = self._await_operator(request, watcher)
+        self.event("operator_acted", by=who, decision=decision,
+                   **observe_operator(self.surface, before_url))
 
-    evidence.event(run_id, "operator_acted", by=who, decision=decision,
-                   **observe_operator(surface, before_url))
-
-    if decision == "timeout":
-        control.move(DONE, "automation")
-        return evidence.failed(run_id, "escalation_timeout", step=transition.from_state,
+        if decision == "timeout":
+            self.control.move(DONE, "automation")
+            return self.failed("escalation_timeout", step=transition.from_state,
                                watcher=watcher_id)
-    if decision != "resume":
-        control.move(DONE, "operator")
-        return evidence.aborted(run_id, by=who, at_step=transition.from_state)
+        if decision != "resume":
+            self.control.move(DONE, "operator")
+            return self.evidence.aborted(self.run_id, by=who, at_step=transition.from_state)
 
-    # Resume re-checks where we are rather than assuming the Operator finished the job.
-    control.move(RESUMING, "automation")
-    here = _where_are_we(artifact, inputs, surface)
-    control.move(AUTOMATION, "automation")
-    if here is None:
-        return evidence.failed(run_id, "resume_checkpoint_missed", step=transition.from_state,
-                               observed=surface.url, screenshot=evidence.snap(surface))
-    evidence.event(run_id, "resumed", step=artifact.transitions[here].from_state)
-    return artifact.transitions[here].from_state
+        # Resume re-checks where we are rather than assuming the Operator finished.
+        self.control.move(RESUMING, "automation")
+        here = self._where_am_i()
+        self.control.move(AUTOMATION, "automation")
+        if here is None:
+            return self.failed("resume_checkpoint_missed", step=transition.from_state,
+                               observed=self.surface.url, snap=True)
+        self.event("resumed", step=self.artifact.transitions[here].from_state)
+        return self.artifact.transitions[here].from_state
 
+    def _await_operator(self, request, watcher) -> tuple[str, str]:
+        def blocker_cleared() -> bool:
+            """The blocking screen is gone and we recognise where we are."""
+            if watcher is not None and self.predicates.holds(watcher.trigger, timeout_ms=0):
+                return False
+            return self._where_am_i() is not None
 
-def _where_are_we(artifact, inputs, surface) -> int | None:
-    """The first transition whose starting State's Checkpoint holds right now."""
-    for i, transition in enumerate(artifact.transitions):
-        state = artifact.state(transition.from_state)
-        if state and state.checkpoint and surface.holds(
-            rendered_predicate(state.checkpoint, inputs), artifact, timeout_ms=0
+        if self.ctx.operator is not None:
+            decision = self.ctx.operator(request, self.surface) or ""
+            if decision:
+                return decision, "operator:callback"
+            # They acted without answering; let the screen decide.
+        return wait_for_decision(self.evidence.dir, self.ctx.operator_timeout_s,
+                                 self.surface.wait, blocker_cleared)
+
+    # ── where are we ─────────────────────────────────────────────────────────
+
+    def _where_am_i(self) -> int | None:
+        """The first transition whose starting State's Checkpoint holds right now."""
+        for i, transition in enumerate(self.artifact.transitions):
+            state = self.artifact.state(transition.from_state)
+            if state and state.checkpoint and self.predicates.holds(state.checkpoint,
+                                                                    timeout_ms=0):
+                return i
+        return None
+
+    def _reorient(self, transition, index) -> int | None:
+        """A recovery has just run. Where are we?
+
+        Ask the Checkpoints rather than assume: the destination first (an interruption
+        usually leaves us where the transition was heading), then any State whose
+        Checkpoint holds. None means "stay here and act".
+        """
+        timeout = transition.timeout_ms or DEFAULT_TIMEOUT_MS
+        destination = self.artifact.state(transition.to_state)
+        if destination and destination.checkpoint and self.predicates.holds(
+            destination.checkpoint, timeout_ms=timeout
         ):
-            return i
-    return None
+            return index + 1
+        here = self._where_am_i()
+        if here is not None and here != index:
+            self.event("reoriented", step=self.artifact.transitions[here].from_state)
+            return here
+        return None
 
+    def _resume_at(self, directive, current: int) -> tuple[int, bool]:
+        """Where to continue after a recovery.
 
-def _verify_effect(artifact, inputs, surface, transition) -> bool:
-    """Look, rather than clicking again."""
-    verify = transition.verify_effect
-    if verify.goto:
-        surface.goto(render(verify.goto, inputs))
-    return surface.holds(rendered_predicate(verify.predicate, inputs), artifact, timeout_ms=3000)
+        A named resume_at wins when the Artifact has that State. Otherwise — and when
+        an App Profile watcher names a State this Artifact does not have — re-observe:
+        the engine works out where it is by asking which Checkpoint holds, rather than
+        trusting a name. Watchers are shared across capabilities, so they cannot know
+        what any one Artifact called its States.
+        """
+        if directive is not OBSERVE:
+            for i, t in enumerate(self.artifact.transitions):
+                if t.from_state == directive:
+                    return i, False
+        return current, True
 
+    # ── policy, evidence, narration ──────────────────────────────────────────
 
-def _resume(artifact, directive, current: int) -> tuple[int, bool]:
-    """Where to continue after a recovery.
+    def path(self) -> str:
+        """The route the Policy is asked about.
 
-    A named resume_at wins when the Artifact has that State. Otherwise — and when an
-    App Profile watcher names a State this Artifact does not have — re-observe:
-    the engine works out where it is by asking which Checkpoint holds, rather than
-    trusting a name. Watchers are shared across capabilities, so they cannot know
-    what any one Artifact called its States.
-    """
-    if directive is not OBSERVE:
-        for i, t in enumerate(artifact.transitions):
-            if t.from_state == directive:
-                return i, False
-    return current, True
+        A URL that is not under the run's origin cannot be made origin-relative, so
+        it is asked about whole and fails the allowlist — fail closed, rather than
+        slicing a string into something that happens to match.
+        """
+        url = self.surface.url
+        return (url[len(self.origin):] if url.startswith(self.origin) else url) or "/"
+
+    def _refuse_if_not_permitted(self, step, action_type, watcher=None):
+        path = self.path()
+        if self.policy.allows_page(path) and self.policy.allows_action(action_type):
+            if watcher is None:
+                self.event("policy_allow", step=step, path=path, action=action_type)
+            return None
+        self.event("policy_deny", step=step, path=path, action=action_type,
+                   **({"watcher": watcher} if watcher else {}))
+        return self.failed("policy_denied", step=step, observed=path,
+                           snap=watcher is None, **({"watcher": watcher} if watcher else {}))
+
+    def event(self, name, **fields):
+        return self.evidence.event(self.run_id, name, **fields)
+
+    def failed(self, reason, *, snap=False, **fields) -> RunResult:
+        if snap:
+            fields["screenshot"] = self.evidence.snap(self.surface)
+        return self.evidence.failed(self.run_id, reason, **fields)

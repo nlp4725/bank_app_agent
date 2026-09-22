@@ -3,9 +3,22 @@
 Everything above it works in terms of Targets, Predicates and Actions; everything
 below is Playwright. That seam is what a DesktopSurface would implement later, and
 it is asserted by a test: no other module may import playwright.
+
+Two callers, two interfaces over one driver:
+
+    Surface           act and observe — what the Replay Engine needs, and the whole
+                      of what a scripted stand-in has to provide
+    RecordingSurface  enumerate and describe — what a Discovery Run needs at record
+                      time, and what replay never asks for
+
+They are split because neither caller uses the other's half, and because a union
+interface is what let a driver object leak upwards: the engine reached for
+`surface.page.frames`, and discovery built a `Resolved` around a raw locator.
 """
 
 import fnmatch
+import subprocess
+import sys
 import time
 from dataclasses import dataclass
 
@@ -24,14 +37,19 @@ class Resolved:
 
 
 class Surface:
-    def __init__(self, origin: str, headless: bool = True, allowed_origins: list[str] | None = None):
+    def __init__(self, origin: str, headless: bool = True, allowed_origins: list[str] | None = None,
+                 slow_mo_ms: int = 0):
         self.origin = origin.rstrip("/")
         self.allowed_origins = [o.rstrip("/") for o in (allowed_origins or [self.origin])]
         self.blocked_requests: list[str] = []
         self._pw = sync_playwright().start()
-        self._browser = self._pw.chromium.launch(headless=headless)
+        # slow_mo is for a human watching: it paces every action so the run is legible.
+        self._browser = self._pw.chromium.launch(
+            headless=headless, slow_mo=slow_mo_ms,
+            args=[] if headless else ["--window-position=60,60", "--window-size=1150,900"])
         # Hardening: no downloads, no extra windows, no permissions, fresh context.
-        self._context = self._browser.new_context(accept_downloads=False)
+        self._context = self._browser.new_context(accept_downloads=False,
+                                                  viewport={"width": 1100, "height": 800})
         self._context.grant_permissions([])
         self.page = self._context.new_page()
         self.page.on("dialog", lambda d: d.dismiss())
@@ -39,6 +57,20 @@ class Surface:
         # The allowlist is enforced on every request the browser makes, including the
         # ones the page starts by itself: an <img> pointing off-site cannot leave.
         self._context.route("**/*", self._gate)
+        if not headless:
+            self._bring_to_front()
+
+    def _bring_to_front(self):
+        """A watched run is no use behind the terminal window."""
+        try:
+            self.page.bring_to_front()
+        except Exception:
+            pass
+        if sys.platform == "darwin":
+            subprocess.run(["osascript", "-e",
+                            'tell application "System Events" to set frontmost of '
+                            'the first process whose name contains "Chromium" to true'],
+                           capture_output=True)
 
     def _gate(self, route, request):
         if any(request.url.startswith(o) for o in self.allowed_origins):
@@ -47,8 +79,11 @@ class Surface:
             self.blocked_requests.append(request.url)
             route.abort()
 
-    def _tick(self, ms: int = 150):
-        """Wait, while letting Playwright work.
+    def wait(self, ms: int = 150):
+        """Wait, while letting the driver work.
+
+        Part of the interface, not an internal: the Replay Engine paces an escalation
+        with it and the Predicate evaluator polls with it.
 
         A plain time.sleep() blocks the driver's event loop, so route handlers never
         run — and with request interception on, an iframe request is never let
@@ -119,7 +154,7 @@ class Surface:
                         return Resolved(found, rung.kind, index)
             if time.time() >= deadline:
                 return None
-            self._tick()
+            self.wait()
 
     def _try_rung(self, scope, rung):
         try:
@@ -328,37 +363,80 @@ class Surface:
     def read(self, resolved: Resolved) -> str:
         return resolved.locator.inner_text().strip()
 
-    # ── predicates ───────────────────────────────────────────────────────────
+    def value_of(self, resolved: Resolved) -> str:
+        """What a field currently holds. Exposed so nothing above this module has to
+        hold a driver object to ask."""
+        try:
+            return resolved.locator.input_value()
+        except Exception:
+            return ""
 
-    def holds(self, predicate, artifact, timeout_ms: int = 4000) -> bool:
-        deadline = time.time() + timeout_ms / 1000
-        while True:
-            if self._holds_once(predicate, artifact):
-                return True
-            if time.time() >= deadline:
-                return False
-            self._tick()
+    def frame_urls(self) -> list[str]:
+        """The documents on the page, for evidence when a Checkpoint is missed."""
+        return [f.url for f in self.page.frames]
 
-    def _holds_once(self, predicate, artifact) -> bool:
-        kind = predicate.type
-        if kind == "text_present":
-            return predicate.value in self.text()
-        if kind == "url_matches":
-            return fnmatch.fnmatch(self.url, f"*{predicate.pattern}*")
-        if kind == "element_present":
-            target = artifact.targets.get(predicate.target)
-            return target is not None and self.resolve(target, timeout_ms=0) is not None
-        if kind == "field_value":
-            target = artifact.targets.get(predicate.target)
-            found = self.resolve(target, timeout_ms=0) if target else None
-            if found is None:
-                return False
-            value = found.locator.input_value()
-            if predicate.non_empty:
-                return bool(value)
-            return value == predicate.equals
-        if kind == "all":
-            return all(self._holds_once(p, artifact) for p in predicate.of)
-        if kind == "any":
-            return any(self._holds_once(p, artifact) for p in predicate.of)
-        return False
+
+class RecordingSurface:
+    """Record-time view of the same live session.
+
+    Enumerating a screen and describing what was acted on is the Recorder's work, not
+    the engine's, so it lives behind its own interface. It holds a Surface rather than
+    extending one: the acting half stays the smaller, substitutable interface.
+    """
+
+    def __init__(self, surface: Surface):
+        self.surface = surface
+
+    # what a Discovery Run needs from the acting half, named explicitly rather than
+    # delegated wholesale — the point of the split is that the union is not on offer
+    @property
+    def url(self) -> str:
+        return self.surface.url
+
+    def goto(self, path: str):
+        self.surface.goto(path)
+
+    def text(self) -> str:
+        return self.surface.text()
+
+    def screenshot(self, path: str, mask_targets=None, scale: str = "css"):
+        return self.surface.screenshot(path, mask_targets=mask_targets, scale=scale)
+
+    def close(self):
+        self.surface.close()
+
+    # ── enumerating ──────────────────────────────────────────────────────────
+
+    def controls(self) -> list[dict]:
+        return self.surface.controls()
+
+    def values(self, start_index: int) -> list[dict]:
+        return self.surface.values(start_index)
+
+    def describe(self, control: dict) -> dict:
+        return self.surface.describe(control)
+
+    def crop(self, control: dict, path: str):
+        return self.surface.crop(control, path)
+
+    # ── acting on something the model pointed at ─────────────────────────────
+
+    def act_on(self, control: dict, kind: str, value: str | None = None) -> str | None:
+        """Do one thing to an enumerated control.
+
+        The Discovery Run names a control by its number in the observation; turning
+        that into something the driver can act on is this module's job, so nothing
+        above holds a driver object.
+        """
+        resolved = Resolved(control["locator"], "discovery", 0)
+        if kind == "click":
+            self.surface.click(resolved)
+        elif kind == "type":
+            self.surface.type(resolved, value)
+        elif kind == "select":
+            self.surface.select(resolved, value)
+        elif kind == "read":
+            return self.surface.read(resolved)
+        else:
+            raise ValueError(f"not an action: {kind!r}")
+        return None

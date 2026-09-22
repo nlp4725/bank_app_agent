@@ -64,6 +64,7 @@ class Intervention:
     watcher: str | None
     url: str
     screenshot: str
+    instruction: str | None = None
     raised_at: float = field(default_factory=time.time)
 
     def write(self, directory: Path) -> Path:
@@ -72,11 +73,14 @@ class Intervention:
         return path
 
 
-def wait_for_decision(directory: Path, timeout_s: float, poll) -> tuple[str, str]:
-    """Wait for the Operator's decision file. Returns (decision, operator).
+def wait_for_decision(directory: Path, timeout_s: float, poll,
+                      cleared=None) -> tuple[str, str]:
+    """Wait for the Operator — by decision, or by watching them fix it.
 
-    A file rather than a socket because the point is the seam, not the transport:
-    an operator console would write the same record.
+    Asking a person to press Resume after they have already done the work is a step
+    that exists for the machine's benefit. If `cleared()` says the blocker is gone and
+    the screen is somewhere the run recognises, control comes back on its own. The
+    buttons stay, for the cases where nothing visibly changes and for Abort.
     """
     path = Path(directory) / "decision.json"
     deadline = time.time() + timeout_s
@@ -84,6 +88,8 @@ def wait_for_decision(directory: Path, timeout_s: float, poll) -> tuple[str, str
         if path.exists():
             data = json.loads(path.read_text())
             return data.get("decision", "abort"), data.get("operator", "unknown")
+        if cleared is not None and cleared():
+            return "resume", "auto:blocker cleared"
         poll(500)
     return "timeout", ""
 

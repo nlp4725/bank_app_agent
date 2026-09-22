@@ -13,6 +13,13 @@ USERS = {
     "svc_officer": {"password": "officer-pw", "can_open_accounts": True},
 }
 
+# Supervisors are people. These credentials are deliberately NOT in any Role's
+# secrets: no service account holds them, so no automation can clear a flag.
+SUPERVISORS = {
+    "sup_ramirez": "4821",
+    "sup_okafor": "7390",
+}
+
 SCENARIO_NORMAL = "normal"
 SCENARIO_NOT_FOUND = "not_found"
 SCENARIO_NOT_AUTHORIZED = "not_authorized"
@@ -21,6 +28,11 @@ SCENARIO_TRANSIENT = "transient"  # fails once, then works
 SCENARIO_SESSION_EXPIRY = "session_expiry"
 SCENARIO_SLOW = "slow"
 SCENARIO_MAX_ACCOUNTS = "max_accounts"
+SCENARIO_APPROVAL = "approval"          # a screen only a person may clear
+
+# The words the app puts on screen when a member does not exist. A Watcher triggers
+# on this exact string, so it is a cross-module contract and lives in one place.
+NO_RECORDS = "No records found"
 
 _SEED = {
     "12345": {
@@ -71,6 +83,14 @@ _SEED = {
         "scenario": SCENARIO_SLOW,
         "sub_accounts": [],
     },
+    "44444": {
+        "name": "Iris Holloway",
+        "since": "2016-07-19",
+        "savings_balance": "2380.40",
+        "checking_balance": "60.00",
+        "scenario": SCENARIO_APPROVAL,
+        "sub_accounts": [],
+    },
     "33333": {
         "name": "Full House",
         "since": "2005-05-05",
@@ -94,6 +114,7 @@ class Store:
     def __init__(self):
         self.members = deepcopy(_SEED)
         self.seen_once = set()  # scenarios that fire on first visit only
+        self.approvals = []     # who cleared which flag, as an audit trail would
         self.next_account_seq = 2000
 
     def reset(self):
@@ -102,12 +123,21 @@ class Store:
     def get(self, member_number):
         return self.members.get(member_number)
 
-    def fire_once(self, key):
-        """True the first time a key is seen, False afterwards."""
+    def fire_once(self, scenario, member_number):
+        """True the first time this scenario fires for this member, False afterwards.
+
+        The key is built here rather than spelled out at each call site, so clearing
+        one cannot drift from setting it.
+        """
+        key = f"{scenario}:{member_number}"
         if key in self.seen_once:
             return False
         self.seen_once.add(key)
         return True
+
+    def clear(self, scenario, member_number):
+        """Mark a scenario as already fired — what a supervisor's sign-off does."""
+        self.seen_once.add(f"{scenario}:{member_number}")
 
     def open_sub_account(self, member_number, account_type, nickname):
         member = self.members[member_number]
@@ -118,3 +148,16 @@ class Store:
 
 
 store = Store()
+
+
+# Every scenario constant must be reachable, or it is documentation rather than
+# behaviour. Two of them used to be neither read nor removed; this is the same rule
+# the Artifact lint applies to an Outcome Code no Watcher can produce.
+IMPLICIT_SCENARIOS = {
+    SCENARIO_NOT_FOUND,     # no member is seeded with it: that IS the condition
+}
+_tagged = {m["scenario"] for m in _SEED.values()} | IMPLICIT_SCENARIOS
+_declared = {v for k, v in dict(globals()).items()
+             if k.startswith("SCENARIO_") and isinstance(v, str)}
+assert _declared == _tagged, \
+    f"scenario constants nothing produces: {sorted(_declared - _tagged)}"
