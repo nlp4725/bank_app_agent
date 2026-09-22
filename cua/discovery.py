@@ -91,6 +91,7 @@ def _say(verbose, text):
 
 @dataclass
 class DiscoveryRequest:
+    """What the Reviewer hands to discovery: a goal in words, plus the Contract."""
     goal: str
     vendor_app: str
     role: str
@@ -111,6 +112,11 @@ class DiscoveryRequest:
     mask_values: bool = True
     mask_pixels: bool = True
     verbose: bool = False      # narrate each turn to the console
+    # The Recorder is code and decides nothing, so it runs as soon as a successful run
+    # finishes: a draft Artifact lands beside the trace. Approval stays with a person.
+    compile_draft: bool = True
+    capability_id: str = ""
+    role_for_artifact: str = ""
 
 
 @dataclass
@@ -123,6 +129,8 @@ class DiscoveryResult:
     outcome: str | None = None
     detail: str | None = None
     actions: list = field(default_factory=list)
+    draft: str | None = None                 # written when the run reached the goal
+    suggestions: list = field(default_factory=list)
 
     def __str__(self):
         bits = [self.ending, f"{self.turns} turns"]
@@ -250,7 +258,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
             # ── endings the model chooses ───────────────────────────────────
             if call.name == "goal_reached":
                 return _end(trace, run_id, "goal_reached", turn, actions, outputs,
-                            detail=call.input["reason"])
+                            detail=call.input["reason"], request=request)
             if call.name == "report_outcome":
                 return _end(trace, run_id, "report_outcome", turn, actions, outputs,
                             outcome=call.input["code"], detail=call.input["quote"])
@@ -346,12 +354,35 @@ def _result(call, text, extras=()):
     return {"role": "user", "content": blocks}
 
 
-def _end(trace, run_id, ending, turns, actions, outputs, outcome=None, detail=None):
+def _compile_draft(request, trace_dir, run_id, actions, suggestions_out):
+    """A successful run compiles to a draft Artifact immediately."""
+    from .recorder import record
+    draft, suggestions = record(
+        actions, request.contract, request.example_values,
+        capability_id=request.capability_id or "capability",
+        vendor_app=request.vendor_app, role=request.role_for_artifact or request.role,
+        discovered_by=run_id)
+    path = Path(trace_dir) / "draft.yaml"
+    import yaml
+    path.write_text(yaml.safe_dump(draft, sort_keys=False, width=100))
+    suggestions_out.extend(suggestions)
+    return str(path)
+
+
+def _end(trace, run_id, ending, turns, actions, outputs, outcome=None, detail=None,
+         request=None):
     trace.event(run_id, "ended", ending=ending, turns=turns, outcome=outcome, detail=detail)
-    (Path(trace.dir) / "actions.json").write_text(
-        json.dumps([{k: v for k, v in a.items() if k != "locator"} for a in actions], indent=2))
+    clean = [{k: v for k, v in a.items() if k != "locator"} for a in actions]
+    (Path(trace.dir) / "actions.json").write_text(json.dumps(clean, indent=2))
+
+    draft, suggestions = None, []
+    if ending == "goal_reached" and request is not None and request.compile_draft:
+        draft = _compile_draft(request, trace.dir, run_id, clean, suggestions)
+        trace.event(run_id, "draft_compiled", path=draft, suggestions=len(suggestions))
+
     return DiscoveryResult(ending, run_id, str(trace.dir), turns,
-                           outputs=outputs, outcome=outcome, detail=detail, actions=actions)
+                           outputs=outputs, outcome=outcome, detail=detail, actions=actions,
+                           draft=draft, suggestions=suggestions)
 
 
 def _b64(path):

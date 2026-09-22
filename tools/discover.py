@@ -46,11 +46,17 @@ def main():
         app_profile=AppProfile.model_validate(app_profile_dict()),
         headless=os.environ.get("HEADED") != "1",   # HEADED=1 to watch the browser
         verbose=True,
+        capability_id="member.open_sub_account",
     ))
     print("\n=== result ===")
     print(result)
     print("outputs:", json.dumps(result.outputs, indent=2))
     print("evidence:", result.trace_dir)
+    if result.draft:
+        print(f"\n=== draft artifact compiled automatically ===\n  {result.draft}")
+        print("  suggestions for the Reviewer:")
+        for s in result.suggestions:
+            print("   -", s[:104])
     print("\n=== actions recorded ===")
     for a in result.actions:
         rungs = " -> ".join(r["kind"] for r in a["target"]["rungs"]) or "(no rungs!)"
