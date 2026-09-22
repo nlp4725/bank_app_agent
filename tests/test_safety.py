@@ -136,10 +136,40 @@ def imports_of(path: Path) -> set[str]:
     return found
 
 
+MODEL_SDKS = {"anthropic", "openai", "google", "litellm"}
+
+
+def module_graph(entry: str) -> set[str]:
+    """Every cua module reachable from `entry`, transitively."""
+    seen, queue = set(), [entry]
+    while queue:
+        name = queue.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        path = CUA / f"{name}.py"
+        if not path.exists():
+            continue
+        for imported in imports_of(path):
+            if (CUA / f"{imported}.py").exists():
+                queue.append(imported)
+    return seen
+
+
 def test_replay_cannot_reach_a_model_sdk():
-    forbidden = {"anthropic", "openai", "google", "litellm"}
-    for path in CUA.glob("*.py"):
-        assert not (imports_of(path) & forbidden), f"{path.name} imports a model SDK"
+    """Not 'no file imports it' — the replay path cannot reach it, transitively."""
+    for name in module_graph("engine"):
+        assert not (imports_of(CUA / f"{name}.py") & MODEL_SDKS), \
+            f"replay reaches {name}.py, which imports a model SDK"
+
+
+def test_the_model_sdk_lives_only_in_discovery():
+    users = {p.stem for p in CUA.glob("*.py") if imports_of(p) & MODEL_SDKS}
+    assert users == {"discovery"}, f"unexpected model SDK users: {users}"
+
+
+def test_discovery_is_not_reachable_from_replay():
+    assert "discovery" not in module_graph("engine")
 
 
 def test_only_the_surface_module_touches_playwright():

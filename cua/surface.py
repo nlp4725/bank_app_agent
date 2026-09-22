@@ -168,6 +168,92 @@ class Surface:
                 best, best_score = c, score
         return best
 
+    # ── enumerating, for discovery ───────────────────────────────────────────
+
+    INTERACTIVE = ("button", "textbox", "link", "combobox", "checkbox", "radio")
+
+    def controls(self) -> list[dict]:
+        """Every control a person could act on, main document and frames.
+
+        Controls with no accessible name are the interesting ones: we annotate them
+        with the nearest text to their left, which is what a human reads instead.
+        """
+        found = []
+        for frame in self.page.frames:
+            for role in self.INTERACTIVE:
+                loc = frame.get_by_role(role)
+                for i in range(min(loc.count(), 40)):
+                    el = loc.nth(i)
+                    try:
+                        box = el.bounding_box()
+                        if not box or box["width"] == 0:
+                            continue
+                        name = (el.get_attribute("aria-label")
+                                or el.inner_text().strip()
+                                or el.get_attribute("value") or "")
+                        found.append({
+                            "index": len(found) + 1,
+                            "role": role,
+                            "name": name,
+                            "anchor": self.nearest_text(frame, box),
+                            "is_password": (el.get_attribute("type") == "password"),
+                            "frame_url": frame.url,
+                            "box": box,
+                            "locator": el,
+                        })
+                    except Exception:
+                        continue
+        return found
+
+    def nearest_text(self, frame, box) -> str | None:
+        """The visible words closest to the left of a box, then above it.
+
+        This is label_anchor in reverse: at record time we work out which caption a
+        human would read for this control, so replay can find it the same way.
+        """
+        best, best_score = None, float("inf")
+        cells = frame.locator("td, th, label, span, div, p, strong, b")
+        for i in range(min(cells.count(), 250)):
+            cell = cells.nth(i)
+            try:
+                if cell.locator("input, button, select, textarea, td, span, div").count():
+                    continue          # innermost text holders only
+                text = cell.inner_text().strip()
+                if not text or len(text) > 40:
+                    continue
+                b = cell.bounding_box()
+                if not b:
+                    continue
+            except Exception:
+                continue
+            same_line = abs((b["y"] + b["height"] / 2) - (box["y"] + box["height"] / 2)) < max(b["height"], 14)
+            dx = box["x"] - (b["x"] + b["width"])
+            if same_line and dx >= -2 and dx < best_score:
+                best, best_score = text, dx
+        return best
+
+    def describe(self, control: dict) -> dict:
+        """Turn the control that was just acted on into durable Target descriptors."""
+        rungs = []
+        if control["name"]:
+            rungs.append({"kind": "role_name", "role": control["role"], "name": control["name"]})
+        if control["anchor"]:
+            rungs.append({"kind": "label_anchor", "anchor": control["anchor"],
+                          "role": control["role"], "relation": "right_of"})
+        target = {"rungs": rungs}
+        if "/" in control["frame_url"] and control["frame_url"] != self.page.url:
+            tail = control["frame_url"].rsplit("/", 1)[-1]
+            target["frame"] = {"url_contains": f"/{tail}"}
+        return target
+
+    def crop(self, control: dict, path: str):
+        """A small picture of one control: the last rung of a ladder."""
+        try:
+            control["locator"].screenshot(path=path)
+            return path
+        except Exception:
+            return None
+
     # ── acting ───────────────────────────────────────────────────────────────
 
     def click(self, resolved: Resolved):
