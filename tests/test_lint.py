@@ -192,3 +192,16 @@ def test_a_profile_for_another_app_is_refused():
     p["app_profile"] = "some-other-product"
     with pytest.raises(ValueError):
         merged(Artifact.model_validate(artifact_dict()), AppProfile.model_validate(p))
+
+
+def test_an_overlay_key_that_nothing_applies_is_refused_not_ignored():
+    """`timeouts` and `watcher_triggers` used to lint clean and then do nothing, so a
+    reviewer could approve a patch with no effect."""
+    from cua.overlay import lint_overlay
+    art = Artifact.model_validate(artifact_dict())
+    for key, value in (("timeouts", {"t_balance": 8000}),
+                       ("watcher_triggers", {"w_system_notice": {"type": "text_present",
+                                                                 "value": "Notice"}})):
+        issues = lint_overlay(art, dict(overlay_dict(), **{key: value}))
+        assert any(i.code == "overlay_unknown_key" and i.where == key for i in issues), \
+            f"an overlay declaring {key!r} was accepted although nothing applies it"

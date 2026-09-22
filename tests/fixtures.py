@@ -156,7 +156,6 @@ _OVERLAY = {
         "t_open": {"rungs": [{"kind": "role_name", "role": "button", "name": "Create"}]},
         "t_commit": {"rungs": [{"kind": "role_name", "role": "button", "name": "Submit"}]},
     },
-    "timeouts": {"t_balance": 8000},
 }
 
 

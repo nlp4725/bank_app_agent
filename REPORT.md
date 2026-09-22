@@ -257,6 +257,18 @@ outcome, needs outside the declared role, a consequential step with no verificat
 `example_values` in the provenance block is what the literals were lifted *from* — the flow
 holds `{{member_number}}`, and the lint fails the build if `54321` survives anywhere.
 
+**Where an approved Artifact lives, and how a run finds it.** A Discovery Run writes its
+draft into its own run directory; nothing under `runs/` is ever replayed. Review is what
+moves a capability into `artifacts/`, and only after it lints clean and replays successfully
+on inputs the Discovery Run never saw. From there the **Capability Store**
+([`cua/store.py`](./cua/store.py)) is the single answer to "which Artifact is live?": it
+reads every file in `artifacts/`, indexes them by the `id` and `version` *inside* the file
+rather than by filename, returns the highest approved version unless a caller names one, and
+merges the App Profile on the way out. A draft carrying the same version as an approved
+Artifact never displaces it, so re-reviewing a version in place cannot quietly change what
+replays. Every caller — the CLI, the demo tools, the tests — asks the Store, which is what
+stops the tests exercising a different model of the capability from the one that ships.
+
 **Interruptions are watchers, not steps.** Discovery clicked "OK" on a system notice; as a
 transition that would break replay for every member without it. Watchers are evaluated at
 *every* state, carry their provenance, and the ones shared by every capability on this app
@@ -296,7 +308,17 @@ expected, observed, evidence), `Aborted`, `Refused` (nothing was touched), or `O
 Unknown` — a consequential action performed whose effect could never be confirmed. That last
 means *do not retry, a person must look*, and is why every consequential transition carries a
 **Verification Check**: when the screen does not resolve, the system looks instead of
-clicking again.
+clicking again. It is consulted on one route only — when no Watcher recognises the screen.
+
+> **The hole I know about.** Because the Verification Check runs only on the unrecognised
+> route, a Recoverable condition that fires *after* a consequential action would rewind the
+> run and perform it again — a second account opened. No Checkpoint can catch that: a
+> Checkpoint asks *am I on the right screen*, not *did this already happen*. It is not
+> reachable in this app, where every recoverable condition fires before the commit, which
+> makes it a hole in the design rather than a bug in the demo. Closing it is one predicate
+> on one transition — ask the Verification Check *before* a consequential action and skip
+> the action when the effect is already there — and it is item (0) of §7 for that reason.
+> Proving it needs a scenario that fails after the commit, which the demo app does not have.
 
 Two places the taxonomy earns itself. **Session expiry is Recoverable, not an escalation**:
 we hold the service account credential, so the watcher needs no recovery action at all — the
@@ -313,8 +335,12 @@ UI drift is secondary here (these apps change slowly): the ladder absorbs it, an
 ## 4. Heterogeneity & multi-tenant
 
 **The surface seam.** The engine speaks a small vocabulary to `Surface`: resolve a Target,
-click, type, select, read, does this predicate hold, what is the URL. Everything above that
-line is surface-agnostic. The three rungs were chosen because all three exist off the web: a
+click, type, select, read, read a field's value, wait, what is the URL, what text is on
+screen. Predicate evaluation sits *above* that line in
+[`cua/predicates.py`](./cua/predicates.py), so the driver never learns what an Artifact is
+and a second surface implements nine methods rather than the vocabulary plus the Predicate
+language. Everything above that line is surface-agnostic, and a test asserts the engine
+cannot reach past it. The three rungs were chosen because all three exist off the web: a
 computed name, a caption plus spatial relation, and a picture are what UI Automation
 (Windows) and AX (macOS) expose, and the picture rung is the fallback where no tree exists.
 Porting means a second `Surface` plus a window addressing scheme; two things are honestly
@@ -325,8 +351,9 @@ web-shaped and need a desktop equivalent — the `url_matches` predicate and
 [overlays/lakeside.yaml](./overlays/lakeside.yaml)), not per-tenant recordings: an **App
 Profile** (per vendor app — shared watchers, declared Readable/Sensitive Regions), the
 **Artifact** (the flow, recorded once; its own watchers win), and a **Tenant Overlay** (may
-change how things *look* — origin, labels, anchors, relations, timeouts — never how the
-capability *behaves*). Demonstrated end to end: the artifact recorded at First Credit Union
+change how a control is *found* — labels, anchors, relations — never how the capability
+*behaves*; its `tenant` and `origin` lines say which instance it is for, and a key nothing
+applies is refused rather than silently ignored). Demonstrated end to end: the artifact recorded at First Credit Union
 fails honestly at Lakeside Savings, `unknown_state` at the first checkpoint because the field
 is called "Find member by #", and runs unchanged with a 20-line Overlay. The search icon also
 sits to the *left* of the field there, so its rung needs relation `nearest` — which is why
@@ -417,14 +444,22 @@ the replay path is precisely what this design removes; if added it would be boun
 step, policy-checked and recorded. **The `picture` rung is recorded but not matched** — the
 crop is saved at record time and the schema carries it, but the matcher is a stub, so a ladder
 resolves on its first two rungs or not at all. No aggregated drift dashboard, and no identity
-system behind reviewer and operator names.
+system behind reviewer and operator names. **Versioning is one-deep**: the Recorder defaults
+to `1.0.0`, the decisions file names `1.0.0`, and `tools/review.py` writes to a path with
+`1.0.0` in it, so approving a fresh discovery run replaces the live capability rather than
+standing a new version beside it — and the Store's "highest approved version" is a string
+sort, so `1.10.0` would lose to `1.9.0`. One capability at one version hides all three
+today; a second version is what forces them.
 
-**Next, in order.** (0) Add the `NO_SAVINGS_ACCOUNT` outcome code and its watcher — the flow
+**Next, in order.** (0) Ask the Verification Check *before* a consequential action, not only
+when the screen is unrecognised, and skip the action when the effect is already there. Today a
+recoverable condition firing after the commit — an app error, a session expiry — can rewind
+the run and open a second account, because each checkpoint along the way passes honestly (§3).
+One predicate on one transition per run makes the commit idempotent under any rewind. It needs
+a scenario that fails *after* the commit to prove it, which the demo app does not yet have.
+(1) Add the `NO_SAVINGS_ACCOUNT` outcome code and its watcher — the flow
 presumes the member already holds a savings account to read (§2), and today a member without
-one is an Unknown State rather than an answer the caller can act on. (1) Finish the escalation
-rework: session expiry moved from `escalate` to
-`recoverable` and a supervisor-approval screen became the escalation, so the handoff tests
-still assert the old model and are red. (2) The drift alarm, as the first thing that reads
+one is an Unknown State rather than an answer the caller can act on. (2) The drift alarm, as the first thing that reads
 evidence *across* runs rather than within one. (3) Multi-run stability — replay N times and
 report the flakiness signal ([docs/evaluation.md](./docs/evaluation.md) sets out the
 measurement). (4) A second `Surface`, even a thin one, because the seam in §4 is an argument
@@ -458,9 +493,9 @@ one capability, `member.open_sub_account`. Every number below comes from
    gate: lint clean + a verify-replay on inputs discovery never saw + 2 approvals
                                    │
  REPLAY ─ no model, any inputs ────┴───────────────────────────────────────────────
-   12345  Succeeded          2.0 s   savings_balance $4210.00 · new_account_number SA-2001
+   12345  Succeeded          3.5 s   savings_balance $4210.00 · new_account_number SA-2001
    99999  Business Outcome           MEMBER_NOT_FOUND, resolver: member, never retried
-   44444  Succeeded          8.5 s   paused · supervisor signed off in the same session ·
+   44444  Succeeded          9.0 s   paused · supervisor signed off in the same session ·
                                      resumed by itself when the blocking screen cleared
    33333  Failed                     unknown_state — held-out condition; the verification
                                      check confirmed the commit did NOT take effect
@@ -493,9 +528,9 @@ clicking again (33333, `took_effect: false`).
 a more capable model — when the low-level one does not fit. There is no such fallback here:
 replay calls no model at all, so an unfamiliar screen is an Unknown State that escalates or
 fails. That is a deliberate trade of coverage for predictability, which is the trade a bank
-makes on a screen that opens accounts. The 39× gap between the discovery run and the replay
-(78.6 s of model calls versus 2.0 s of none) is the reason the trade is affordable: the
-expensive phase happens once.
+makes on a screen that opens accounts. The gap between the discovery run and the replay
+(78.6 s of model calls versus 3.5 s of none, a factor of 22) is the reason the trade is
+affordable: the expensive phase happens once.
 
 ## References
 

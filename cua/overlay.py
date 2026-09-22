@@ -9,7 +9,15 @@ from .artifact import Artifact
 from .lint import Issue
 from .roles import covers
 
-APPEARANCE_KEYS = {"base_artifact", "tenant", "origin", "targets", "timeouts", "watcher_triggers"}
+# `targets` is the only key that is applied. The other three say who the overlay is
+# *for* — which Artifact, which Tenant, which instance — and are metadata a reviewer
+# reads, not a patch: the address automation may use comes from the Tenant's Policy,
+# which the institution owns, not from a file the provider ships.
+#
+# `timeouts` and `watcher_triggers` were listed here and merged by nothing, so an
+# overlay could declare them, pass review and silently do nothing. A key that is not
+# applied is now refused rather than ignored: see the cuts in REPORT.md §7.
+APPEARANCE_KEYS = {"base_artifact", "tenant", "origin", "targets"}
 BEHAVIOUR_KEYS = {"states", "transitions", "contract", "capability", "watchers", "provenance"}
 
 
