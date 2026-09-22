@@ -300,8 +300,9 @@ expect `MEMBER_NOT_FOUND`". Some assert structure rather than behaviour — that
 transitively reach a model SDK, that only one module imports Playwright, that the engine
 cannot reach past the acting interface of the Surface.
 
-> If a replay test fails oddly, check for a demo server left running from an earlier session
-> on port 5099 or 5100: the fixture reuses one if it finds it. `pkill -f fake_bank.app`.
+> The suite starts its own demo apps on ports 5099 and 5100 and refuses to run if either is
+> already taken — a shared server would have its state reset by another session mid-test.
+> If it stops at startup, clear the port: `pkill -f fake_bank.app`.
 
 ---
 

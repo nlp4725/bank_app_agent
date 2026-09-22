@@ -31,39 +31,54 @@ def _up(url, timeout=15):
     return False
 
 
+def _serve(port: int, skin: str):
+    """Start a demo app this test session owns, and stop it afterwards.
+
+    It used to reuse whatever was already listening. That is silent corruption
+    waiting to happen: the app keeps one global `store`, `/reset` wipes it, and the
+    autouse fixture below resets it before every test — so a server left over from an
+    earlier session, or a `tools.replay` running in another terminal, shares that
+    state and clears a fire-once scenario mid-run. Member 88888's session then expires
+    on every search instead of the first, and the run dies with `retries_exhausted`.
+
+    The port is fixed rather than ephemeral because each Tenant Policy declares the
+    instances automation may reach, and the harness's instance is one of them. So a
+    port already in use is an error a person must clear, not something to work around.
+    """
+    origin = f"http://127.0.0.1:{port}"
+    with socket.socket() as probe:
+        if probe.connect_ex(("127.0.0.1", port)) == 0:
+            pytest.exit(
+                f"port {port} is already serving something. The test suite owns its "
+                f"demo apps; a leftover one shares state with these tests and makes "
+                f"the fire-once scenarios (54321, 77777, 88888) fail at random.\n"
+                f"    pkill -f 'python -m fake_bank.app'",
+                returncode=1)
+    proc = subprocess.Popen([sys.executable, "-m", "fake_bank.app"],
+                            env=dict(os.environ, PORT=str(port), SKIN=skin),
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        if not _up(f"{origin}/login"):
+            proc.kill()
+            pytest.exit(f"the demo app did not come up on {port}", returncode=1)
+        yield origin
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+
 @pytest.fixture(scope="session")
 def bank_app():
-    env = dict(os.environ, PORT=str(PORT), SKIN="bank1")
-    with socket.socket() as s:
-        already_running = s.connect_ex(("127.0.0.1", PORT)) == 0
-    proc = None
-    if not already_running:
-        proc = subprocess.Popen(
-            [sys.executable, "-m", "fake_bank.app"],
-            env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-        assert _up(f"{ORIGIN}/login"), "the demo app did not start"
-    yield ORIGIN
-    if proc:
-        proc.terminate()
+    yield from _serve(PORT, "bank1")
 
 
 @pytest.fixture(scope="session")
 def bank2_app():
     """The same product as a second institution: renamed controls, moved icon."""
-    port = PORT + 1
-    origin = f"http://127.0.0.1:{port}"
-    env = dict(os.environ, PORT=str(port), SKIN="bank2")
-    with socket.socket() as s:
-        running = s.connect_ex(("127.0.0.1", port)) == 0
-    proc = None
-    if not running:
-        proc = subprocess.Popen([sys.executable, "-m", "fake_bank.app"], env=env,
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        assert _up(f"{origin}/login"), "the second institution did not start"
-    yield origin
-    if proc:
-        proc.terminate()
+    yield from _serve(PORT + 1, "bank2")
 
 
 @pytest.fixture(autouse=True)
