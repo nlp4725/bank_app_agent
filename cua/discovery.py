@@ -153,6 +153,13 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                                detail="production environment")
 
     readable = set(request.app_profile.readable_regions if request.app_profile else [])
+    # Pixels use a declared deny-list rather than default-deny: painting every
+    # undeclared control black would hide controls the model has to act on. This is
+    # the residual risk recorded in docs/security-model.md.
+    profile_targets = request.app_profile.targets if request.app_profile else {}
+    masked_targets = [profile_targets[name]
+                      for name in (request.app_profile.sensitive_regions if request.app_profile else [])
+                      if name in profile_targets]
     secrets = request.secrets or _default_secrets(policy)
     secret_names = list(policy.role.get("secrets", []))
     outcome_codes = [o["code"] for o in request.contract.get("outcomes", [])]
@@ -171,7 +178,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
 
             controls_text, controls = observation(surface, readable)
             shot = str(shots / f"{turn:02d}.png")
-            surface.screenshot(shot, mask_targets=[], scale="css")
+            surface.screenshot(shot, mask_targets=masked_targets, scale="css")
             trace.event(run_id, "observed", turn=turn, url=surface.url,
                         controls=controls_text, screenshot=shot)
 

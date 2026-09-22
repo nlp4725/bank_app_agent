@@ -190,8 +190,12 @@ _Avoid_: Bot user, robot account, credentials
 The single function every log line, evidence file, screenshot and returned output passes through, and the same gate on the outbound path before screen content reaches a model. How it decides what to hide is below.
 
 **Readable Region**:
-A Target whose value may be seen — by the model, and in evidence. Everything else is hidden, so a screen nobody has reviewed is safe by default. Declared in the App Profile, because what is sensitive is a property of the app, not of one capability.
+A Target whose **value** may be seen — by the model, and in evidence. Everything else is hidden, so a screen nobody has reviewed is safe by default. Declared in the App Profile, because what is sensitive is a property of the app, not of one capability.
 _Avoid_: Whitelist, visible field
+
+**Sensitive Region**:
+A Target whose **pixels** are painted black when a screenshot is captured. Pixels take the opposite default from values, deliberately: hiding a value costs nothing, but blacking out a control the model must act on would blind it. That makes the image channel a deny-list, and the residual risk recorded in [docs/security-model.md](./docs/security-model.md).
+_Avoid_: Blackout, redaction zone
 
 **Two-Person Approval**:
 The rule that an Artifact containing a Consequential Action needs two named Reviewers before it may run.
@@ -249,7 +253,7 @@ Where each channel stands:
 | Outputs to the caller | returned **in full** — they are the answer — masked in the record | total |
 | Observation sent to a model (discovery only) | default-deny by Readable Region, then patterns | total for declared fields |
 | Watcher extraction | a declared capture group only, never free page text | total |
-| **Screenshots** | cropped, downscaled, declared regions painted black at capture | **partial — the residual risk** |
+| **Screenshots** | cropped, downscaled, declared **Sensitive Regions** painted black at capture | **partial — a deny-list, and the residual risk** |
 
 And above all of it: **discovery only ever runs against a Non-production Environment,
 and Replay calls no model at all**, so nothing leaves the institution during production.

@@ -143,13 +143,16 @@ _APP_PROFILE = {
     "targets": {
         "t_ok": {"rungs": [{"kind": "role_name", "role": "button", "name": "OK"}]},
         "t_nav_search": {"rungs": [{"kind": "role_name", "role": "link", "name": "Member Search"}]},
-        "t_member_name": {"rungs": [{"kind": "label_anchor", "anchor": "Member since",
-                                     "relation": "nearest"}]},
+        "t_member_name": {"rungs": [{"kind": "label_anchor", "anchor": "Member name"}]},
+        "t_member_since": {"rungs": [{"kind": "label_anchor", "anchor": "Member since"}]},
     },
     # Default-deny: every value is hidden from the model and from evidence unless its
     # Target is listed here. t_member_name is deliberately absent — a name has no
     # shape a pattern could find, so origin is what hides it.
+    # values: allowlist — everything else is hidden, which is what catches a name
     "readable_regions": ["t_balance", "t_new_number"],
+    # pixels: deny-list — only these are painted black, or the model would be blinded
+    "sensitive_regions": ["t_member_name", "t_member_since"],
     "watchers": [
         {"id": "w_session_expired",
          "trigger": {"type": "text_present", "value": "session has expired"},

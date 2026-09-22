@@ -108,3 +108,16 @@ NER (Presidio and friends) is deliberately not in the data path: ~90-95% recall 
 disclosure rate, not a gate. It belongs as a canary over evidence, if at all.
 
 17 tests, including a name and a birthday that no regex could catch.
+
+## 2026-09-22 — the two masking channels want opposite defaults
+Wiring the declared regions into screenshots exposed the mistake in treating pixels
+like values. Default-deny on values is free: the model needs structure, not contents.
+Default-deny on pixels blacked out the OK button and the navigation link — controls
+the model has to use. So values are an allowlist (Readable Regions) and pixels are a
+deny-list (Sensitive Regions), which is honest about the image channel being the
+weaker one.
+
+Also found while testing it: the member header put the name and "Member since" in one
+table cell, so there was no anchor text beside the name and the region could not be
+declared at all. Split into label/value cells, which is how a real screen is built
+anyway — and a reminder that a control you cannot name is a control you cannot protect.

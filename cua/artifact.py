@@ -267,9 +267,11 @@ class AppProfile(Strict):
     app_profile: str
     watchers: list[Watcher] = Field(default_factory=list)
     targets: dict[str, Target] = Field(default_factory=dict)
-    # Masking is declared data, not code, and default-deny: every value is hidden
-    # from the model and from evidence unless its Target is listed as readable.
-    readable_regions: list[str] = Field(default_factory=list)
+    # Masking is declared data, not code. The two channels take opposite defaults,
+    # deliberately: hiding a VALUE costs nothing (the model needs structure, not
+    # contents), but blacking out a CONTROL would blind it to something it must use.
+    readable_regions: list[str] = Field(default_factory=list)   # values: allowlist
+    sensitive_regions: list[str] = Field(default_factory=list)  # pixels: painted black
 
 
 def merged(artifact: Artifact, profile: AppProfile | None) -> Artifact:

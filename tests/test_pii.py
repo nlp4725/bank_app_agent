@@ -100,3 +100,35 @@ def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
     r = replay(art, {"member_number": "12345", "account_type": "savings",
                      "nickname": "Holiday fund"}, RunContext(origin=bank_app))
     assert r.outputs["savings_balance"] == "$4210.00"
+
+
+# ── the two channels take opposite defaults, on purpose ──────────────────────
+
+def test_values_are_allowlisted_but_pixels_are_deny_listed():
+    profile = AppProfile.model_validate(app_profile_dict())
+    assert profile.readable_regions == ["t_balance", "t_new_number"]
+    assert profile.sensitive_regions == ["t_member_name", "t_member_since"]
+    # a control the model must use is readable in pixels though its value is hidden
+    assert "t_ok" not in profile.sensitive_regions
+    assert "t_ok" not in profile.readable_regions
+
+
+def test_a_declared_sensitive_region_is_painted_black(bank_app):
+    from cua.surface import Surface
+    profile = AppProfile.model_validate(app_profile_dict())
+    masked = [profile.targets[n] for n in profile.sensitive_regions if n in profile.targets]
+    surface = Surface(bank_app)
+    try:
+        surface.goto("/login")
+        tb = surface.page.get_by_role("textbox")
+        tb.nth(0).fill("svc_officer"); tb.nth(1).fill("officer-pw")
+        surface.page.get_by_role("button", name="Sign in").click()
+        surface.page.wait_for_load_state()
+        surface.page.get_by_role("textbox").first.fill("12345")
+        surface.page.get_by_role("button").last.click()
+        surface.page.wait_for_load_state(); surface.page.wait_for_timeout(800)
+        surface.screenshot("/tmp/_plain.png", mask_targets=[])
+        surface.screenshot("/tmp/_masked.png", mask_targets=masked)
+        assert open("/tmp/_plain.png", "rb").read() != open("/tmp/_masked.png", "rb").read()
+    finally:
+        surface.close()

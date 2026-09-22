@@ -2,7 +2,13 @@
 <div class="panel">
 <table width="100%"><tr>
   <td class="c1"><h2>Member {{ number }}</h2></td>
-  <td class="c1" align="right">{{ member.name }} &nbsp;|&nbsp; Member since {{ member.since }}</td>
+  <td class="c1" align="right">
+    <table><tr>
+      <td class="c1">Member name</td><td class="c1">{{ member.name }}</td>
+    </tr><tr>
+      <td class="c1">Member since</td><td class="c1">{{ member.since }}</td>
+    </tr></table>
+  </td>
 </tr></table>
 
 <table width="100%"><tr><td class="c1" valign="top" width="60%">
