@@ -534,8 +534,7 @@ affordable: the expensive phase happens once.
 
 ## References
 
-Two papers shaped decisions here. The PDFs are not redistributed with this repository;
-both are linked below at source.
+Two papers shaped decisions here.
 
 - **PreAct: Computer-Using Agents that Get Faster on Repeated Tasks** — Bojie Li, Pine AI.
   [arXiv:2606.17929](https://arxiv.org/abs/2606.17929). The Artifact's shape: states carrying
