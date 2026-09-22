@@ -1,4 +1,4 @@
-# Computer-Use Automation System
+# bank_app_agent
 
 An LLM discovers how a task is done in a legacy bank application **once**, against a
 non-production copy. That run is compiled into a reviewable **Artifact**. Thereafter the
