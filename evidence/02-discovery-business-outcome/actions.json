@@ -1,0 +1,106 @@
+[
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "User ID",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "User ID",
+    "name": "",
+    "role": "textbox",
+    "value_ref": "login_username",
+    "value": "(protected)",
+    "turn": 1,
+    "crop": "runs/disc_0a3f513c/screens/01_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/login"
+  },
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Password",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Password",
+    "name": "",
+    "role": "textbox",
+    "value_ref": "login_password",
+    "value": "(protected)",
+    "turn": 2,
+    "crop": "runs/disc_0a3f513c/screens/02_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/login"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "Sign in"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "Sign in",
+    "role": "button",
+    "turn": 3,
+    "crop": "runs/disc_0a3f513c/screens/03_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/search"
+  },
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Member number",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Member number",
+    "name": "",
+    "role": "textbox",
+    "value": "99999",
+    "turn": 4,
+    "crop": "runs/disc_0a3f513c/screens/04_target.png",
+    "url_before": "http://127.0.0.1:5001/search",
+    "url_after": "http://127.0.0.1:5001/search"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Member number",
+          "role": "button",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Member number",
+    "name": "",
+    "role": "button",
+    "turn": 5,
+    "crop": "runs/disc_0a3f513c/screens/05_target.png",
+    "url_before": "http://127.0.0.1:5001/search",
+    "url_after": "http://127.0.0.1:5001/members"
+  }
+]

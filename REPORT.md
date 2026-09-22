@@ -1,0 +1,524 @@
+# REPORT
+
+An LLM discovers how a task is done in a legacy bank application **once**, against a
+non-production copy. That run is compiled into a reviewable **Artifact**. Thereafter the
+**Replay Engine** executes it with given inputs and **no model in the decision loop** — the
+only way a capability runs in production.
+
+Worked runs, with the trail for each: **[evidence/](./evidence/)**.
+Vocabulary: [CONTEXT.md](./CONTEXT.md) · decisions: [docs/adr](./docs/adr) · detail:
+[error-taxonomy](./docs/error-taxonomy.md), [security-model](./docs/security-model.md),
+[targeting](./docs/targeting.md), [evaluation](./docs/evaluation.md).
+
+## 1. Architecture
+
+![system architecture](./docs/figures/architecture.svg)
+
+A goal enters on the left and is compiled into a capability **once**; every later
+invocation is served from the store with no model in it. Red is a gate that can refuse,
+green is a person, and the dashed amber arrow is the only path from the recorded phase into
+the production one. Regenerate with `python docs/figures/make_architecture.py`.
+
+**The Artifact is data interpreted by one engine, not generated code** (ADR 0001). The engine
+holds every function — four actions, four predicates, three ways to find a control, the
+policy check, risk gate, retry budgets, redaction — and an Artifact can only *name* things
+from those vocabularies. So none can bypass a guarantee, and a reviewer reads a flow rather
+than audits a program. The cost: a flow needing something the vocabulary cannot express takes
+an engine change and a review, not a clever recording. That is the right side to be wrong on
+for software that clicks "Continue" on an account opening.
+
+**One module touches the browser, one touches a model.** [`cua/surface.py`](./cua/surface.py) is the only file
+importing Playwright; `anthropic` appears only in [`cua/discovery.py`](./cua/discovery.py),
+and a transitive import-graph test asserts `discovery` is unreachable from `engine`
+([`tests/test_safety.py`](./tests/test_safety.py)). "No LLM in replay" is a
+property of the code, not a sentence in a README. Surface is also the seam for other
+surfaces (§4).
+
+**The Contract is fixed before discovery.** Inferring a capability's signature from whatever
+one run happened to do makes the transcript the source of truth. The LLM proposes a Contract
+from the goal, a Reviewer confirms it, discovery has to satisfy it.
+
+Single process, files for state — no queue or service split, which the brief does not reward.
+Python, Playwright, Pydantic, YAML, Flask, Claude. `fake_bank/` is hostile on purpose:
+server-rendered nested tables, no ids or test ids, session-scoped control names, an
+unlabelled icon button, duplicate "Open" text, balances in an iframe.
+
+## 2. Artifact schema
+
+Shaped after PreAct's Listing 1 — a state machine the engine runs directly, each state
+carrying a verification predicate, each transition carrying an action — with four additions
+the bank setting forces: a **contract** the caller depends on, **targets** as ordered ladders
+rather than single selectors, **watchers** for screens that interrupt any state, and **needs**
+so policy can refuse the run before it starts. Models in [`cua/artifact.py`](./cua/artifact.py);
+stored as YAML, shown here as JSON to match the paper.
+
+```jsonc
+{
+  "capability": {"id", "version", "vendor_app", "role",
+                 "status": "draft|approved", "approvals": []},
+
+  "contract": {                         // all a Calling Agent depends on
+    "inputs":   {"<name>": {"type", "pattern?", "sensitive", "required"}},
+    "outputs":  {"<name>": {"type", "sensitive"}},
+    "outcomes": [{"code", "meaning", "resolver": "member|institution_staff|nobody",
+                  "caller_hint", "retry_same_inputs": "never", "data"}]},
+
+  "needs": {"pages": [], "actions": [], "secrets": []},   // checked against Policy
+
+  "states":      [{"id", "checkpoint": <predicate>, "terminal?": "succeeded"}],
+  "transitions": [{"from_state", "to_state",
+                   "action": {"type": "click|type|select|read", "target",
+                              "value?|value_ref?|into?"},
+                   "risk": "safe|consequential",
+                   "verify_effect?": {"goto", "predicate": <predicate>},
+                   "timeout_ms?"}],
+
+  "targets":  {"<name>": {"frame?", "rungs": [<role_name | label_anchor | picture>]}},
+  "watchers": [{"id", "trigger": <predicate>, "provenance",
+                "condition": "business_outcome|recoverable|escalate|hard_failure",
+                "outcome?|recovery?|budget?|resume_at?|operator_instruction?"}],
+
+  "provenance": {"discovered_by", "contract_by", "example_values"}
+}
+
+<predicate> ::= element_present | text_present | field_value | url_matches | all | any
+```
+
+One artifact, abridged — the last two states of `open_sub_account`, including the one
+consequential transition. Values are verbatim from
+[open_sub_account.1.0.0.yaml](./artifacts/open_sub_account.1.0.0.yaml); 4 of 6 states, 10 of
+12 transitions, 11 of 13 targets and 2 of 3 watchers are cut for space, and schema-default
+empty fields are omitted as Listing 1 does.
+
+```json
+{
+  "capability": {
+    "id": "member.open_sub_account",
+    "version": "1.0.0",
+    "vendor_app": "demo-core-servicing",
+    "role": "account_opener",
+    "status": "approved",
+    "approvals": ["reviewer:nasi", "reviewer:sam"]
+  },
+  "contract": {
+    "inputs": {
+      "member_number": {
+        "type": "string",
+        "pattern": "^[0-9]{5}$",
+        "sensitive": true,
+        "required": true
+      }
+    },
+    "outputs": {
+      "savings_balance": {"type": "money", "sensitive": false},
+      "new_account_number": {"type": "string", "sensitive": false}
+    },
+    "outcomes": [
+      {
+        "code": "MEMBER_NOT_FOUND",
+        "meaning": "No member exists with that number.",
+        "resolver": "member",
+        "caller_hint": "Ask the member to re-check the number.",
+        "retry_same_inputs": "never"
+      }
+    ]
+  },
+  "needs": {
+    "pages": ["/login", "/members", "/members/*", "/search"],
+    "actions": ["click", "read", "select", "type"],
+    "secrets": ["login_password", "login_username"]
+  },
+  "states": [
+    {
+      "id": "s6_members_id",
+      "checkpoint": {"type": "element_present", "target": "t_continue"}
+    },
+    {
+      "id": "s7_members_id",
+      "checkpoint": {"type": "element_present", "target": "t_new_account_number"},
+      "terminal": "succeeded"
+    }
+  ],
+  "transitions": [
+    {
+      "from_state": "s6_members_id",
+      "to_state": "s7_members_id",
+      "action": {"type": "click", "target": "t_continue"},
+      "risk": "consequential",
+      "verify_effect": {
+        "goto": "/members/{{member_number}}",
+        "predicate": {"type": "text_present", "value": "{{nickname}}"}
+      }
+    },
+    {
+      "from_state": "s7_members_id",
+      "to_state": "s7_members_id",
+      "action": {
+        "type": "read",
+        "target": "t_new_account_number",
+        "into": "new_account_number"
+      },
+      "risk": "safe"
+    }
+  ],
+  "targets": {
+    "t_member_number": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Member number",
+          "role": "textbox",
+          "relation": "right_of"
+        },
+        {
+          "kind": "picture",
+          "asset": "artifacts/assets/member.open_sub_account/04_target.png",
+          "threshold": 0.94
+        }
+      ]
+    },
+    "t_continue": {"rungs": [{"kind": "role_name", "role": "button", "name": "Continue"}]}
+  },
+  "watchers": [
+    {
+      "id": "w_not_found",
+      "trigger": {"type": "text_present", "value": "No records found"},
+      "condition": "business_outcome",
+      "outcome": "MEMBER_NOT_FOUND",
+      "provenance": "disc_0a3f513c"
+    }
+  ],
+  "provenance": {
+    "discovered_by": "disc_f57bb148",
+    "contract_by": "reviewer",
+    "example_values": {
+      "member_number": "54321",
+      "account_type": "savings",
+      "nickname": "Holiday fund"
+    }
+  }
+}
+```
+
+The same program drawn as a state machine, after PreAct's Figure 4 — nodes are States
+carrying the Checkpoint that must hold to believe we are there, arrows are Transitions
+carrying an Action. Read the top row left to right, then drop down and read back.
+
+![open_sub_account as a state machine](./docs/figures/open_sub_account.svg)
+
+Self-loops are Actions that do not leave a State (typing a field, reading a value). The one
+red edge is the commit: `consequential`, so it carries a Verification Check and needs two
+approvals. Watchers sit in a band rather than on an edge because they are evaluated at every
+State — three belong to this Artifact, five come from the App Profile shared by every
+capability on this app, and where both declare the same id the Artifact's wins. Regenerate
+with `python docs/figures/make_state_machine.py`; it reads the artifact, so it cannot drift.
+
+**One capability, covering both halves of the brief.** The brief offers "read a member's
+savings balance" and "open a sub-account" as example goals; this artifact does both in one
+flow — search → member detail (read the balance) → form → confirmation — rather than
+recording two capabilities
+([ADR 0006](./docs/adr/0006-one-capability-open-sub-account.md)). A read-only capability
+cannot demonstrate safe-versus-risky actions or the half of escalation where a person decides,
+and a write-only one returns nothing typed to the caller. Doing both means a single artifact
+exercises typed outputs, business outcomes, recoverable conditions, escalation, the
+Consequential Action with its Verification Check, and Refused-when-unattended. The cost is an
+assumption: the flow presumes the member already holds a savings account to read, and a
+member without one would fail the `s4_members_id` checkpoint as an Unknown State. The right
+answer is a `NO_SAVINGS_ACCOUNT` outcome code — the same learning loop as the held-out
+`MAX_ACCOUNTS_REACHED`, and the next one to add (§7).
+
+**Why a state machine and not a step list.** A step list can only be replayed forwards from an
+index. Because every state carries its checkpoint, the engine can always answer "where am I?"
+by asking which one holds — and that is what recovery, operator resume and re-authentication
+after a session expiry all use. None needed a special case.
+
+**Targets are named once and found by a ladder.** Each rung breaks for a different reason, so
+the order *is* the robustness argument:
+
+| Rung | Reads | Survives | Breaks on | Status |
+|---|---|---|---|---|
+| `role_name` | the accessibility tree's computed name | moving, restyling | a rename | resolves |
+| `label_anchor` | visible words plus layout ("the textbox right of *Member number*") | a rename of the control | the caption moving or being renamed | resolves |
+| `picture` | a crop saved at record time | renames and re-layout | re-skinning | **recorded, not matched** |
+
+A Target stores the *relationship*, never a measurement — distances are recomputed live every
+run — and replay records which rung matched ([`surface.py`](./cua/surface.py)). On this app
+rung 1 fails for every text field, and the search control is an `<img>` in a `<button>` with
+no alt, so the browser computes no name and its ladder has no rung 1 at all: a text-only
+agent cannot see that control. The third rung is **honestly incomplete** — the crop is
+captured and the schema carries it, but `_try_rung` returns `None` for `kind: picture`, so a
+ladder resolves on its first two rungs or not at all (§7).
+
+**The vocabularies are closed, and checked twice.** The *schema* is a whitelist, so an action
+like `download` is rejected by parsing rather than by a rule someone must remember to write.
+The *lint* ([`cua/lint.py`](./cua/lint.py)) then catches artifacts that are well-formed and
+still wrong: a surviving discovery literal, a placeholder with no input, an unreachable
+outcome, needs outside the declared role, a consequential step with no verification check.
+`example_values` in the provenance block is what the literals were lifted *from* — the flow
+holds `{{member_number}}`, and the lint fails the build if `54321` survives anywhere.
+
+**Interruptions are watchers, not steps.** Discovery clicked "OK" on a system notice; as a
+transition that would break replay for every member without it. Watchers are evaluated at
+*every* state, carry their provenance, and the ones shared by every capability on this app
+live in an **App Profile**
+([`config/profiles/demo-core-servicing.yaml`](./config/profiles/demo-core-servicing.yaml)).
+
+## 3. Determinism & error handling
+
+Determinism is the sum of: no model (enforced by the import test); a closed action
+vocabulary; targeting by relationship with the matched rung recorded; a Checkpoint asserted
+after **every** action rather than assumed; discovery literals replaced by placeholders, lint
+enforced ([`lint.py`](./cua/lint.py)); waits performed through the browser rather than
+`time.sleep`; and a loop guard in the replay loop. Discovery is additionally bounded by turns,
+wall-clock and consecutive failures; the baseline's `max_actions_per_run` is declared policy
+that the engine does not yet enforce — the loop guard is what actually stops a runaway replay.
+
+Policy is asked *before* acting ("may I?"), Checkpoints and Watchers *after* ("what
+happened?") — [`cua/engine.py`](./cua/engine.py), and
+[docs/error-taxonomy.md](./docs/error-taxonomy.md) for the budgets:
+
+```
+1 PRECONDITION  does the from-state's checkpoint hold?
+2 RESOLVE       walk the ladder; record the rung; stop rather than guess
+3 POLICY        this route, this action type, right now
+4 RISK GATE     consequential? unattended without a Verification Check → refused
+5 ACT           click / type / select / read
+6 OBSERVE       to-state's checkpoint holds? else a Watcher? else Unknown State
+```
+
+Every surprise is classified into one of four **Conditions**, and the test is *who can act*:
+**Business Outcome** (nobody — it is the answer), **Recoverable** (the system, within a
+budget), **Escalate** (a person, during this run), **Hard Failure** (nobody in time). A
+screen matching neither a Checkpoint nor any Watcher is an **Unknown State** — escalated when
+attended, failed when unattended, never guessed through. The caller receives exactly one
+**Run Result**: `Succeeded` (with outputs), `Business Outcome` (with code), `Failed` (step,
+expected, observed, evidence), `Aborted`, `Refused` (nothing was touched), or `Outcome
+Unknown` — a consequential action performed whose effect could never be confirmed. That last
+means *do not retry, a person must look*, and is why every consequential transition carries a
+**Verification Check**: when the screen does not resolve, the system looks instead of
+clicking again.
+
+Two places the taxonomy earns itself. **Session expiry is Recoverable, not an escalation**:
+we hold the service account credential, so the watcher needs no recovery action at all — the
+engine re-observes, asks which Checkpoint holds, lands on `s1_login` and replays the login
+transitions. **One condition is held out on purpose**: `MAX_ACCOUNTS_REACHED` is absent from
+the Artifact, so member 33333 must produce an Unknown State whose Verification Check confirms
+the commit did *not* take effect, rather than a wrong answer. Adding the Watcher and the
+Outcome Code is then a Contract change and a new version — the learning loop on a genuinely
+unseen condition.
+
+UI drift is secondary here (these apps change slowly): the ladder absorbs it, and a rising
+**Fallback Match** rate for one tenant is the alarm.
+
+## 4. Heterogeneity & multi-tenant
+
+**The surface seam.** The engine speaks a small vocabulary to `Surface`: resolve a Target,
+click, type, select, read, does this predicate hold, what is the URL. Everything above that
+line is surface-agnostic. The three rungs were chosen because all three exist off the web: a
+computed name, a caption plus spatial relation, and a picture are what UI Automation
+(Windows) and AX (macOS) expose, and the picture rung is the fallback where no tree exists.
+Porting means a second `Surface` plus a window addressing scheme; two things are honestly
+web-shaped and need a desktop equivalent — the `url_matches` predicate and
+`frame: {url_contains: …}`.
+
+**Multi-tenant reuse is three-level composition** ([`cua/overlay.py`](./cua/overlay.py),
+[overlays/lakeside.yaml](./overlays/lakeside.yaml)), not per-tenant recordings: an **App
+Profile** (per vendor app — shared watchers, declared Readable/Sensitive Regions), the
+**Artifact** (the flow, recorded once; its own watchers win), and a **Tenant Overlay** (may
+change how things *look* — origin, labels, anchors, relations, timeouts — never how the
+capability *behaves*). Demonstrated end to end: the artifact recorded at First Credit Union
+fails honestly at Lakeside Savings, `unknown_state` at the first checkpoint because the field
+is called "Find member by #", and runs unchanged with a 20-line Overlay. The search icon also
+sits to the *left* of the field there, so its rung needs relation `nearest` — which is why
+the relation is part of the recording and not an assumption. An Overlay that tries to add a
+transition, change the contract or widen needs is refused before the browser opens.
+
+**Drift is detected per tenant, from evidence already being written.** Every run records
+which rung resolved each Target, so the **Fallback Match** rate — how often a ladder got past
+rung 1 — is a per-tenant, per-version number that rises before anything breaks. A tenant
+whose app was re-skinned starts matching by anchor instead of by name; one whose captions
+changed stops matching at all and fails at a checkpoint rather than clicking the wrong thing.
+Reading that signal *across* runs is the piece that is designed but not built (§7).
+
+## 5. Escalation & handoff
+
+**Detecting stuck** has three sources: a Watcher whose Condition is `escalate`; an Unknown
+State in an attended run; and during discovery the model calling `ask_human`/`give_up`, or
+the stuck detector (three consecutive failures, step limit, timeout). An `Intervention`
+record lands in the run directory with the capability, the state, why it stopped, the live
+URL, a screenshot, and an `operator_instruction` — prose a Reviewer writes once on the
+Watcher, so every escalation on that screen says the same thing.
+
+**Control is a lease** ([`cua/handoff.py`](./cua/handoff.py)), not a convention:
+`automation → awaiting_operator → operator_in_control → resuming → automation`, `done`
+reachable from any state. Only the holder may act; illegal moves raise. The Operator gets the
+browser the automation was already using — mid-flow, same page. Handback happens two ways:
+they press Resume or Abort in the console, or the engine notices by itself that the blocking
+screen is gone and the run is somewhere it recognises, because asking a person to press a
+button *after* they have done the work is a step that exists for the machine's benefit.
+Resume never assumes they finished — the engine re-orients by asking which Checkpoint holds,
+so an Operator who wandered off gets `resume_checkpoint_missed` rather than a run carrying on
+in the wrong place. Escalations are bounded at two per state. Recorded: the decision, who
+made it, whether they navigated — **not** what they typed, and a test greps the trail for the
+password.
+
+The escalation the demo is built around is the honest shape of the problem: member 44444 is
+flagged, and clearing the flag needs a supervisor's own ID and PIN — credentials deliberately
+held in **no** Role's secrets. It is not that the system *cannot* proceed; it is that it
+*must not be able to*. **Mocked deliberately**: the console is a small Flask page over the
+run directory. Real: the lease, the live-session transfer, the recording, the auto-resume.
+
+## 6. Safety
+
+**Permissions are an intersection of four files owned by four different parties**, each able
+only to narrow ([`cua/policy.py`](./cua/policy.py), [ADR 0005](./docs/adr/0005-permissions-are-baseline-role-tenant-needs.md)): **Baseline** ([`config/baseline.yaml`](./config/baseline.yaml)) ∩ **Role** (per vendor app, written before any
+discovery) ∩ **Tenant grant** (the institution's own file) ∩ **Needs** (what the run actually
+used; replay only). A run is refused at the front door when they disagree, and the refusal
+names the layer that refused: `bank_b` does not grant `account_opener`, so the artifact that
+works for `bank_a` is refused there before a browser opens. Enforcement is in code before
+every action, never by instructing the model — and the piece I would have missed is that a
+check before *we* act cannot see a request the *page* starts. `/leaky` renders a 1×1 image
+pointing off-origin with member data in the query string and nobody clicks anything; the
+allowlist is enforced on every request the browser makes, so it is aborted before it leaves.
+
+**Risky actions.** Every click arrives **Consequential**; only a Reviewer may downgrade one
+to Safe, with the discovery LLM's suggestion as advice rather than as the decision. An
+Artifact containing one needs two named approvals, and an unattended run whose consequential
+action has no Verification Check is `Refused`. The Service Account follows from the Role, so
+a `balance_reader` signs in as `svc_read` — which *the bank application itself* refuses at
+the sub-account form, so the guarantee survives every layer above it failing.
+
+**Sensitive data, in four layers** ([`cua/redact.py`](./cua/redact.py)): structural (a password is never read); **origin** (a
+value is hidden unless its Target is a declared **Readable Region** — the only layer that can
+hide a name or a date of birth, because no pattern can find them); pattern (a net for SSN,
+card, email, phone, date, money); pixels (declared **Sensitive Regions** painted black at
+capture). Values are an allowlist and pixels a deny-list, deliberately: hiding a value costs
+nothing, but blacking out a control the model must click would blind it. NER is *not* in the
+data path — ~90–95% recall is a disclosure rate, not a gate. The strongest control turned out
+not to be masking: evidence records only identifiers we generated, so page text never enters
+it. Outputs reach the caller in full — they are the answer — and are masked in the record.
+
+**The limits, plainly** (in full in [docs/security-model.md](./docs/security-model.md)).
+Route keyword deny-lists are weak (a bank may call transfers "Funds
+Movement") and are only a second net under the tenant's route allowlist. Screenshots are the
+one channel with a partial guarantee. Prompt injection is mitigated, not solved — the real
+protection is that the model only *proposes* and code performs. Two-person approval is only
+as good as the identities behind it, and the demo has no identity system. Above all of it:
+discovery only ever runs against a Non-production Environment, and replay calls no model.
+
+## 7. Cuts
+
+**Cut deliberately** — the operator console is a mock Flask page over the run directory (the
+brief allows it; the mechanism underneath is real). No capability catalog or API endpoint:
+replay is a function call plus a CLI, and the catalog is a directory of Contracts and a
+`list`. One capability, one vendor app, one surface — no desktop `Surface`, so §4 is an
+argument rather than a build. **No LLM fallback on replay failure**, on purpose: a model in
+the replay path is precisely what this design removes; if added it would be bounded to one
+step, policy-checked and recorded. **The `picture` rung is recorded but not matched** — the
+crop is saved at record time and the schema carries it, but the matcher is a stub, so a ladder
+resolves on its first two rungs or not at all. No aggregated drift dashboard, and no identity
+system behind reviewer and operator names.
+
+**Next, in order.** (0) Add the `NO_SAVINGS_ACCOUNT` outcome code and its watcher — the flow
+presumes the member already holds a savings account to read (§2), and today a member without
+one is an Unknown State rather than an answer the caller can act on. (1) Finish the escalation
+rework: session expiry moved from `escalate` to
+`recoverable` and a supervisor-approval screen became the escalation, so the handoff tests
+still assert the old model and are red. (2) The drift alarm, as the first thing that reads
+evidence *across* runs rather than within one. (3) Multi-run stability — replay N times and
+report the flakiness signal ([docs/evaluation.md](./docs/evaluation.md) sets out the
+measurement). (4) A second `Surface`, even a thin one, because the seam in §4 is an argument
+until something else implements it.
+
+## Case study: one capability, end to end
+
+The same three phases as AgentRR's Figure 4 — record, summarise, replay — on this system's
+one capability, `member.open_sub_account`. Every number below comes from
+[`evidence/`](./evidence).
+
+```
+ RECORD  ─ discovery run disc_f57bb148, non-production, masking on ────────────────
+   goal   "open a savings sub-account for this member and read their savings balance"
+   inputs member 54321 · "Holiday fund"          (example values, fixed by a Reviewer)
+   14 turns, 13 actions, 78.6 s, one model call per turn
+   the model saw    [2] textbox (no accessible name) near "Member number" value: (hidden)
+   the model asked  type → [2], secret=login_password          (it never saw the value)
+   code checked     origin · route · action type   → policy_allow, then performed it
+                                   │
+ SUMMARISE ─ Recorder (code, decides nothing) ──┼─ Reviewer (decides everything) ────
+   draft.yaml + 4 suggestions      │   safe_targets:  4 clicks downgraded from
+   literals lifted to parameters   │                  Consequential to Safe
+     54321      → {{member_number}}│   interruptions: the "OK" click on a System notice
+     Holiday fund → {{nickname}}   │                  became w_system_notice, not a step
+   every click arrives             │   watchers:      +2 (one learnt from the 99999 run,
+     risk: consequential           │                  one added by hand)
+   needs derived from what the     │   verify_effect: attached to the commit click
+     run actually touched          │   outcomes:      VALIDATION_REJECTED dropped —
+                                   │                  nothing in this flow can raise it
+   gate: lint clean + a verify-replay on inputs discovery never saw + 2 approvals
+                                   │
+ REPLAY ─ no model, any inputs ────┴───────────────────────────────────────────────
+   12345  Succeeded          2.0 s   savings_balance $4210.00 · new_account_number SA-2001
+   99999  Business Outcome           MEMBER_NOT_FOUND, resolver: member, never retried
+   44444  Succeeded          8.5 s   paused · supervisor signed off in the same session ·
+                                     resumed by itself when the blocking screen cleared
+   33333  Failed                     unknown_state — held-out condition; the verification
+                                     check confirmed the commit did NOT take effect
+   bank_b Refused                    "tenant 'bank_b' does not grant role 'account_opener'"
+                                     — one event long, no browser opened
+```
+
+**Record.** One real LLM run against a live surface, with all four redaction layers on. The
+model worked from the *label* beside each value rather than the value itself, signed in with
+secrets substituted below it, found the unlabelled search icon by its neighbouring caption,
+dismissed an interstitial, and read a figure out of an iframe.
+
+**Summarise.** AgentRR's summary phase is where a model abstracts traces into experiences.
+Here the split is sharper: the **Recorder is code** and abstracts mechanically — lifting the
+run's literals to parameters, deriving needs from what was touched, marking every click
+consequential — and a **Reviewer** makes every judgement, in a decisions file that is applied
+mechanically and reviewable on its own. Nothing about the stored capability is a model's
+opinion.
+
+**Replay, and what blocks it.** AgentRR's check function rejects a call that no valid trace
+supports. The equivalents here fire before or instead of an action, and each one is visible in
+the trail above: **policy** refuses a route or action type outside Baseline ∩ Role ∩ Tenant ∩
+Needs (bank_b, before a browser opened); a **checkpoint** refuses to act on a screen that is
+not the one the transition expects (33333); a **watcher** converts a recognised screen into an
+outcome rather than an error (99999) or into a request for a person (44444); and the
+**verification check** answers "did the commit already happen?" by looking, rather than by
+clicking again (33333, `took_effect: false`).
+
+**Where this departs from AgentRR.** Their replay falls back to a high-level experience — and
+a more capable model — when the low-level one does not fit. There is no such fallback here:
+replay calls no model at all, so an unfamiliar screen is an Unknown State that escalates or
+fails. That is a deliberate trade of coverage for predictability, which is the trade a bank
+makes on a screen that opens accounts. The 39× gap between the discovery run and the replay
+(78.6 s of model calls versus 2.0 s of none) is the reason the trade is affordable: the
+expensive phase happens once.
+
+## References
+
+Two papers shaped decisions here; both PDFs are in [`planning/`](./planning).
+
+- **PreAct: Computer-Using Agents that Get Faster on Repeated Tasks** — Bojie Li, Pine AI.
+  [arXiv:2606.17929](https://arxiv.org/abs/2606.17929). The Artifact's shape: states carrying
+  a checkpoint predicate, transitions carrying an action and a risk label. Two things taken
+  directly — *executing the state machine rather than regenerating a script*
+  ([ADR 0001](./docs/adr/0001-artifact-is-data-interpreted-not-generated-code.md)), and the
+  *verify-before-store* gate, which is why approval here requires a replay on inputs discovery
+  never saw ([docs/evaluation.md](./docs/evaluation.md)). Departure: PreAct can fall back on a
+  model when a state is unfamiliar; replay here cannot, so Watchers are global rather than
+  per-transition, and an unrecognised screen stops the run.
+- **Get Experience from Practice: LLM Agents with Record & Replay (AgentRR)** — Feng et al.,
+  IPADS, Shanghai Jiao Tong University.
+  [arXiv:2505.17716](https://arxiv.org/abs/2505.17716). The record → summary → replay split,
+  and check functions as the safety boundary. Its "untrusted model record, trusted model
+  replay" is the principle behind
+  [ADR 0003](./docs/adr/0003-discovery-runs-only-against-non-production.md): discovery is the
+  untrusted phase, so it only ever runs against a non-production environment.
+
+The ordered Target ladder, and the decision to stop rather than guess when no rung matches,
+come from enterprise RPA practice rather than from a paper — UiPath's ranked selectors with a
+Computer Vision fallback, and OpenAdapt's halt-instead-of-guessing
+([docs/targeting.md](./docs/targeting.md)).

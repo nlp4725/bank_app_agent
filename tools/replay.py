@@ -20,16 +20,8 @@ CAPABILITY = "member.open_sub_account"
 VENDOR_APP = "demo-core-servicing"
 
 
-def main():
-    member = sys.argv[1] if len(sys.argv) > 1 else "12345"
-    tenant = sys.argv[2] if len(sys.argv) > 2 else "bank_a"
-
-    # One question to the Capability Store: which Artifact is live, where this Tenant
-    # runs it, and what it looks like there.
-    art = load_capability(CAPABILITY)
-    origin = origin_for(tenant, VENDOR_APP)
-    overlay = overlay_for(tenant)
-
+def describe(art):
+    """The header every run prints: what is about to execute, and what the caller sees."""
     print(f"\ncapability   {art.capability.id}@{art.capability.version}  "
           f"({art.capability.status}, role {art.capability.role})")
     print(f"approved by  {', '.join(art.capability.approvals)}")
@@ -43,6 +35,19 @@ def main():
     print(f"\nFLOW — {len(art.states)} states, {len(art.transitions)} transitions, "
           f"{len(art.watchers)} watchers, "
           f"{sum(1 for t in art.transitions if t.risk == 'consequential')} consequential")
+
+
+def main():
+    member = sys.argv[1] if len(sys.argv) > 1 else "12345"
+    tenant = sys.argv[2] if len(sys.argv) > 2 else "bank_a"
+
+    # One question to the Capability Store: which Artifact is live, where this Tenant
+    # runs it, and what it looks like there.
+    art = load_capability(CAPABILITY)
+    origin = origin_for(tenant, VENDOR_APP)
+    overlay = overlay_for(tenant)
+
+    describe(art)
     if os.environ.get("ATTENDED") == "1":
         print("\nATTENDED: if this run escalates, it will pause and wait for an Operator.")
         print("  1. do what is needed in the browser it leaves open")

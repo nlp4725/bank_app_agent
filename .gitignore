@@ -4,9 +4,9 @@ __pycache__/
 venv/
 .env
 .DS_Store
-evidence/
+# evidence/ is committed on purpose: it is the worked-runs deliverable,
+# 712K, regenerable with `python -m tools.make_evidence`.
 runs/
 node_modules/
 .pytest_cache/
 planning/
-runs/

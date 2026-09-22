@@ -1,0 +1,29 @@
+
+capability   member.open_sub_account@1.0.0  (approved, role account_opener)
+approved by  reviewer:nasi, reviewer:sam
+
+CONTRACT — all the caller sees
+  inputs   member_number: string ^[0-9]{5}$, account_type: enum, nickname: string
+  outputs  savings_balance: money, new_account_number: string
+  outcomes MEMBER_NOT_FOUND (resolver: member), NOT_AUTHORIZED (resolver: institution_staff)
+
+FLOW — 6 states, 12 transitions, 7 watchers, 1 consequential
+
+replaying for member 12345 at bank_a (http://127.0.0.1:5001) — no model in the loop
+
+  s1_login         -> s1_login         type   t_user_id                secret:login_username    rung=label_anchor risk=safe
+  s1_login         -> s1_login         type   t_password               secret:login_password    rung=label_anchor risk=safe
+  s1_login         -> s2_search        click  t_sign_in                                         rung=role_name risk=safe
+  s2_search        -> s2_search        type   t_member_number          {{member_number}}        rung=label_anchor risk=safe
+  s2_search        -> s4_members_id    click  t_member_number_button                            rung=label_anchor risk=safe
+  s4_members_id    -> s4_members_id    read   t_savings_balance                                 rung=label_anchor risk=safe
+  s4_members_id    -> s5_members_id    click  t_open                                            rung=role_name risk=safe
+  s5_members_id    -> s5_members_id    select t_account_type           {{account_type}}         rung=label_anchor risk=safe
+  s5_members_id    -> s5_members_id    type   t_nickname               {{nickname}}             rung=label_anchor risk=safe
+  s5_members_id    -> s6_members_id    click  t_review                                          rung=role_name risk=safe
+  s6_members_id    -> s7_members_id    click  t_continue                                        rung=role_name risk=consequential
+  s7_members_id    -> s7_members_id    read   t_new_account_number                              rung=label_anchor risk=safe
+
+RESULT  succeeded
+OUTPUTS {'savings_balance': '$4210.00', 'new_account_number': 'SA-2001'}
+TIME    3.5s     evidence: runs/run_24779d01

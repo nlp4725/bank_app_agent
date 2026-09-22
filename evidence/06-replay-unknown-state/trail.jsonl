@@ -1,0 +1,36 @@
+{"ts": "2026-09-22T17:20:05.239+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-22T17:20:05.239+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.258+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.318+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-22T17:20:05.318+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.343+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s1_login", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.378+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "click"}
+{"ts": "2026-09-22T17:20:05.378+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s1_login", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:05.424+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s1_login", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:05.489+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s2_search", "path": "/search", "action": "type"}
+{"ts": "2026-09-22T17:20:05.489+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s2_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.493+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s2_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.527+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s2_search", "path": "/search", "action": "click"}
+{"ts": "2026-09-22T17:20:05.527+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s2_search", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:05.571+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s2_search", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.256+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s4_members_id", "path": "/members/33333", "action": "read"}
+{"ts": "2026-09-22T17:20:06.256+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s4_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.258+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s4_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.387+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s4_members_id", "path": "/members/33333", "action": "click"}
+{"ts": "2026-09-22T17:20:06.387+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s4_members_id", "action": "click", "target": "t_open", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:06.433+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s4_members_id", "action": "click", "target": "t_open", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:06.502+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s5_members_id", "path": "/members/33333/subaccounts/new?", "action": "select"}
+{"ts": "2026-09-22T17:20:06.503+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s5_members_id", "action": "select", "target": "t_account_type", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.508+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s5_members_id", "action": "select", "target": "t_account_type", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.543+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s5_members_id", "path": "/members/33333/subaccounts/new?", "action": "type"}
+{"ts": "2026-09-22T17:20:06.543+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s5_members_id", "action": "type", "target": "t_nickname", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.546+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s5_members_id", "action": "type", "target": "t_nickname", "matched_by": "label_anchor"}
+{"ts": "2026-09-22T17:20:06.570+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s5_members_id", "path": "/members/33333/subaccounts/new?", "action": "click"}
+{"ts": "2026-09-22T17:20:06.570+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s5_members_id", "action": "click", "target": "t_review", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:06.613+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s5_members_id", "action": "click", "target": "t_review", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:06.632+00:00", "run_id": "run_837e66ee", "event": "policy_allow", "step": "s6_members_id", "path": "/members/33333/subaccounts/review", "action": "click"}
+{"ts": "2026-09-22T17:20:06.632+00:00", "run_id": "run_837e66ee", "event": "about_to", "step": "s6_members_id", "action": "click", "target": "t_continue", "risk": "consequential", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:06.692+00:00", "run_id": "run_837e66ee", "event": "done", "step": "s6_members_id", "action": "click", "target": "t_continue", "matched_by": "role_name"}
+{"ts": "2026-09-22T17:20:12.716+00:00", "run_id": "run_837e66ee", "event": "checkpoint_missed", "step": "s7_members_id", "predicate": "element_present", "expected": "t_new_account_number", "url": "http://127.0.0.1:5001/members/33333/subaccounts/commit", "timeout_ms": 6000, "blocked_requests": [], "frames": ["http://127.0.0.1:5001/members/33333/subaccounts/commit"]}
+{"ts": "2026-09-22T17:20:15.901+00:00", "run_id": "run_837e66ee", "event": "verification_check", "step": "s6_members_id", "took_effect": false}
+{"ts": "2026-09-22T17:20:16.358+00:00", "run_id": "run_837e66ee", "event": "result", "status": "failed", "reason": "unknown_state", "outcome": null}

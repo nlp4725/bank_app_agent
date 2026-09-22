@@ -1,0 +1,274 @@
+[
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "User ID",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "User ID",
+    "name": "",
+    "role": "textbox",
+    "value_ref": "login_username",
+    "value": "(protected)",
+    "turn": 1,
+    "crop": "runs/disc_f57bb148/screens/01_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/login"
+  },
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Password",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Password",
+    "name": "",
+    "role": "textbox",
+    "value_ref": "login_password",
+    "value": "(protected)",
+    "turn": 2,
+    "crop": "runs/disc_f57bb148/screens/02_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/login"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "Sign in"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "Sign in",
+    "role": "button",
+    "turn": 3,
+    "crop": "runs/disc_f57bb148/screens/03_target.png",
+    "url_before": "http://127.0.0.1:5001/login",
+    "url_after": "http://127.0.0.1:5001/search"
+  },
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Member number",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Member number",
+    "name": "",
+    "role": "textbox",
+    "value": "54321",
+    "turn": 4,
+    "crop": "runs/disc_f57bb148/screens/04_target.png",
+    "url_before": "http://127.0.0.1:5001/search",
+    "url_after": "http://127.0.0.1:5001/search"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Member number",
+          "role": "button",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Member number",
+    "name": "",
+    "role": "button",
+    "turn": 5,
+    "crop": "runs/disc_f57bb148/screens/05_target.png",
+    "url_before": "http://127.0.0.1:5001/search",
+    "url_after": "http://127.0.0.1:5001/members"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "OK"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "OK",
+    "role": "button",
+    "turn": 6,
+    "crop": "runs/disc_f57bb148/screens/06_target.png",
+    "url_before": "http://127.0.0.1:5001/members",
+    "url_after": "http://127.0.0.1:5001/members/54321"
+  },
+  {
+    "action": "read",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Savings balance",
+          "role": null,
+          "relation": "right_of"
+        }
+      ],
+      "frame": {
+        "url_contains": "/panel"
+      }
+    },
+    "anchor": "Savings balance",
+    "name": "",
+    "role": "text",
+    "into": "savings_balance",
+    "turn": 7,
+    "crop": "runs/disc_f57bb148/screens/07_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321",
+    "url_after": "http://127.0.0.1:5001/members/54321"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "Open"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "Open",
+    "role": "button",
+    "turn": 8,
+    "crop": "runs/disc_f57bb148/screens/08_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/new?"
+  },
+  {
+    "action": "select",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "combobox",
+          "name": "Savings\nChecking\nHoliday Club"
+        },
+        {
+          "kind": "label_anchor",
+          "anchor": "Account type",
+          "role": "combobox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Account type",
+    "name": "Savings\nChecking\nHoliday Club",
+    "role": "combobox",
+    "value": "Savings",
+    "turn": 9,
+    "crop": "runs/disc_f57bb148/screens/09_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321/subaccounts/new?",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/new?"
+  },
+  {
+    "action": "type",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "Nickname",
+          "role": "textbox",
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "Nickname",
+    "name": "",
+    "role": "textbox",
+    "value": "Holiday fund",
+    "turn": 10,
+    "crop": "runs/disc_f57bb148/screens/10_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321/subaccounts/new?",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/new?"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "Review"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "Review",
+    "role": "button",
+    "turn": 11,
+    "crop": "runs/disc_f57bb148/screens/11_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321/subaccounts/new?",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/review"
+  },
+  {
+    "action": "click",
+    "target": {
+      "rungs": [
+        {
+          "kind": "role_name",
+          "role": "button",
+          "name": "Continue"
+        }
+      ]
+    },
+    "anchor": null,
+    "name": "Continue",
+    "role": "button",
+    "turn": 12,
+    "crop": null,
+    "url_before": "http://127.0.0.1:5001/members/54321/subaccounts/review",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/commit"
+  },
+  {
+    "action": "read",
+    "target": {
+      "rungs": [
+        {
+          "kind": "label_anchor",
+          "anchor": "New account number",
+          "role": null,
+          "relation": "right_of"
+        }
+      ]
+    },
+    "anchor": "New account number",
+    "name": "",
+    "role": "text",
+    "into": "new_account_number",
+    "turn": 13,
+    "crop": "runs/disc_f57bb148/screens/13_target.png",
+    "url_before": "http://127.0.0.1:5001/members/54321/subaccounts/commit",
+    "url_after": "http://127.0.0.1:5001/members/54321/subaccounts/commit"
+  }
+]

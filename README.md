@@ -240,8 +240,13 @@ python -m tools.show_run runs/run_8de312d4
 
 Every run leaves an append-only redacted trail: each policy decision, each action, which rung
 matched, every Watcher that fired, and a screenshot on failure with the declared Sensitive
-Regions already painted black. Seven curated runs are committed in
-**[evidence/](./evidence/)** with a guide to reading them.
+Regions already painted black — look at
+[`evidence/06-replay-unknown-state/screen_1.png`](./evidence/06-replay-unknown-state/) and
+you will see the member's name and date of birth blacked out while the balances, which are
+the answer, remain.
+
+Seven runs are committed in **[evidence/](./evidence/)** with a guide to reading them. The
+five replays regenerate from the current code with `python -m tools.make_evidence`.
 
 ### 8. Discovery — where the Artifact came from
 

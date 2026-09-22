@@ -1,0 +1,16 @@
+
+capability   member.open_sub_account@1.0.0  (approved, role account_opener)
+approved by  reviewer:nasi, reviewer:sam
+
+CONTRACT — all the caller sees
+  inputs   member_number: string ^[0-9]{5}$, account_type: enum, nickname: string
+  outputs  savings_balance: money, new_account_number: string
+  outcomes MEMBER_NOT_FOUND (resolver: member), NOT_AUTHORIZED (resolver: institution_staff)
+
+FLOW — 6 states, 12 transitions, 7 watchers, 1 consequential
+
+replaying for member 12345 at bank_b (http://127.0.0.1:5002) — no model in the loop
+
+
+RESULT  refused · tenant 'bank_b' does not grant role 'account_opener'
+TIME    0.0s     evidence: runs/run_b7acb1d8
