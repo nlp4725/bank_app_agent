@@ -133,7 +133,7 @@ def member_lookup():
     if scenario == data.SCENARIO_NOT_AUTHORIZED:
         return render_template("not_authorized.html", number=number)
 
-    if scenario == data.SCENARIO_SESSION_EXPIRY:
+    if scenario == data.SCENARIO_SESSION_EXPIRY and store.fire_once(f"expiry:{number}"):
         session.clear()
         return render_template("login.html", message="Your session has expired. Please sign in again.")
 

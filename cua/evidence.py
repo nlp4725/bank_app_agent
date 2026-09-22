@@ -69,6 +69,10 @@ class EvidenceWriter:
     def refused(self, run_id, reason):
         return self._finish(RunResult(status="refused", run_id=run_id, reason=reason))
 
+    def aborted(self, run_id, by, at_step):
+        return self._finish(RunResult(status="aborted", run_id=run_id,
+                                      reason=f"stopped by {by}", step=at_step))
+
     def outcome_unknown(self, run_id, step, guidance):
         return self._finish(RunResult(status="outcome_unknown", run_id=run_id,
                                       step=step, reason=guidance))

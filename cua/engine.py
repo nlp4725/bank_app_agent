@@ -14,6 +14,8 @@ from pathlib import Path
 
 from .artifact import Artifact
 from .evidence import EvidenceWriter
+from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
+                      RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .policy import PolicyError, policy_for
 from .result import RunResult
 from .surface import Surface
@@ -61,6 +63,11 @@ class RunContext:
     secrets: object | None = None      # defaults to the Role's Service Account
     evidence_root: str = "runs"
     headless: bool = True
+    # An Operator: called when the run escalates and a person is on shift. Given the
+    # intervention and the live session, it returns "resume" or "abort". Absent, the
+    # run waits for a decision file, which is what an operator console would write.
+    operator: object | None = None
+    operator_timeout_s: float = 120.0
 
 
 def render(value: str, inputs: dict) -> str:
@@ -133,6 +140,8 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
 
 def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
     outputs, budgets = {}, {}
+    control = Control()
+    escalations: dict[str, int] = {}
     surface.goto("/login")
 
     index = 0
@@ -169,7 +178,8 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
             rendered_predicate(start.checkpoint, inputs), artifact, timeout_ms=timeout
         ):
             outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "precondition", policy)
+                                       transition, budgets, "precondition", policy, control,
+                                       escalations)
             if isinstance(outcome, RunResult):
                 return outcome
             index, observe_only = _resume(artifact, outcome, index)
@@ -221,7 +231,8 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
                            blocked_requests=surface.blocked_requests[-3:],
                            frames=[f.url for f in surface.page.frames])
             outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "checkpoint", policy)
+                                       transition, budgets, "checkpoint", policy, control,
+                                       escalations)
             if isinstance(outcome, RunResult):
                 return outcome
             index, observe_only = _resume(artifact, outcome, index)
@@ -246,7 +257,7 @@ def _act(surface, transition, found, inputs, ctx, outputs):
 
 
 def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transition, budgets,
-                     stage, policy=None):
+                     stage, policy=None, control=None, escalations=None):
     """Checkpoint missed: ask the Watchers what this screen is, then react."""
     for watcher in artifact.watchers:
         if not surface.holds(rendered_predicate(watcher.trigger, inputs), artifact, timeout_ms=0):
@@ -266,8 +277,9 @@ def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transitio
             if not ctx.attended:
                 return evidence.failed(run_id, "escalation_required", step=transition.from_state,
                                        watcher=watcher.id, screenshot=evidence.snap(surface))
-            return evidence.failed(run_id, "operator_handoff_not_implemented",
-                                   step=transition.from_state, watcher=watcher.id)
+            return _hand_over(artifact, inputs, ctx, surface, evidence, run_id,
+                              transition, control, watcher.id,
+                              watcher.reason or f"watcher {watcher.id}", escalations)
 
         if watcher.condition == "recoverable":
             budget = watcher.budget or DEFAULT_RECOVERY_BUDGET
@@ -311,11 +323,63 @@ def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transitio
                                screenshot=evidence.snap(surface), verified_effect=False)
 
     if ctx.attended:
-        return evidence.failed(run_id, "escalation_required", step=transition.from_state,
-                               screenshot=evidence.snap(surface))
+        return _hand_over(artifact, inputs, ctx, surface, evidence, run_id, transition,
+                          control, None, "no Watcher recognises this screen", escalations)
     return evidence.failed(run_id, "unknown_state", step=transition.from_state,
                            expected=str(transition.to_state), observed=surface.url,
                            screenshot=evidence.snap(surface))
+
+
+MAX_ESCALATIONS_PER_STATE = 2
+
+
+def _hand_over(artifact, inputs, ctx, surface, evidence, run_id, transition, control,
+               watcher_id, reason, escalations=None) -> RunResult:
+    """Pause, give the Operator this session, record what they did, resume or abort."""
+    escalations = escalations if escalations is not None else {}
+    used = escalations.get(transition.from_state, 0)
+    if used >= MAX_ESCALATIONS_PER_STATE:
+        # Bounded, so escalate -> resume -> escalate cannot become a loop that keeps
+        # a person answering the same question forever.
+        return evidence.failed(run_id, "escalation_budget_exhausted",
+                               step=transition.from_state, watcher=watcher_id)
+    escalations[transition.from_state] = used + 1
+    shot = evidence.snap(surface)
+    control.move(AWAITING_OPERATOR, "operator")
+    request = Intervention(run_id=run_id, capability=artifact.capability.id,
+                           state=transition.from_state, reason=reason,
+                           watcher=watcher_id, url=surface.url, screenshot=shot)
+    path = request.write(evidence.dir)
+    evidence.event(run_id, "intervention_raised", step=transition.from_state,
+                   watcher=watcher_id, reason=reason, request=str(path))
+
+    before_url = surface.url
+    control.move(OPERATOR_IN_CONTROL, "operator")
+    if ctx.operator is not None:
+        decision, who = ctx.operator(request, surface), "operator:callback"
+    else:
+        decision, who = wait_for_decision(evidence.dir, ctx.operator_timeout_s, surface._tick)
+
+    evidence.event(run_id, "operator_acted", by=who, decision=decision,
+                   **observe_operator(surface, before_url))
+
+    if decision == "timeout":
+        control.move(DONE, "automation")
+        return evidence.failed(run_id, "escalation_timeout", step=transition.from_state,
+                               watcher=watcher_id)
+    if decision != "resume":
+        control.move(DONE, "operator")
+        return evidence.aborted(run_id, by=who, at_step=transition.from_state)
+
+    # Resume re-checks where we are rather than assuming the Operator finished the job.
+    control.move(RESUMING, "automation")
+    here = _where_are_we(artifact, inputs, surface)
+    control.move(AUTOMATION, "automation")
+    if here is None:
+        return evidence.failed(run_id, "resume_checkpoint_missed", step=transition.from_state,
+                               observed=surface.url, screenshot=evidence.snap(surface))
+    evidence.event(run_id, "resumed", step=artifact.transitions[here].from_state)
+    return artifact.transitions[here].from_state
 
 
 def _where_are_we(artifact, inputs, surface) -> int | None:

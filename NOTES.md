@@ -170,3 +170,24 @@ four clicks Safe, turned the OK click into a Recoverable watcher, added the
 MEMBER_NOT_FOUND watcher learnt from the 99999 run, added NOT_AUTHORIZED by hand,
 attached the verification check to the commit, and dropped VALIDATION_REJECTED
 because nothing in this flow can produce it yet.
+
+## 2026-09-22 — step 8: the handoff
+Control is a lease with declared transitions: automation -> awaiting_operator ->
+operator_in_control -> resuming -> automation. Only the holder may act, and the
+illegal moves raise rather than being prevented by convention.
+
+The Operator gets the session the automation was already using — same browser, same
+page — plus an intervention record carrying the capability, the state, the reason, the
+URL and a screenshot. What they did is recorded (decision, whether they navigated),
+what they typed is not; a test greps the trail for the password.
+
+Resume does not assume they finished the job: the engine re-orients by asking which
+Checkpoint holds. An operator who wanders off to another page gets a
+resume_checkpoint_missed rather than a run that carries on in the wrong place.
+
+Escalations are bounded at two per state, so escalate -> resume -> escalate cannot
+keep a person answering the same question forever.
+
+Two things this cost: the session-expiry scenario now fires once per member (an expiry
+that repeats forever is not an expiry, it is a wall), and I lost twenty minutes to a
+Flask server still running the old code — the fix was right, the process was stale.
