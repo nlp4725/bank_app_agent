@@ -57,10 +57,18 @@ class Policy:
                 and action in self.role.get("actions", []))
 
     def allows_page(self, path: str) -> bool:
+        """Baseline ∩ Role ∩ Tenant. Each layer may narrow, never widen.
+
+        The Tenant's list used to *replace* the Role's when present, so a tenant file
+        naming a route the Role does not hold would have granted it — the one place
+        the four-layer rule could be inverted by a config file. See ADR 0005.
+        """
         if any(word in path.lower() for word in self.baseline["route_keywords_denied"]):
             return False
-        allowed = self.tenant.get("pages") or self.role.get("pages", [])
-        return _covers(allowed, path)
+        if not _covers(self.role.get("pages", []), path):
+            return False
+        narrowed = self.tenant.get("pages")
+        return narrowed is None or _covers(narrowed, path)
 
     def consequential_allowed(self) -> bool:
         return self.role.get("consequential") != "forbidden"
@@ -70,12 +78,29 @@ class Policy:
         return granted.get("service_account") or self.role.get("service_account")
 
     def origin(self) -> str:
-        return self.tenant.get("origin", "")
+        """Where this Tenant's instance lives — the one automation runs against."""
+        return (self.tenant.get("origin") or "").rstrip("/")
+
+    def origins(self) -> list[str]:
+        """Every instance of this Tenant's app automation may act on.
+
+        A Tenant usually has more than one — the production instance and the
+        non-production copy a Discovery Run is allowed to touch — so the Allowlist
+        covers origins as well as routes. Undeclared means unreachable.
+        """
+        extra = self.tenant.get("origins") or []
+        return [o.rstrip("/") for o in ([self.origin()] if self.origin() else []) + list(extra)]
+
+    def allows_origin(self, origin: str) -> bool:
+        return (origin or "").rstrip("/") in self.origins()
 
     # ── the front door ───────────────────────────────────────────────────────
 
-    def refuse_reason(self, artifact) -> str | None:
+    def refuse_reason(self, artifact, origin: str | None = None) -> str | None:
         """Why this Artifact may not run here — checked before anything is touched."""
+        if origin is not None and not self.allows_origin(origin):
+            return (f"origin {origin!r} is not an instance tenant "
+                    f"{self.tenant['tenant']!r} declares")
         if self.role_name not in self.tenant.get("roles_granted", {}):
             return (f"tenant {self.tenant['tenant']!r} does not grant role "
                     f"{self.role_name!r}")

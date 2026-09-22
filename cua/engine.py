@@ -107,7 +107,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
         policy = policy_for(artifact, ctx.tenant)
     except PolicyError as exc:
         return evidence.refused(run_id, str(exc))
-    refusal = policy.refuse_reason(artifact)
+    refusal = policy.refuse_reason(artifact, origin=ctx.origin)
     if refusal:
         return evidence.refused(run_id, refusal)
     if ctx.secrets is None:
@@ -226,7 +226,7 @@ class Run:
         if start and start.checkpoint and not self.predicates.holds(
             start.checkpoint, timeout_ms=timeout
         ):
-            return self._surprise(transition)
+            return self._surprise(transition, "precondition")
 
         # 2. resolve the Target
         target = self.artifact.targets[transition.action.target]
@@ -268,7 +268,7 @@ class Run:
                        url=self.surface.url, timeout_ms=timeout,
                        blocked_requests=self.surface.blocked_requests[-3:],
                        frames=self.surface.frame_urls())
-            return self._surprise(transition)
+            return self._surprise(transition, "checkpoint")
         return None
 
     def _act(self, transition, found):
@@ -286,33 +286,38 @@ class Run:
 
     # ── surprises ────────────────────────────────────────────────────────────
 
-    def _surprise(self, transition):
-        """A Checkpoint did not hold: ask the Watchers what this screen is."""
+    def _surprise(self, transition, stage):
+        """A Checkpoint did not hold: ask the Watchers what this screen is.
+
+        `stage` is "precondition" (we never acted) or "checkpoint" (we acted and the
+        screen is not what the Artifact expects). It is the difference between a step
+        that can simply be retried and one whose effect is now in doubt.
+        """
         for watcher in self.artifact.watchers:
             if not self.predicates.holds(watcher.trigger, timeout_ms=0):
                 continue
             self.event("watcher_matched", watcher=watcher.id,
                        condition=watcher.condition, step=transition.from_state)
             handler = getattr(self, f"_on_{watcher.condition}")
-            return handler(transition, watcher)
-        return self._unrecognised(transition)
+            return handler(transition, watcher, stage)
+        return self._unrecognised(transition, stage)
 
-    def _on_business_outcome(self, transition, watcher):
+    def _on_business_outcome(self, transition, watcher, stage):
         spec = next(o for o in self.artifact.contract.outcomes if o.code == watcher.outcome)
         return self.evidence.business_outcome(self.run_id, spec)
 
-    def _on_hard_failure(self, transition, watcher):
+    def _on_hard_failure(self, transition, watcher, stage):
         return self.failed("hard_failure", step=transition.from_state,
                            observed=watcher.id, snap=True)
 
-    def _on_escalate(self, transition, watcher):
+    def _on_escalate(self, transition, watcher, stage):
         if not self.ctx.attended:
             return self.failed("escalation_required", step=transition.from_state,
                                watcher=watcher.id, snap=True)
         return self._hand_over(transition, watcher.id,
-                               watcher.reason or f"watcher {watcher.id}")
+                               watcher.reason or f"watcher {watcher.id}", stage)
 
-    def _on_recoverable(self, transition, watcher):
+    def _on_recoverable(self, transition, watcher, stage):
         """Fix it within the run, within a budget, and never by acting twice."""
         budget = watcher.budget or DEFAULT_RECOVERY_BUDGET
         used = self.budgets.get(watcher.id, 0)
@@ -341,7 +346,7 @@ class Run:
         # transition was heading, so look before acting again.
         return watcher.resume_at or OBSERVE
 
-    def _unrecognised(self, transition):
+    def _unrecognised(self, transition, stage):
         """Nothing recognises this screen. Look before guessing, then ask a person."""
         if transition.risk == "consequential" and transition.verify_effect is not None:
             took_effect = self._verify(transition)
@@ -352,16 +357,39 @@ class Run:
                 # answer, so they are returned rather than dropped.
                 return self.evidence.succeeded(self.run_id, self.outputs,
                                                verified_effect=True)
+            # Settled, in the negative: the action did not take effect, so this is a
+            # plain failure and the caller may retry.
             return self.failed("unknown_state", step=transition.from_state,
                                expected=str(transition.to_state),
                                observed=self.surface.url, snap=True, verified_effect=False)
 
         if self.ctx.attended:
             return self._hand_over(transition, None,
-                                   "no Watcher recognises this screen")
-        return self.failed("unknown_state", step=transition.from_state,
+                                   "no Watcher recognises this screen", stage)
+        return self._unsettled(transition, "unknown_state", stage)
+
+    def _unsettled(self, transition, reason, stage, **fields) -> RunResult:
+        """A screen we cannot read, possibly after an action we cannot take back.
+
+        If the Consequential Action was actually performed — the Checkpoint after it
+        is what failed, not the one before — and no Verification Check settled the
+        question, the effect was never confirmed either way: that is Outcome Unknown,
+        not Failed. The difference is what the Calling Agent does next. Failed invites
+        a retry; Outcome Unknown means a person must look before anything is tried
+        again. A precondition that did not hold means we never acted, so it is a
+        plain failure.
+        """
+        self.evidence.snap(self.surface)
+        if (stage == "checkpoint" and transition.risk == "consequential"
+                and transition.verify_effect is None):
+            return self.evidence.outcome_unknown(
+                self.run_id, step=transition.from_state,
+                guidance=("a consequential action was performed and no verification "
+                          "check could confirm whether it took effect; do not retry "
+                          "until someone has looked"))
+        return self.failed(reason, step=transition.from_state,
                            expected=str(transition.to_state),
-                           observed=self.surface.url, snap=True)
+                           observed=self.surface.url, **fields)
 
     def _verify(self, transition) -> bool:
         """Look, rather than clicking again."""
@@ -370,14 +398,14 @@ class Run:
 
     # ── handing the session to a person ──────────────────────────────────────
 
-    def _hand_over(self, transition, watcher_id, reason) -> RunResult:
+    def _hand_over(self, transition, watcher_id, reason, stage) -> RunResult:
         """Pause, give the Operator this session, record what they did, resume or abort."""
         used = self.escalations.get(transition.from_state, 0)
         if used >= MAX_ESCALATIONS_PER_STATE:
             # Bounded, so escalate -> resume -> escalate cannot become a loop that
             # keeps a person answering the same question forever.
-            return self.failed("escalation_budget_exhausted",
-                               step=transition.from_state, watcher=watcher_id)
+            return self._unsettled(transition, "escalation_budget_exhausted", stage,
+                                   watcher=watcher_id)
         self.escalations[transition.from_state] = used + 1
 
         watcher = next((w for w in self.artifact.watchers if w.id == watcher_id), None)
@@ -399,8 +427,8 @@ class Run:
 
         if decision == "timeout":
             self.control.move(DONE, "automation")
-            return self.failed("escalation_timeout", step=transition.from_state,
-                               watcher=watcher_id)
+            return self._unsettled(transition, "escalation_timeout", stage,
+                                   watcher=watcher_id)
         if decision != "resume":
             self.control.move(DONE, "operator")
             return self.evidence.aborted(self.run_id, by=who, at_step=transition.from_state)
@@ -410,8 +438,7 @@ class Run:
         here = self._where_am_i()
         self.control.move(AUTOMATION, "automation")
         if here is None:
-            return self.failed("resume_checkpoint_missed", step=transition.from_state,
-                               observed=self.surface.url, snap=True)
+            return self._unsettled(transition, "resume_checkpoint_missed", stage)
         self.event("resumed", step=self.artifact.transitions[here].from_state)
         return self.artifact.transitions[here].from_state
 

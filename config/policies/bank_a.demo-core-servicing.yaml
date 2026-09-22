@@ -3,6 +3,11 @@
 tenant: bank_a
 vendor_app: demo-core-servicing
 origin: http://127.0.0.1:5001
+# The other instances of this product the institution runs. Automation may act on
+# these and on `origin`; anywhere else is refused before the browser opens.
+origins:
+  - http://127.0.0.1:5099
+
 environment: non_production
 
 roles_granted:

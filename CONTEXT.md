@@ -148,7 +148,8 @@ Every runtime surprise is classified into one Condition. The test is **who can a
 | "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
 | "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
 | Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
-| Session expired, login page returns | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted** or **Failed** on timeout |
+| Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
+| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential Action was already in flight |
 | "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
 | A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
 | Frozen screen after a Consequential Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
@@ -179,7 +180,7 @@ The provider-wide floor, hand-written and versioned, that governs every run on e
 _Avoid_: Global config, defaults
 
 **Allowlist**:
-The part of a Policy stating where automation may act (origins, routes) and which action types it may use. Enforced by code before every action, never by instructing the LLM. Effective permissions are **Baseline ∩ Role ∩ Tenant grant ∩ Needs** (Needs apply at Replay only).
+The part of a Policy stating where automation may act (origins, routes) and which action types it may use. A Tenant declares every instance of its app that automation may reach — the production one and the non-production copies — and a run against any other origin is Refused before the browser opens. Enforced by code before every action, never by instructing the LLM. Effective permissions are **Baseline ∩ Role ∩ Tenant grant ∩ Needs**, a true intersection: each layer may narrow what the one above allows and none may widen it (Needs apply at Replay only).
 _Avoid_: Whitelist, permitted list
 
 **Role**:
