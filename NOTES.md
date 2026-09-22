@@ -121,3 +121,24 @@ Also found while testing it: the member header put the name and "Member since" i
 table cell, so there was no anchor text beside the name and the region could not be
 declared at all. Split into label/value cells, which is how a real screen is built
 anyway — and a reminder that a control you cannot name is a control you cannot protect.
+
+## 2026-09-22 — step 5: a real discovery run, and two bugs it found
+13 turns, goal reached, outputs correct: savings_balance "$1250.00" and
+new_account_number "SA-2001". The model signed in with secrets it never saw, found
+the unlabelled search icon by anchor, dismissed the interstitial itself, read a value
+out of an iframe, and stopped at the confirmation screen.
+
+**Bug 1 — the guardrail was right, the list was wrong.** The interstitial renders at
+/members, and the allowlist had only /members/*. The model was refused twice and said
+"OK button blocked by policy; navigate via Member Search instead" before the stuck
+detector ended the run. Two lessons: a policy that is too narrow looks exactly like a
+broken agent, and the refusal text has to be good enough for the next reader to
+diagnose it. Also found that watcher recovery actions bypassed the policy check — now
+they go through the same gate.
+
+**Bug 2 — it could see the value but not point at it.** Our observation listed only
+interactive controls, so the savings balance (a table cell) had no [n]. The model
+quoted "$1250.00" in its reason while `read` returned an empty string, and on the next
+read grabbed a navigation link called "Member Search". Fixed by adding label/value
+pairs to the observation. The general lesson: anything the goal asks the model to
+*read* has to be addressable, not merely visible.

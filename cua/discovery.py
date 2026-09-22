@@ -129,11 +129,16 @@ class DiscoveryResult:
 def observation(surface: Surface, readable: set[str], mask: bool = False) -> tuple[str, list[dict]]:
     """The accessibility list, default-deny masked, annotated where a name is missing."""
     controls = surface.controls()
+    controls += surface.values(start_index=len(controls) + 1)
     lines = []
     for c in controls:
         label = f'"{c["name"]}"' if c["name"] else "(no accessible name)"
         hint = f'  near text: "{c["anchor"]}"' if c["anchor"] else ""
         value = ""
+        if c["role"] == "text":
+            shown = (mask_value(c["anchor"], c["text"], readable) if mask else c["text"])
+            lines.append(f'[{c["index"]}] text  "{c["anchor"]}": {shown}   (readable)')
+            continue
         if c["role"] in ("textbox", "combobox"):
             try:
                 raw = c["locator"].input_value()

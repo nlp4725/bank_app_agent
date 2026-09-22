@@ -205,6 +205,47 @@ class Surface:
                         continue
         return found
 
+    def values(self, start_index: int) -> list[dict]:
+        """Label/value pairs on the page: the things a `read` action needs.
+
+        A balance or a confirmation number is a table cell, not a control. The model
+        can see it in the screenshot, so it must be able to point at it too.
+        """
+        found = []
+        for frame in self.page.frames:
+            cells = frame.locator("td, th")
+            for i in range(min(cells.count(), 120)):
+                label = cells.nth(i)
+                try:
+                    text = label.inner_text().strip()
+                    if (not text or len(text) > 40 or "\n" in text
+                            or label.locator("td, input, button, a").count()):
+                        continue
+                    value = label.locator("xpath=following-sibling::*[1]")
+                    if not value.count():
+                        continue
+                    shown = value.first.inner_text().strip()
+                    if (not shown or len(shown) > 60 or "\n" in shown
+                            or value.first.locator("input, button, a, td").count()):
+                        continue
+                    box = value.first.bounding_box()
+                    if not box:
+                        continue
+                except Exception:
+                    continue
+                found.append({
+                    "index": start_index + len(found),
+                    "role": "text",
+                    "name": "",
+                    "anchor": text,
+                    "text": shown,
+                    "is_password": False,
+                    "frame_url": frame.url,
+                    "box": box,
+                    "locator": value.first,
+                })
+        return found
+
     def nearest_text(self, frame, box) -> str | None:
         """The visible words closest to the left of a box, then above it.
 
