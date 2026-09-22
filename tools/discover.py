@@ -5,6 +5,7 @@
 """
 
 import json
+import os
 import sys
 
 from cua.artifact import AppProfile
@@ -43,6 +44,8 @@ def main():
         example_values=values,
         origin="http://127.0.0.1:5001",
         app_profile=AppProfile.model_validate(app_profile_dict()),
+        headless=os.environ.get("HEADED") != "1",   # HEADED=1 to watch the browser
+        verbose=True,
     ))
     print("\n=== result ===")
     print(result)

@@ -84,6 +84,11 @@ def tools(outcome_codes: list[str], secret_names: list[str], output_names: list[
     ]
 
 
+def _say(verbose, text):
+    if verbose:
+        print(text, flush=True)
+
+
 @dataclass
 class DiscoveryRequest:
     goal: str
@@ -105,6 +110,7 @@ class DiscoveryRequest:
     # Pixels stay a deny-list: blacking out an undeclared control would blind the model.
     mask_values: bool = True
     mask_pixels: bool = True
+    verbose: bool = False      # narrate each turn to the console
 
 
 @dataclass
@@ -197,6 +203,9 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
             surface.screenshot(shot, mask_targets=masked_targets, scale="css")
             trace.event(run_id, "observed", turn=turn, url=surface.url,
                         controls=controls_text, screenshot=shot)
+            _say(request.verbose,
+                 f"\n─ turn {turn} ─ {surface.url}\n"
+                 + "\n".join("   " + line for line in controls_text.splitlines()[:8]))
 
             state = (surface.url, controls_text[:200])
             seen.append(state)
@@ -234,6 +243,9 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
 
             trace.event(run_id, "proposed", turn=turn, tool=call.name,
                         reason=call.input.get("reason"))
+            _say(request.verbose,
+                 f"   model -> {call.name}({', '.join(f'{k}={v!r}' for k, v in call.input.items() if k != 'reason')})"
+                 f"\n           \"{call.input.get('reason', '')}\"")
 
             # ── endings the model chooses ───────────────────────────────────
             if call.name == "goal_reached":
@@ -287,6 +299,9 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
             actions.append(record)
             trace.event(run_id, "acted", turn=turn, tool=call.name,
                         target=record["target"], value=record.get("value"))
+            _say(request.verbose,
+                 f"   code  -> policy allow · acted · recorded "
+                 f"{[r['kind'] for r in record['target']['rungs']]}")
             messages.append(_result(call, "Done.", extras))
 
         return _end(trace, run_id, "step_limit", MAX_TURNS, actions, outputs)
