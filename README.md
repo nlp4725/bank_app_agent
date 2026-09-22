@@ -275,7 +275,9 @@ mark the safe ones Safe", "action 6 clicks 'OK' on a page visited once: interrup
 of the flow?". Those are questions for a person, answered in
 [`artifacts/open_sub_account.decisions.yaml`](./artifacts/open_sub_account.decisions.yaml).
 
-`review` applies those decisions and then **refuses to approve** unless the result lints
+`review` **rewrites `artifacts/open_sub_account.1.0.0.yaml` in place** — that is what
+approval means here, and it is why step 9 still passes afterwards: the regenerated artifact
+is equivalent to the committed one. It refuses to approve at all unless the result lints
 clean *and* replays successfully on a member the discovery run never saw:
 
 ```
@@ -290,7 +292,7 @@ and assets.
 ### 9. The tests
 
 ```bash
-python -m pytest -q          # 145 passing, ~4 minutes
+python -m pytest -q          # 148 passing, ~4½ minutes
 ```
 
 Nothing is mocked: the demo app is the fixture, and each test reads as "replay for 99999 and

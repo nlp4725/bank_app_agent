@@ -38,11 +38,14 @@ ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "artifacts" / "assets"
 
 
-def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str:
+def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str | None:
     """Copy a record-time crop somewhere an Artifact may point at for years.
 
     A `picture` rung left pointing into `runs/` is the last rung of a Target's ladder
     resting on a directory that gets pruned. The Artifact owns its assets.
+
+    None when the crop cannot be found: a rung naming a file that is not there is
+    worse than no rung, because the ladder then claims a fallback it does not have.
     """
     root = Path(assets_dir) if assets_dir is not None else ASSETS / capability_id
     root.mkdir(parents=True, exist_ok=True)
@@ -50,7 +53,7 @@ def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str:
     try:
         shutil.copy2(crop, kept)
     except OSError:
-        return crop                      # the crop is gone; leave the path as recorded
+        return None
     try:
         return str(kept.resolve().relative_to(ROOT))   # portable: an Artifact travels
     except ValueError:
@@ -109,8 +112,14 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
             name = f"{name}_{a['role']}"
         targets.setdefault(name, a["target"])
         if a.get("crop"):
-            targets[name].setdefault("rungs", []).append(
-                {"kind": "picture", "asset": keep_asset(a["crop"], capability_id, assets_dir)})
+            kept = keep_asset(a["crop"], capability_id, assets_dir)
+            if kept is not None:
+                targets[name].setdefault("rungs", []).append(
+                    {"kind": "picture", "asset": kept})
+            else:
+                suggestions.append(
+                    f"the record-time crop for {name} is missing ({a['crop']}), so it has "
+                    f"no picture rung. Re-record, or accept a two-rung ladder.")
 
         # the state a transition leads to: where this action actually landed
         to_path = path_of(a.get("url_after") or a["url_before"])
@@ -184,6 +193,18 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
 
 
 def record_from_run(run_dir: str, contract: dict, example_values: dict, **kwargs):
-    actions = json.loads((Path(run_dir) / "actions.json").read_text())
+    """Compile a saved run. Crops are found beside the run, wherever it now lives.
+
+    `actions.json` records each crop by the path it had when it was written. A run
+    that has since been copied — into `evidence/`, or onto another machine — still
+    has its crops in its own `screens/` directory, so look there before giving up.
+    """
+    run = Path(run_dir)
+    actions = json.loads((run / "actions.json").read_text())
+    for action in actions:
+        crop = action.get("crop")
+        if crop and not Path(crop).exists():
+            beside = run / "screens" / Path(crop).name
+            action["crop"] = str(beside) if beside.exists() else None
     return record(actions, contract, example_values,
-                  discovered_by=Path(run_dir).name, **kwargs)
+                  discovered_by=run.name, **kwargs)
