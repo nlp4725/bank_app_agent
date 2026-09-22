@@ -7,6 +7,7 @@ Artifact keeps the flow, decoupled from the model transcript.
 
 import json
 import re
+import shutil
 from pathlib import Path
 
 SLUG = re.compile(r"[^a-z0-9]+")
@@ -33,15 +34,41 @@ def page_pattern(path: str) -> str:
     return path or "/"
 
 
+ROOT = Path(__file__).resolve().parent.parent
+ASSETS = ROOT / "artifacts" / "assets"
+
+
+def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str:
+    """Copy a record-time crop somewhere an Artifact may point at for years.
+
+    A `picture` rung left pointing into `runs/` is the last rung of a Target's ladder
+    resting on a directory that gets pruned. The Artifact owns its assets.
+    """
+    root = Path(assets_dir) if assets_dir is not None else ASSETS / capability_id
+    root.mkdir(parents=True, exist_ok=True)
+    kept = root / Path(crop).name
+    try:
+        shutil.copy2(crop, kept)
+    except OSError:
+        return crop                      # the crop is gone; leave the path as recorded
+    try:
+        return str(kept.resolve().relative_to(ROOT))   # portable: an Artifact travels
+    except ValueError:
+        return str(kept)
+
+
 def record(actions: list[dict], contract: dict, example_values: dict, *,
            capability_id: str, vendor_app: str, role: str, version: str = "1.0.0",
-           discovered_by: str = "") -> tuple[dict, list[str]]:
+           discovered_by: str = "", assets_dir=None) -> tuple[dict, list[str]]:
     """Returns (draft artifact, suggestions for the Reviewer)."""
     suggestions: list[str] = []
     targets: dict[str, dict] = {}
     states: list[dict] = []
     transitions: list[dict] = []
-    reverse = {str(v): k for k, v in example_values.items()}
+    # Keyed case-insensitively: a <select> shows "Savings" and carries the value
+    # "savings", and the model points at what it can see. An exact-match map let that
+    # difference freeze a discovery value into the flow as a literal.
+    reverse = {str(v).casefold(): k for k, v in example_values.items()}
 
     # ── candidate interruptions ─────────────────────────────────────────────
     # A page visited once, entered and left by a single click, MIGHT be an
@@ -83,7 +110,7 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
         targets.setdefault(name, a["target"])
         if a.get("crop"):
             targets[name].setdefault("rungs", []).append(
-                {"kind": "picture", "asset": a["crop"]})
+                {"kind": "picture", "asset": keep_asset(a["crop"], capability_id, assets_dir)})
 
         # the state a transition leads to: where this action actually landed
         to_path = path_of(a.get("url_after") or a["url_before"])
@@ -95,15 +122,20 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
                 action["value_ref"] = a["value_ref"]
             else:
                 literal = str(a.get("value", ""))
-                action["value"] = (f"{{{{{reverse[literal]}}}}}"
-                                   if literal in reverse else literal)
-                if literal not in reverse and literal:
+                named = reverse.get(literal.casefold())
+                action["value"] = f"{{{{{named}}}}}" if named else literal
+                if not named and literal:
                     suggestions.append(
                         f"action {a['turn']} types the fixed value {literal!r}. "
                         f"Should it be an input?")
         elif a["action"] == "select":
             literal = str(a.get("value", ""))
-            action["value"] = f"{{{{{reverse[literal]}}}}}" if literal in reverse else literal
+            named = reverse.get(literal.casefold())
+            action["value"] = f"{{{{{named}}}}}" if named else literal
+            if not named and literal:
+                suggestions.append(
+                    f"action {a['turn']} selects the fixed option {literal!r}. "
+                    f"Should it be an input?")
         elif a["action"] == "read":
             action["into"] = a["into"]
 

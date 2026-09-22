@@ -318,7 +318,7 @@ watchers:
   extract: {}
   provenance: reviewer:nasi
 provenance:
-  discovered_by: disc_f57bb148
+  discovered_by: 01-discovery-goal-reached
   contract_by: reviewer
   example_values:
     member_number: '54321'
