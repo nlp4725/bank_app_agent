@@ -24,8 +24,10 @@ class Resolved:
 
 
 class Surface:
-    def __init__(self, origin: str, headless: bool = True):
+    def __init__(self, origin: str, headless: bool = True, allowed_origins: list[str] | None = None):
         self.origin = origin.rstrip("/")
+        self.allowed_origins = [o.rstrip("/") for o in (allowed_origins or [self.origin])]
+        self.blocked_requests: list[str] = []
         self._pw = sync_playwright().start()
         self._browser = self._pw.chromium.launch(headless=headless)
         # Hardening: no downloads, no extra windows, no permissions, fresh context.
@@ -34,6 +36,16 @@ class Surface:
         self.page = self._context.new_page()
         self.page.on("dialog", lambda d: d.dismiss())
         self._context.on("page", lambda p: p.close())
+        # The allowlist is enforced on every request the browser makes, including the
+        # ones the page starts by itself: an <img> pointing off-site cannot leave.
+        self._context.route("**/*", self._gate)
+
+    def _gate(self, route, request):
+        if any(request.url.startswith(o) for o in self.allowed_origins):
+            route.continue_()
+        else:
+            self.blocked_requests.append(request.url)
+            route.abort()
 
     def close(self):
         self._context.close()

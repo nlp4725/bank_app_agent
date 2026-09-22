@@ -58,3 +58,26 @@ Findings that changed the design:
 Member 33333 stays failed-with-unknown-state on purpose: MAX_ACCOUNTS_REACHED is the
 held-out condition, and the run's verification check confirms the commit did not take
 effect rather than clicking again.
+
+## 2026-09-22 — step 4: safety
+Permissions are now four files owned by four different parties, and a run is refused
+at the front door when they disagree: Baseline (ours) ∩ Role (per vendor app) ∩ Tenant
+grant (theirs) ∩ Needs (derived from the run). bank_b does not grant account_opener,
+so the same artifact that works for bank_a is refused for bank_b before a browser opens
+— and the refusal names the layer that refused.
+
+The Service Account follows from the Role, so the credential used is a consequence of
+the capability's intent rather than a separate setting: a balance_reader signs in as
+svc_read, which the application itself will not let open an account.
+
+Route interception was the piece I would have missed. A check before we act cannot see
+a request the *page* starts: /leaky renders a 1x1 <img> pointing at attacker.example
+with member data in the query string. Nobody clicks anything. The allowlist is enforced
+on every request the browser makes, so it is aborted before it leaves.
+
+Redaction: the balance reaches the caller as $4210.00 because that is the answer, and
+the trail.jsonl records it as $*,***.**. A test asserts both, and another asserts no
+secret value appears in any evidence file.
+
+Two tests are controls rather than checks: no module in cua/ imports a model SDK, and
+nothing but surface.py imports playwright.

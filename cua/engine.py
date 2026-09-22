@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .artifact import Artifact
 from .evidence import EvidenceWriter
+from .policy import PolicyError, policy_for
 from .result import RunResult
 from .surface import Surface
 
@@ -27,15 +28,27 @@ class MissingSecret(Exception):
     pass
 
 
+DEMO_ACCOUNTS = {           # the demo app only; documented in the README
+    "svc_read": {"login_username": "svc_read", "login_password": "read-only-pw"},
+    "svc_officer": {"login_username": "svc_officer", "login_password": "officer-pw"},
+}
+
+
 class EnvSecrets:
-    """Secrets by reference, resolved at the moment of use, never stored."""
+    """Secrets by reference, resolved at the moment of use, never stored.
+
+    Which credential is used follows from the Role's Service Account, so a
+    read-only capability signs in as a login that cannot commit anything.
+    """
+
+    def __init__(self, service_account: str = "svc_officer"):
+        self.service_account = service_account
 
     def get(self, name: str) -> str:
-        value = os.environ.get(f"SECRET_{name.upper()}")
+        value = os.environ.get(f"SECRET_{self.service_account}_{name}".upper())
         if value is None:
-            demo = {"login_username": "svc_officer", "login_password": "officer-pw"}
-            if name in demo:
-                return demo[name]          # demo app only; documented in the README
+            value = DEMO_ACCOUNTS.get(self.service_account, {}).get(name)
+        if value is None:
             raise MissingSecret(name)
         return value
 
@@ -45,7 +58,7 @@ class RunContext:
     origin: str
     attended: bool = False
     tenant: str = "bank_a"
-    secrets: object = field(default_factory=EnvSecrets)
+    secrets: object | None = None      # defaults to the Role's Service Account
     evidence_root: str = "runs"
     headless: bool = True
 
@@ -86,6 +99,16 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id, artifact)
 
     # ── the front door: nothing is touched if any of this fails ──────────────
+    try:
+        policy = policy_for(artifact, ctx.tenant)
+    except PolicyError as exc:
+        return evidence.refused(run_id, str(exc))
+    refusal = policy.refuse_reason(artifact)
+    if refusal:
+        return evidence.refused(run_id, refusal)
+    if ctx.secrets is None:
+        ctx.secrets = EnvSecrets(policy.service_account())
+
     if artifact.capability.status != "approved":
         return evidence.refused(run_id, f"artifact is {artifact.capability.status!r}, not approved")
     problem = validate_inputs(artifact, inputs)
@@ -100,15 +123,15 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
         except MissingSecret:
             return evidence.refused(run_id, f"secret {name!r} does not resolve")
 
-    surface = Surface(ctx.origin, headless=ctx.headless)
+    surface = Surface(ctx.origin, headless=ctx.headless, allowed_origins=[ctx.origin])
     try:
-        return _run(artifact, inputs, ctx, surface, evidence, run_id)
+        return _run(artifact, inputs, ctx, surface, evidence, run_id, policy)
     finally:
         surface.close()
         evidence.close()
 
 
-def _run(artifact, inputs, ctx, surface, evidence, run_id) -> RunResult:
+def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
     outputs, budgets = {}, {}
     surface.goto("/login")
 
@@ -153,6 +176,16 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id) -> RunResult:
             return evidence.failed(run_id, "target_not_found", step=transition.from_state,
                                    expected=f"a control for {transition.action.target}",
                                    observed=surface.url, screenshot=evidence.snap(surface))
+
+        # 2b. may we do this, here?
+        path = surface.url[len(ctx.origin):] or "/"
+        if not (policy.allows_page(path) and policy.allows_action(transition.action.type)):
+            evidence.event(run_id, "policy_deny", step=transition.from_state,
+                           path=path, action=transition.action.type)
+            return evidence.failed(run_id, "policy_denied", step=transition.from_state,
+                                   observed=path, screenshot=evidence.snap(surface))
+        evidence.event(run_id, "policy_allow", step=transition.from_state,
+                       path=path, action=transition.action.type)
 
         # 3. risk gate
         if transition.risk == "consequential" and ctx.attended:

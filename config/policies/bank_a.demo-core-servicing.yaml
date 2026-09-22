@@ -1,0 +1,14 @@
+# Owned by the institution, not by us. In production their security team approves
+# this file; in the demo it stands in for them.
+tenant: bank_a
+vendor_app: demo-core-servicing
+origin: http://127.0.0.1:5099
+environment: non_production
+
+roles_granted:
+  balance_reader: {service_account: svc_read}
+  account_opener: {service_account: svc_officer}
+  # funds_mover is not granted: this institution does not permit automated transfers.
+
+# Optional narrowing of the roles' pages. Omit to accept the role's list as-is.
+pages: ["/login", "/search", "/members/*"]

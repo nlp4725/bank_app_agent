@@ -1,0 +1,25 @@
+# The provider-wide floor. Governs every run, on every tenant, from the first click —
+# including Discovery Runs, which have no Needs yet. A Tenant Policy may narrow this,
+# never widen it. See docs/security-model.md and ADR 0005.
+baseline_policy: v1
+
+# A closed allowlist. The engine has no function for anything absent, so this is
+# documentation of intent as much as enforcement.
+actions_allowed: [click, type, select, read]
+
+# Named explicitly so a reviewer can see what was considered and refused.
+actions_denied: [download, upload, clipboard_read, open_new_tab, execute_script,
+                 keyboard_shortcut, file_dialog, print, navigate_arbitrary]
+
+schemes_allowed: [http, https]
+
+# A second net under each tenant's route allowlist. Weak on its own — a bank may call
+# transfers "Funds Movement" — and never the primary defence.
+route_keywords_denied: [admin, users, roles, permissions, settings, config,
+                        delete, remove, close-account, wire, transfer, payment, payee, export]
+
+hard_rules:
+  - discovery_runs_non_production_only
+  - secrets_never_sent_to_a_model
+  - no_unattended_consequential_action_without_a_verification_check
+  - max_actions_per_run: 60

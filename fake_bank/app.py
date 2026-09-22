@@ -214,7 +214,7 @@ def subaccount_review(number):
 
 @app.route("/members/<number>/subaccounts/commit", methods=["POST"])
 def subaccount_commit(number):
-    """The Consequential step: this really creates the account."""
+    """The Consequential Action: this really creates the account."""
     if not logged_in():
         return redirect(url_for("login"))
     if not can_open_accounts():
@@ -242,6 +242,17 @@ def subaccount_commit(number):
 def admin():
     """Exists so policy enforcement has something real to refuse."""
     return render_template("admin.html")
+
+
+@app.route("/leaky")
+def leaky():
+    """A member notes field containing an off-site image.
+
+    Nobody clicks anything: rendering the page is enough to send data away. Stands in
+    for a prompt-injection or exfiltration attempt planted in member data, and exists
+    so route interception has something real to block.
+    """
+    return render_template("leaky.html")
 
 
 @app.route("/reset", methods=["GET", "POST"])
