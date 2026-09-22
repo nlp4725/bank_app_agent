@@ -11,7 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Strict(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # populate_by_name so a model can round-trip through model_dump() as well as
+    # through its aliases ("from" is a keyword, so the field is from_).
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 # ── Predicates: machine-checkable claims about the screen ─────────────────────
@@ -193,6 +195,19 @@ class Transition(Strict):
     risk_suggestion: str | None = None  # the Discovery LLM's advice, never the decision
 
 
+class Extract(Strict):
+    """What a Watcher may return from the screen: a declared capture group, never
+    free page text. Allowlist by construction — see CONTEXT.md, "Redaction"."""
+    from_: Literal["regex"] = Field(default="regex", alias="from")
+    pattern: str
+
+    @model_validator(mode="after")
+    def must_capture(self):
+        if "(" not in self.pattern or ")" not in self.pattern:
+            raise ValueError("an extract pattern must contain a capture group")
+        return self
+
+
 class Watcher(Strict):
     id: str
     trigger: Predicate
@@ -201,7 +216,7 @@ class Watcher(Strict):
     recovery: Action | None = None
     budget: int | None = None
     resume_at: str | None = None   # which State to continue from after a recovery
-    extract: dict[str, dict] = Field(default_factory=dict)
+    extract: dict[str, Extract] = Field(default_factory=dict)
     reason: str | None = None
     provenance: str
 
@@ -252,6 +267,9 @@ class AppProfile(Strict):
     app_profile: str
     watchers: list[Watcher] = Field(default_factory=list)
     targets: dict[str, Target] = Field(default_factory=dict)
+    # Masking is declared data, not code, and default-deny: every value is hidden
+    # from the model and from evidence unless its Target is listed as readable.
+    readable_regions: list[str] = Field(default_factory=list)
 
 
 def merged(artifact: Artifact, profile: AppProfile | None) -> Artifact:

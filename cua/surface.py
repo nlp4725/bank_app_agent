@@ -71,8 +71,19 @@ class Surface:
                 pass
         return "\n".join(chunks)
 
-    def screenshot(self, path: str):
-        self.page.screenshot(path=path)
+    def screenshot(self, path: str, mask_targets: list | None = None, scale: str = "css"):
+        """Paint over declared regions as the image is captured.
+
+        Text redaction cannot clean pixels, so anything sensitive is masked at
+        capture time rather than afterwards. Regions are Targets, so they are
+        declared in the App Profile and reviewable there.
+        """
+        masks = []
+        for target in (mask_targets or []):
+            found = self.resolve(target, timeout_ms=0)
+            if found is not None:
+                masks.append(found.locator)
+        self.page.screenshot(path=path, mask=masks, mask_color="#000000", scale=scale)
 
     # ── resolving a Target ───────────────────────────────────────────────────
 

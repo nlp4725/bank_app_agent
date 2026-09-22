@@ -126,7 +126,7 @@ _ARTIFACT = {
         {"id": "w_validation",
          "trigger": {"type": "text_present", "value": "is required"},
          "condition": "business_outcome", "outcome": "VALIDATION_REJECTED",
-         "extract": {"message": {"from": "text_of", "target": "t_nickname"}},
+         "extract": {"field": {"from": "regex", "pattern": r"^(\w+) is required"}},
          "provenance": "reviewer:nasi"},
     ],
     # MAX_ACCOUNTS_REACHED is deliberately absent: member 33333 is the held-out
@@ -143,7 +143,13 @@ _APP_PROFILE = {
     "targets": {
         "t_ok": {"rungs": [{"kind": "role_name", "role": "button", "name": "OK"}]},
         "t_nav_search": {"rungs": [{"kind": "role_name", "role": "link", "name": "Member Search"}]},
+        "t_member_name": {"rungs": [{"kind": "label_anchor", "anchor": "Member since",
+                                     "relation": "nearest"}]},
     },
+    # Default-deny: every value is hidden from the model and from evidence unless its
+    # Target is listed here. t_member_name is deliberately absent — a name has no
+    # shape a pattern could find, so origin is what hides it.
+    "readable_regions": ["t_balance", "t_new_number"],
     "watchers": [
         {"id": "w_session_expired",
          "trigger": {"type": "text_present", "value": "session has expired"},

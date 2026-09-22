@@ -89,3 +89,22 @@ on. Shown the accessibility list, the member-number field and the search icon ar
 which it can only know from the screenshot.
 
 Cost: in=1854 out=132 tokens for one turn. A full discovery run is a few of these.
+
+## 2026-09-22 — PII: origin first, patterns second, default-deny
+The question that reshaped this: how do you redact a name or a birthday? You cannot —
+no pattern finds them. So masking is decided by *which field a value came from*, and a
+value is hidden unless its Target is declared a Readable Region in the App Profile.
+A screen nobody has reviewed is therefore safe rather than exposed.
+
+Three consequences:
+- Watchers may only extract a declared capture group ("maximum of (\\d+)" -> 3), never
+  free page text, so the last unbounded path from screen to output is closed.
+- Screenshots mask declared regions at capture time (Playwright paints the boxes),
+  cropped and downscaled. Still the residual risk, and documented as such.
+- The strongest control turned out not to be masking at all: evidence records only
+  identifiers we generated, so page text never enters it.
+
+NER (Presidio and friends) is deliberately not in the data path: ~90-95% recall is a
+disclosure rate, not a gate. It belongs as a canary over evidence, if at all.
+
+17 tests, including a name and a birthday that no regex could catch.

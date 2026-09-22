@@ -187,8 +187,11 @@ The login the automation uses on a Tenant's app, holding the narrowest role that
 _Avoid_: Bot user, robot account, credentials
 
 **Redaction Chokepoint**:
-The single function every log line, evidence file, screenshot and returned output passes through, and the same gate on the outbound path before screen content reaches a model.
-_Avoid_: Sanitizer, scrubber, filter
+The single function every log line, evidence file, screenshot and returned output passes through, and the same gate on the outbound path before screen content reaches a model. How it decides what to hide is below.
+
+**Readable Region**:
+A Target whose value may be seen — by the model, and in evidence. Everything else is hidden, so a screen nobody has reviewed is safe by default. Declared in the App Profile, because what is sensitive is a property of the app, not of one capability.
+_Avoid_: Whitelist, visible field
 
 **Two-Person Approval**:
 The rule that an Artifact containing a Consequential Action needs two named Reviewers before it may run.
@@ -197,6 +200,59 @@ _Avoid_: Sign-off, double-check
 **Evidence**:
 The append-only, redacted record of a run: what was done and why, which Target matched, the Policy decisions, and a screenshot plus page snapshot on failure. Written for two readers — the Operator during an escalation, the Reviewer afterwards.
 _Avoid_: Logs (alone), audit trail, trace
+
+### Redaction: what is hidden, and why
+
+A name is just words; a birthday is just digits. **No pattern can find them.** So the
+first mechanism is not *what a value looks like* but **where it came from**.
+
+```
+        A VALUE ON SCREEN
+              │
+     ┌────────▼─────────┐
+     │ is it a password?│──yes──► (protected)        never read at all
+     └────────┬─────────┘
+              │ no
+     ┌────────▼──────────────────┐
+     │ is its Target declared a  │──no──► (hidden)   ← catches names, birthdays,
+     │ Readable Region?          │                     and every field nobody
+     └────────┬──────────────────┘                     has thought about yet
+              │ yes
+     ┌────────▼─────────┐
+     │ pattern net      │  SSN · card · email · phone · date · currency
+     └────────┬─────────┘
+              ▼
+          recorded
+```
+
+**Why default-deny.** An allowlist fails safe: a screen added next year hides its
+values until a Reviewer declares otherwise. A denylist fails open, and the failure is
+silent.
+
+**Why not a detector.** A model that finds names is ~90-95% accurate. For regulated
+data, the missing 5% is a disclosure, false positives mangle the record, and an audit
+cannot be answered with "the classifier usually catches it". So detection is used to
+*check* the redaction, never to perform it.
+
+**The strongest protection isn't masking at all — it is not capturing.** Evidence
+records identifiers we generated (event, Target name, which rung matched, placeholder,
+Outcome Code, policy decision), never page text. `typed {{member_number}} into
+t_member_field` has nothing to leak.
+
+Where each channel stands:
+
+| Channel | Gate | Guarantee |
+|---|---|---|
+| evidence and logs | only identifiers we generated are written | total |
+| Artifact | example values became placeholders; a lint fails the build otherwise | total |
+| Secrets | substituted at the keystroke, below the model and the log | total |
+| Outputs to the caller | returned **in full** — they are the answer — masked in the record | total |
+| Observation sent to a model (discovery only) | default-deny by Readable Region, then patterns | total for declared fields |
+| Watcher extraction | a declared capture group only, never free page text | total |
+| **Screenshots** | cropped, downscaled, declared regions painted black at capture | **partial — the residual risk** |
+
+And above all of it: **discovery only ever runs against a Non-production Environment,
+and Replay calls no model at all**, so nothing leaves the institution during production.
 
 ### People and modes
 
