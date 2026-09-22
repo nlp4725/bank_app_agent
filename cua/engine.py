@@ -147,13 +147,20 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
         timeout = transition.timeout_ms or DEFAULT_TIMEOUT_MS
 
         if observe_only:
-            # A recovery has just run; look at where it left us before acting again.
+            # A recovery has just run. Where are we? Ask the Checkpoints rather than
+            # assume: the destination first (an interruption usually leaves us where
+            # the transition was heading), then any State whose Checkpoint holds.
             observe_only = False
             destination = artifact.state(transition.to_state)
             if destination and destination.checkpoint and surface.holds(
                 rendered_predicate(destination.checkpoint, inputs), artifact, timeout_ms=timeout
             ):
                 index += 1
+                continue
+            here = _where_are_we(artifact, inputs, surface)
+            if here is not None and here != index:
+                evidence.event(run_id, "reoriented", step=artifact.transitions[here].from_state)
+                index = here
                 continue
 
         # 1. verify before acting: are we where this transition starts?
@@ -206,6 +213,13 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
         if destination and destination.checkpoint and not surface.holds(
             rendered_predicate(destination.checkpoint, inputs), artifact, timeout_ms=timeout
         ):
+            evidence.event(run_id, "checkpoint_missed", step=transition.to_state,
+                           predicate=destination.checkpoint.type,
+                           expected=getattr(destination.checkpoint, "target", None)
+                                    or getattr(destination.checkpoint, "value", None),
+                           url=surface.url, timeout_ms=timeout,
+                           blocked_requests=surface.blocked_requests[-3:],
+                           frames=[f.url for f in surface.page.frames])
             outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
                                        transition, budgets, "checkpoint", policy)
             if isinstance(outcome, RunResult):
@@ -278,7 +292,7 @@ def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transitio
                                            step=transition.from_state, watcher=watcher.id)
                 surface.click(found)
             else:
-                time.sleep(0.4)
+                surface._tick(400)
             evidence.event(run_id, "recovered", watcher=watcher.id,
                            attempt=budgets[watcher.id], resume_at=watcher.resume_at)
             # No resume_at: dismissing an interruption usually leaves us where the
@@ -304,6 +318,17 @@ def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transitio
                            screenshot=evidence.snap(surface))
 
 
+def _where_are_we(artifact, inputs, surface) -> int | None:
+    """The first transition whose starting State's Checkpoint holds right now."""
+    for i, transition in enumerate(artifact.transitions):
+        state = artifact.state(transition.from_state)
+        if state and state.checkpoint and surface.holds(
+            rendered_predicate(state.checkpoint, inputs), artifact, timeout_ms=0
+        ):
+            return i
+    return None
+
+
 def _verify_effect(artifact, inputs, surface, transition) -> bool:
     """Look, rather than clicking again."""
     verify = transition.verify_effect
@@ -313,10 +338,16 @@ def _verify_effect(artifact, inputs, surface, transition) -> bool:
 
 
 def _resume(artifact, directive, current: int) -> tuple[int, bool]:
-    """Where to continue after a recovery: re-observe here, or rewind to a State."""
-    if directive is OBSERVE:
-        return current, True
-    for i, t in enumerate(artifact.transitions):
-        if t.from_state == directive:
-            return i, False
-    return current, False
+    """Where to continue after a recovery.
+
+    A named resume_at wins when the Artifact has that State. Otherwise — and when an
+    App Profile watcher names a State this Artifact does not have — re-observe:
+    the engine works out where it is by asking which Checkpoint holds, rather than
+    trusting a name. Watchers are shared across capabilities, so they cannot know
+    what any one Artifact called its States.
+    """
+    if directive is not OBSERVE:
+        for i, t in enumerate(artifact.transitions):
+            if t.from_state == directive:
+                return i, False
+    return current, True

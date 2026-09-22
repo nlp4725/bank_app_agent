@@ -19,9 +19,12 @@ CONTRACT = {
     },
     "outputs": {"savings_balance": {"type": "money"}, "new_account_number": {"type": "string"}},
     "outcomes": [
-        {"code": "MEMBER_NOT_FOUND", "resolver": "member"},
-        {"code": "NOT_AUTHORIZED", "resolver": "institution_staff"},
-        {"code": "VALIDATION_REJECTED", "resolver": "member"},
+        {"code": "MEMBER_NOT_FOUND", "meaning": "No member exists with that number.",
+         "resolver": "member", "caller_hint": "Ask the member to re-check the number."},
+        {"code": "NOT_AUTHORIZED", "meaning": "This login may not view that member.",
+         "resolver": "institution_staff"},
+        {"code": "VALIDATION_REJECTED", "meaning": "The application rejected the values.",
+         "resolver": "member"},
     ],
 }
 

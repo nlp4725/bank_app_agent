@@ -265,6 +265,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                 messages.append(_result(call, "No control with that number. Look again.", extras))
                 continue
 
+            url_before = surface.url
             try:
                 record = _perform(surface, call, control, secrets, outputs)
                 failures = 0
@@ -278,7 +279,8 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                 continue
 
             crop = surface.crop(control, str(shots / f"{turn:02d}_target.png"))
-            record.update({"turn": turn, "crop": crop, "url_before": surface.url})
+            record.update({"turn": turn, "crop": crop,
+                           "url_before": url_before, "url_after": surface.url})
             actions.append(record)
             trace.event(run_id, "acted", turn=turn, tool=call.name,
                         target=record["target"], value=record.get("value"))

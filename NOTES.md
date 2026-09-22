@@ -142,3 +142,31 @@ quoted "$1250.00" in its reason while `read` returned an empty string, and on th
 read grabbed a navigation link called "Member Search". Fixed by adding label/value
 pairs to the observation. The general lesson: anything the goal asks the model to
 *read* has to be addressable, not merely visible.
+
+## 2026-09-22 — steps 6 and 7: Recorder, review, approval gate
+The discovered artifact now passes the same scenario suite as the hand-written one,
+8/8, and the approval gate refused it three times first — each refusal a real defect:
+
+1. **Two controls, one name.** The member field and the search icon both have the
+   anchor "Member number", so the Recorder gave them the same Target name and the
+   click landed on the textbox. Names are disambiguated by role now.
+2. **A role that does not exist.** A balance read from a table cell was recorded as
+   role "text" — our own word, not an ARIA role — so at replay `get_by_role("text")`
+   matched nothing. Text values now record no role and resolve by anchor.
+3. **Our own sleep starved the browser.** The checkpoint for the balance failed while
+   the same target resolved fine in isolation. The iframe URL stayed empty forever:
+   `time.sleep()` in our polling loop blocks Playwright's event loop, so with request
+   interception enabled the iframe's request was never let through. Polling now waits
+   through the browser (`wait_for_timeout`). This is the kind of bug that only appears
+   when two features meet — route interception and a hand-rolled wait.
+
+And one design correction: an App Profile watcher said `resume_at: search_ready`, a
+State name the discovered artifact does not use (it calls it s2_search). Shared
+watchers cannot know what any one Artifact named its States, so after a recovery the
+engine now **re-orients**: it asks which Checkpoint holds rather than trusting a name.
+
+The Reviewer's decisions live in artifacts/open_sub_account.decisions.yaml — marked
+four clicks Safe, turned the OK click into a Recoverable watcher, added the
+MEMBER_NOT_FOUND watcher learnt from the 99999 run, added NOT_AUTHORIZED by hand,
+attached the verification check to the commit, and dropped VALIDATION_REJECTED
+because nothing in this flow can produce it yet.

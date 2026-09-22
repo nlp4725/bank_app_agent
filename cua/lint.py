@@ -48,14 +48,29 @@ def lint(artifact: Artifact, unattended: bool = False) -> list[Issue]:
     declared_outcomes = {o.code for o in a.contract.outcomes}
     produced_outcomes = {w.outcome for w in a.watchers if w.outcome}
 
-    # Where recorded values could hide: the flow, not the contract or provenance.
-    flow = a.model_dump(mode="python", exclude={"provenance", "contract", "capability"})
+    # Where a recorded value could actually do damage: what the artifact types into
+    # the app, and what it asserts about the screen. Identifiers (state ids, target
+    # names) are names, not data — scanning them produced false positives such as a
+    # target called t_savings_balance matching the example value "savings".
+    flow = {
+        "transitions": [
+            {"action": {k: v for k, v in t.action.model_dump().items()
+                        if k in ("value", "value_ref")},
+             "verify_effect": t.verify_effect.model_dump() if t.verify_effect else None}
+            for t in a.transitions],
+        "states": [s.checkpoint.model_dump() if s.checkpoint else None for s in a.states],
+        "watchers": [{"trigger": w.trigger.model_dump(),
+                      "extract": {k: v.model_dump() for k, v in w.extract.items()}}
+                     for w in a.watchers],
+    }
 
     # 1. A value used during discovery must not survive anywhere in the flow.
     for name, example in a.provenance.example_values.items():
         if not example:
             continue
         for path, text in _strings(flow):
+            if path.endswith(("target", "into")):
+                continue          # a reference to a Target is a name, not data
             if example in text:
                 issues.append(
                     Issue("discovery_literal", path,

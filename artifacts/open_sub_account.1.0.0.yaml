@@ -1,0 +1,302 @@
+schema_version: 1
+capability:
+  id: member.open_sub_account
+  version: 1.0.0
+  vendor_app: demo-core-servicing
+  role: account_opener
+  status: approved
+  approvals:
+  - reviewer:nasi
+  - reviewer:sam
+contract:
+  inputs:
+    member_number:
+      type: string
+      pattern: ^[0-9]{5}$
+      sensitive: true
+      required: true
+    account_type:
+      type: enum
+      values:
+      - savings
+      - checking
+      - holiday
+      sensitive: false
+      required: true
+    nickname:
+      type: string
+      max_length: 20
+      sensitive: false
+      required: true
+  outputs:
+    savings_balance:
+      type: money
+      sensitive: false
+    new_account_number:
+      type: string
+      sensitive: false
+  outcomes:
+  - code: MEMBER_NOT_FOUND
+    meaning: No member exists with that number.
+    resolver: member
+    caller_hint: Ask the member to re-check the number.
+    retry_same_inputs: never
+    data: {}
+  - code: NOT_AUTHORIZED
+    meaning: This login may not view that member.
+    resolver: institution_staff
+    retry_same_inputs: never
+    data: {}
+needs:
+  pages:
+  - /login
+  - /members
+  - /members/*
+  - /search
+  actions:
+  - click
+  - read
+  - type
+  secrets:
+  - login_password
+  - login_username
+states:
+- id: s1_login
+  checkpoint:
+    type: element_present
+    target: t_user_id
+- id: s2_search
+  checkpoint:
+    type: element_present
+    target: t_member_number
+- id: s4_members_id
+  checkpoint:
+    type: element_present
+    target: t_savings_balance
+- id: s5_members_id
+  checkpoint:
+    type: element_present
+    target: t_nickname
+- id: s6_members_id
+  checkpoint:
+    type: element_present
+    target: t_continue
+- id: s7_members_id
+  checkpoint:
+    type: element_present
+    target: t_new_account_number
+  terminal: succeeded
+transitions:
+- from_state: s1_login
+  to_state: s1_login
+  action:
+    type: type
+    target: t_user_id
+    value_ref: login_username
+  risk: safe
+- from_state: s1_login
+  to_state: s1_login
+  action:
+    type: type
+    target: t_password
+    value_ref: login_password
+  risk: safe
+- from_state: s1_login
+  to_state: s2_search
+  action:
+    type: click
+    target: t_sign_in
+  risk: safe
+- from_state: s2_search
+  to_state: s2_search
+  action:
+    type: type
+    target: t_member_number
+    value: '{{member_number}}'
+  risk: safe
+- from_state: s2_search
+  to_state: s4_members_id
+  action:
+    type: click
+    target: t_member_number_button
+  risk: safe
+- from_state: s4_members_id
+  to_state: s4_members_id
+  action:
+    type: read
+    target: t_savings_balance
+    into: savings_balance
+  risk: safe
+- from_state: s4_members_id
+  to_state: s5_members_id
+  action:
+    type: click
+    target: t_open
+  risk: safe
+- from_state: s5_members_id
+  to_state: s5_members_id
+  action:
+    type: type
+    target: t_nickname
+    value: '{{nickname}}'
+  risk: safe
+- from_state: s5_members_id
+  to_state: s6_members_id
+  action:
+    type: click
+    target: t_review
+  risk: safe
+- from_state: s6_members_id
+  to_state: s7_members_id
+  action:
+    type: click
+    target: t_continue
+  risk: consequential
+  verify_effect:
+    goto: /members/{{member_number}}
+    predicate:
+      type: text_present
+      value: '{{nickname}}'
+- from_state: s7_members_id
+  to_state: s7_members_id
+  action:
+    type: read
+    target: t_new_account_number
+    into: new_account_number
+  risk: safe
+targets:
+  t_user_id:
+    rungs:
+    - kind: label_anchor
+      anchor: User ID
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/01_target.png
+      threshold: 0.94
+  t_password:
+    rungs:
+    - kind: label_anchor
+      anchor: Password
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/02_target.png
+      threshold: 0.94
+  t_sign_in:
+    rungs:
+    - kind: role_name
+      role: button
+      name: Sign in
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/03_target.png
+      threshold: 0.94
+  t_member_number:
+    rungs:
+    - kind: label_anchor
+      anchor: Member number
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/04_target.png
+      threshold: 0.94
+  t_member_number_button:
+    rungs:
+    - kind: label_anchor
+      anchor: Member number
+      role: button
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/05_target.png
+      threshold: 0.94
+  t_ok:
+    rungs:
+    - kind: role_name
+      role: button
+      name: OK
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/06_target.png
+      threshold: 0.94
+  t_savings_balance:
+    frame:
+      url_contains: /panel
+    rungs:
+    - kind: label_anchor
+      anchor: Savings balance
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/07_target.png
+      threshold: 0.94
+  t_open:
+    rungs:
+    - kind: role_name
+      role: button
+      name: Open
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/08_target.png
+      threshold: 0.94
+  t_nickname:
+    rungs:
+    - kind: label_anchor
+      anchor: Nickname
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/09_target.png
+      threshold: 0.94
+  t_review:
+    rungs:
+    - kind: role_name
+      role: button
+      name: Review
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/10_target.png
+      threshold: 0.94
+  t_continue:
+    rungs:
+    - kind: role_name
+      role: button
+      name: Continue
+  t_new_account_number:
+    rungs:
+    - kind: label_anchor
+      anchor: New account number
+      relation: right_of
+    - kind: picture
+      asset: runs/disc_7ec36ab5/screens/12_target.png
+      threshold: 0.94
+watchers:
+- id: w_system_notice
+  trigger:
+    type: text_present
+    value: System notice
+  condition: recoverable
+  recovery:
+    type: click
+    target: t_ok
+  budget: 2
+  extract: {}
+  provenance: disc_7ec36ab5
+- id: w_not_found
+  trigger:
+    type: text_present
+    value: No records found
+  condition: business_outcome
+  outcome: MEMBER_NOT_FOUND
+  extract: {}
+  provenance: disc_0a3f513c
+- id: w_not_authorized
+  trigger:
+    type: text_present
+    value: not authorized to view
+  condition: business_outcome
+  outcome: NOT_AUTHORIZED
+  extract: {}
+  provenance: reviewer:nasi
+provenance:
+  discovered_by: disc_7ec36ab5
+  contract_by: reviewer
+  example_values:
+    member_number: '54321'
+    account_type: savings
+    nickname: Holiday fund

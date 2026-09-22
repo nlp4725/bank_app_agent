@@ -47,6 +47,18 @@ class Surface:
             self.blocked_requests.append(request.url)
             route.abort()
 
+    def _tick(self, ms: int = 150):
+        """Wait, while letting Playwright work.
+
+        A plain time.sleep() blocks the driver's event loop, so route handlers never
+        run — and with request interception on, an iframe request is never let
+        through and the frame stays empty forever. Poll through the browser instead.
+        """
+        try:
+            self.page.wait_for_timeout(ms)
+        except Exception:
+            time.sleep(ms / 1000)
+
     def close(self):
         self._context.close()
         self._browser.close()
@@ -107,7 +119,7 @@ class Surface:
                         return Resolved(found, rung.kind, index)
             if time.time() >= deadline:
                 return None
-            time.sleep(0.15)
+            self._tick()
 
     def _try_rung(self, scope, rung):
         try:
@@ -274,13 +286,19 @@ class Surface:
         return best
 
     def describe(self, control: dict) -> dict:
-        """Turn the control that was just acted on into durable Target descriptors."""
+        """Turn the control that was just acted on into durable Target descriptors.
+
+        A value read from a table cell has no ARIA role — "text" is our own label for
+        it — so its rung carries no role and is resolved as "the nearest thing to the
+        right of these words".
+        """
+        role = None if control["role"] == "text" else control["role"]
         rungs = []
-        if control["name"]:
-            rungs.append({"kind": "role_name", "role": control["role"], "name": control["name"]})
+        if control["name"] and role:
+            rungs.append({"kind": "role_name", "role": role, "name": control["name"]})
         if control["anchor"]:
             rungs.append({"kind": "label_anchor", "anchor": control["anchor"],
-                          "role": control["role"], "relation": "right_of"})
+                          "role": role, "relation": "right_of"})
         target = {"rungs": rungs}
         if "/" in control["frame_url"] and control["frame_url"] != self.page.url:
             tail = control["frame_url"].rsplit("/", 1)[-1]
@@ -319,7 +337,7 @@ class Surface:
                 return True
             if time.time() >= deadline:
                 return False
-            time.sleep(0.15)
+            self._tick()
 
     def _holds_once(self, predicate, artifact) -> bool:
         kind = predicate.type
