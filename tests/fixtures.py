@@ -142,6 +142,7 @@ _APP_PROFILE = {
     "app_profile": "demo-core-servicing",
     "targets": {
         "t_ok": {"rungs": [{"kind": "role_name", "role": "button", "name": "OK"}]},
+        "t_nav_search": {"rungs": [{"kind": "role_name", "role": "link", "name": "Member Search"}]},
     },
     "watchers": [
         {"id": "w_session_expired",
@@ -156,6 +157,8 @@ _APP_PROFILE = {
         {"id": "w_app_error",
          "trigger": {"type": "text_present", "value": "Application error"},
          "condition": "recoverable", "budget": 2,
+         "recovery": {"type": "click", "target": "t_nav_search"},
+         "resume_at": "search_ready",
          "provenance": "discovery_run_1"},
         {"id": "w_not_permitted",
          "trigger": {"type": "text_present", "value": "not permitted to perform"},

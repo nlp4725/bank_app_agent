@@ -9,3 +9,4 @@ runs/
 node_modules/
 .pytest_cache/
 planning/
+runs/

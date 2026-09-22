@@ -200,6 +200,7 @@ class Watcher(Strict):
     outcome: str | None = None
     recovery: Action | None = None
     budget: int | None = None
+    resume_at: str | None = None   # which State to continue from after a recovery
     extract: dict[str, dict] = Field(default_factory=dict)
     reason: str | None = None
     provenance: str
