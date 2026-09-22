@@ -97,6 +97,13 @@ class DiscoveryRequest:
     evidence_root: str = "runs"
     headless: bool = True
     secrets: object | None = None
+    # Masking is OFF for discovery. The demo app holds synthetic members, so there is
+    # nothing to protect, and masking can only cost accuracy: a value the model cannot
+    # read or a control it cannot see changes what it does. The machinery exists and is
+    # tested (tests/test_pii.py); turn these on for an environment that may hold real
+    # data. See CONTEXT.md, "Redaction" -> not yet wired into discovery.
+    mask_values: bool = False
+    mask_pixels: bool = False
 
 
 @dataclass
@@ -119,7 +126,7 @@ class DiscoveryResult:
         return " · ".join(bits)
 
 
-def observation(surface: Surface, readable: set[str]) -> tuple[str, list[dict]]:
+def observation(surface: Surface, readable: set[str], mask: bool = False) -> tuple[str, list[dict]]:
     """The accessibility list, default-deny masked, annotated where a name is missing."""
     controls = surface.controls()
     lines = []
@@ -133,10 +140,11 @@ def observation(surface: Surface, readable: set[str]) -> tuple[str, list[dict]]:
             except Exception:
                 raw = ""
             if raw:
-                shown = mask_value(c["anchor"], raw, readable, is_password=c["is_password"])
+                shown = (mask_value(c["anchor"], raw, readable, is_password=c["is_password"])
+                         if mask else (PROTECTED if c["is_password"] else raw))
                 value = f"  value: {shown}"
         lines.append(f'[{c["index"]}] {c["role"]} {label}{hint}{value}')
-    page_text = redact_text(surface.text())[:1500]
+    page_text = (redact_text(surface.text()) if mask else surface.text())[:1500]
     return "\n".join(lines) + f"\n\nvisible text (masked):\n{page_text}", controls
 
 
@@ -157,9 +165,9 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
     # undeclared control black would hide controls the model has to act on. This is
     # the residual risk recorded in docs/security-model.md.
     profile_targets = request.app_profile.targets if request.app_profile else {}
-    masked_targets = [profile_targets[name]
-                      for name in (request.app_profile.sensitive_regions if request.app_profile else [])
-                      if name in profile_targets]
+    masked_targets = ([profile_targets[name]
+                       for name in (request.app_profile.sensitive_regions if request.app_profile else [])
+                       if name in profile_targets] if request.mask_pixels else [])
     secrets = request.secrets or _default_secrets(policy)
     secret_names = list(policy.role.get("secrets", []))
     outcome_codes = [o["code"] for o in request.contract.get("outcomes", [])]
@@ -176,7 +184,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
             if time.time() - started > MAX_SECONDS:
                 return _end(trace, run_id, "timeout", turn, actions, outputs)
 
-            controls_text, controls = observation(surface, readable)
+            controls_text, controls = observation(surface, readable, mask=request.mask_values)
             shot = str(shots / f"{turn:02d}.png")
             surface.screenshot(shot, mask_targets=masked_targets, scale="css")
             trace.event(run_id, "observed", turn=turn, url=surface.url,

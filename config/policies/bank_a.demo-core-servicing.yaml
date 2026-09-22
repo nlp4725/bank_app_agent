@@ -11,4 +11,4 @@ roles_granted:
   # funds_mover is not granted: this institution does not permit automated transfers.
 
 # Optional narrowing of the roles' pages. Omit to accept the role's list as-is.
-pages: ["/login", "/search", "/members/*"]
+pages: ["/login", "/search", "/members", "/members/*"]

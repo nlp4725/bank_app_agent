@@ -7,4 +7,4 @@ roles_granted:
   balance_reader: {service_account: svc_read}
   # account_opener is not granted: bank_b does not permit automated account opening.
 
-pages: ["/login", "/search", "/members/*"]
+pages: ["/login", "/search", "/members", "/members/*"]

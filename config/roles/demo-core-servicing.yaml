@@ -4,7 +4,7 @@ vendor_app: demo-core-servicing
 
 balance_reader:
   intent: "View member information and balances."
-  pages:   ["/login", "/search", "/members/*"]
+  pages:   ["/login", "/search", "/members", "/members/*"]
   actions: ["type", "click", "read", "wait", "scroll"]
   secrets: ["login_username", "login_password"]
   consequential: forbidden
@@ -12,7 +12,7 @@ balance_reader:
 
 account_opener:
   intent: "Open a sub-account for an existing member."
-  pages:   ["/login", "/search", "/members/*"]
+  pages:   ["/login", "/search", "/members", "/members/*"]
   actions: ["type", "click", "select", "read", "wait", "scroll"]
   secrets: ["login_username", "login_password"]
   consequential: allowed_with_approval

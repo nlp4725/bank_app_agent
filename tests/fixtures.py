@@ -42,7 +42,7 @@ _ARTIFACT = {
         ],
     },
     "needs": {
-        "pages": ["/login", "/search", "/members/*"],
+        "pages": ["/login", "/search", "/members", "/members/*"],
         "actions": ["type", "click", "select", "read"],
         "secrets": ["login_username", "login_password"],
     },

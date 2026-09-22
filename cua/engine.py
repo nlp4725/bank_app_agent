@@ -162,7 +162,7 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
             rendered_predicate(start.checkpoint, inputs), artifact, timeout_ms=timeout
         ):
             outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "precondition")
+                                       transition, budgets, "precondition", policy)
             if isinstance(outcome, RunResult):
                 return outcome
             index, observe_only = _resume(artifact, outcome, index)
@@ -207,7 +207,7 @@ def _run(artifact, inputs, ctx, surface, evidence, run_id, policy) -> RunResult:
             rendered_predicate(destination.checkpoint, inputs), artifact, timeout_ms=timeout
         ):
             outcome = _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id,
-                                       transition, budgets, "checkpoint")
+                                       transition, budgets, "checkpoint", policy)
             if isinstance(outcome, RunResult):
                 return outcome
             index, observe_only = _resume(artifact, outcome, index)
@@ -231,7 +231,8 @@ def _act(surface, transition, found, inputs, ctx, outputs):
         outputs[action.into] = surface.read(found)
 
 
-def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transition, budgets, stage):
+def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transition, budgets,
+                     stage, policy=None):
     """Checkpoint missed: ask the Watchers what this screen is, then react."""
     for watcher in artifact.watchers:
         if not surface.holds(rendered_predicate(watcher.trigger, inputs), artifact, timeout_ms=0):
@@ -262,6 +263,14 @@ def _handle_surprise(artifact, inputs, ctx, surface, evidence, run_id, transitio
                                        watcher=watcher.id, screenshot=evidence.snap(surface))
             budgets[watcher.id] = used + 1
             if watcher.recovery is not None:
+                recovery_path = surface.url[len(ctx.origin):] or "/"
+                if not (policy.allows_page(recovery_path)
+                        and policy.allows_action(watcher.recovery.type)):
+                    evidence.event(run_id, "policy_deny", step=transition.from_state,
+                                   path=recovery_path, action=watcher.recovery.type,
+                                   watcher=watcher.id)
+                    return evidence.failed(run_id, "policy_denied", step=transition.from_state,
+                                           observed=recovery_path, watcher=watcher.id)
                 recovery_target = artifact.targets[watcher.recovery.target]
                 found = surface.resolve(recovery_target, timeout_ms=4000)
                 if found is None:

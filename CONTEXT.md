@@ -258,6 +258,14 @@ Where each channel stands:
 And above all of it: **discovery only ever runs against a Non-production Environment,
 and Replay calls no model at all**, so nothing leaves the institution during production.
 
+**Not yet wired in — deliberately.** The demo app holds synthetic members, so masking
+during discovery protects nothing and can only cost accuracy: a value the model cannot
+read, or a control it cannot see, changes what it does. Value and pixel masking are
+therefore **off** in `DiscoveryRequest` (`mask_values`, `mask_pixels`). The mechanism
+is built and tested (`tests/test_pii.py`); switching it on is a flag, and belongs with
+the first environment that may hold real data. Replay is unaffected — its evidence has
+been masked throughout.
+
 ### People and modes
 
 **Calling Agent**:
