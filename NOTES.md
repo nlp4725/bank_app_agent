@@ -81,3 +81,11 @@ secret value appears in any evidence file.
 
 Two tests are controls rather than checks: no module in cua/ imports a model SDK, and
 nothing but surface.py imports playwright.
+
+## 2026-09-22 — smoke test: one real model call before building the loop
+Twenty lines, fractions of a cent, and it settled the premise the whole B1 demo rests
+on. Shown the accessibility list, the member-number field and the search icon are both
+`(no accessible name)` — indistinguishable. Claude answered `type "12345" into [4]`,
+which it can only know from the screenshot.
+
+Cost: in=1854 out=132 tokens for one turn. A full discovery run is a few of these.
