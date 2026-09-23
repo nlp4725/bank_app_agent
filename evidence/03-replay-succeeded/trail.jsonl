@@ -1,37 +1,37 @@
-{"ts": "2026-09-22T17:19:46.049+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
-{"ts": "2026-09-22T17:19:46.068+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.101+00:00", "run_id": "run_24779d01", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.168+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
-{"ts": "2026-09-22T17:19:46.168+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.194+00:00", "run_id": "run_24779d01", "event": "done", "step": "s1_login", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.235+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "click"}
-{"ts": "2026-09-22T17:19:46.235+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s1_login", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:46.314+00:00", "run_id": "run_24779d01", "event": "done", "step": "s1_login", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:46.391+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s2_search", "path": "/search", "action": "type"}
-{"ts": "2026-09-22T17:19:46.391+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s2_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.395+00:00", "run_id": "run_24779d01", "event": "done", "step": "s2_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.430+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s2_search", "path": "/search", "action": "click"}
-{"ts": "2026-09-22T17:19:46.430+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s2_search", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:46.476+00:00", "run_id": "run_24779d01", "event": "done", "step": "s2_search", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.132+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s4_members_id", "path": "/members/12345", "action": "read"}
-{"ts": "2026-09-22T17:19:47.133+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s4_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.134+00:00", "run_id": "run_24779d01", "event": "done", "step": "s4_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.255+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s4_members_id", "path": "/members/12345", "action": "click"}
-{"ts": "2026-09-22T17:19:47.255+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s4_members_id", "action": "click", "target": "t_open", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:47.307+00:00", "run_id": "run_24779d01", "event": "done", "step": "s4_members_id", "action": "click", "target": "t_open", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:47.371+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s5_members_id", "path": "/members/12345/subaccounts/new?", "action": "select"}
-{"ts": "2026-09-22T17:19:47.371+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s5_members_id", "action": "select", "target": "t_account_type", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.375+00:00", "run_id": "run_24779d01", "event": "done", "step": "s5_members_id", "action": "select", "target": "t_account_type", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.406+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s5_members_id", "path": "/members/12345/subaccounts/new?", "action": "type"}
-{"ts": "2026-09-22T17:19:47.406+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s5_members_id", "action": "type", "target": "t_nickname", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.410+00:00", "run_id": "run_24779d01", "event": "done", "step": "s5_members_id", "action": "type", "target": "t_nickname", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:47.433+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s5_members_id", "path": "/members/12345/subaccounts/new?", "action": "click"}
-{"ts": "2026-09-22T17:19:47.434+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s5_members_id", "action": "click", "target": "t_review", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:47.491+00:00", "run_id": "run_24779d01", "event": "done", "step": "s5_members_id", "action": "click", "target": "t_review", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:47.513+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s6_members_id", "path": "/members/12345/subaccounts/review", "action": "click"}
-{"ts": "2026-09-22T17:19:47.513+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s6_members_id", "action": "click", "target": "t_continue", "risk": "consequential", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:47.573+00:00", "run_id": "run_24779d01", "event": "done", "step": "s6_members_id", "action": "click", "target": "t_continue", "matched_by": "role_name"}
-{"ts": "2026-09-22T17:19:48.049+00:00", "run_id": "run_24779d01", "event": "policy_allow", "step": "s7_members_id", "path": "/members/12345/subaccounts/commit", "action": "read"}
-{"ts": "2026-09-22T17:19:48.049+00:00", "run_id": "run_24779d01", "event": "about_to", "step": "s7_members_id", "action": "read", "target": "t_new_account_number", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:48.050+00:00", "run_id": "run_24779d01", "event": "done", "step": "s7_members_id", "action": "read", "target": "t_new_account_number", "matched_by": "label_anchor"}
-{"ts": "2026-09-22T17:19:48.189+00:00", "run_id": "run_24779d01", "event": "result", "status": "succeeded", "reason": null, "outcome": null}
+{"ts": "2026-09-23T15:13:33.107+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-23T15:13:33.107+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.125+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.197+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s2_user_id_entered", "path": "/login", "action": "type"}
+{"ts": "2026-09-23T15:13:33.197+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.255+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.303+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s3_password_entered", "path": "/login", "action": "click"}
+{"ts": "2026-09-23T15:13:33.303+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:33.363+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:33.421+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s4_search", "path": "/search", "action": "type"}
+{"ts": "2026-09-23T15:13:33.421+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s4_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.426+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s4_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.473+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s5_member_number_entered", "path": "/search", "action": "click"}
+{"ts": "2026-09-23T15:13:33.473+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:33.551+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.262+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s7_members_id", "path": "/members/12345", "action": "read"}
+{"ts": "2026-09-23T15:13:34.262+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.264+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.426+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s8_savings_balance_read", "path": "/members/12345", "action": "click"}
+{"ts": "2026-09-23T15:13:34.426+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:34.479+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:34.547+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s9_members_id", "path": "/members/12345/subaccounts/new?", "action": "select"}
+{"ts": "2026-09-23T15:13:34.547+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s9_members_id", "action": "select", "target": "t_account_type", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.552+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s9_members_id", "action": "select", "target": "t_account_type", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.603+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s10_account_type_entered", "path": "/members/12345/subaccounts/new?", "action": "type"}
+{"ts": "2026-09-23T15:13:34.603+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.607+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:34.641+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s11_nickname_entered", "path": "/members/12345/subaccounts/new?", "action": "click"}
+{"ts": "2026-09-23T15:13:34.641+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:34.709+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:34.727+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s12_members_id", "path": "/members/12345/subaccounts/review", "action": "click"}
+{"ts": "2026-09-23T15:13:34.727+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s12_members_id", "action": "click", "target": "t_continue", "risk": "consequential", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:34.796+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s12_members_id", "action": "click", "target": "t_continue", "matched_by": "role_name"}
+{"ts": "2026-09-23T15:13:35.390+00:00", "run_id": "run_a7fe58ff", "event": "policy_allow", "step": "s13_members_id", "path": "/members/12345/subaccounts/commit", "action": "read"}
+{"ts": "2026-09-23T15:13:35.390+00:00", "run_id": "run_a7fe58ff", "event": "about_to", "step": "s13_members_id", "action": "read", "target": "t_new_account_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:35.392+00:00", "run_id": "run_a7fe58ff", "event": "done", "step": "s13_members_id", "action": "read", "target": "t_new_account_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-23T15:13:35.587+00:00", "run_id": "run_a7fe58ff", "event": "result", "status": "succeeded", "reason": null, "outcome": null}

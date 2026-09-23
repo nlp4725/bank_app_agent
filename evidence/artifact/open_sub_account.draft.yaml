@@ -59,7 +59,7 @@ targets:
       role: textbox
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/01_target.png
+      asset: artifacts/assets/member.open_sub_account/01_target.png
   t_password:
     rungs:
     - kind: label_anchor
@@ -67,14 +67,14 @@ targets:
       role: textbox
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/02_target.png
+      asset: artifacts/assets/member.open_sub_account/02_target.png
   t_sign_in:
     rungs:
     - kind: role_name
       role: button
       name: Sign in
     - kind: picture
-      asset: runs/disc_f57bb148/screens/03_target.png
+      asset: artifacts/assets/member.open_sub_account/03_target.png
   t_member_number:
     rungs:
     - kind: label_anchor
@@ -82,7 +82,7 @@ targets:
       role: textbox
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/04_target.png
+      asset: artifacts/assets/member.open_sub_account/04_target.png
   t_member_number_button:
     rungs:
     - kind: label_anchor
@@ -90,14 +90,14 @@ targets:
       role: button
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/05_target.png
+      asset: artifacts/assets/member.open_sub_account/05_target.png
   t_ok:
     rungs:
     - kind: role_name
       role: button
       name: OK
     - kind: picture
-      asset: runs/disc_f57bb148/screens/06_target.png
+      asset: artifacts/assets/member.open_sub_account/06_target.png
   t_savings_balance:
     rungs:
     - kind: label_anchor
@@ -105,7 +105,7 @@ targets:
       role: null
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/07_target.png
+      asset: artifacts/assets/member.open_sub_account/07_target.png
     frame:
       url_contains: /panel
   t_open:
@@ -114,7 +114,7 @@ targets:
       role: button
       name: Open
     - kind: picture
-      asset: runs/disc_f57bb148/screens/08_target.png
+      asset: artifacts/assets/member.open_sub_account/08_target.png
   t_account_type:
     rungs:
     - kind: role_name
@@ -129,7 +129,7 @@ targets:
       role: combobox
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/09_target.png
+      asset: artifacts/assets/member.open_sub_account/09_target.png
   t_nickname:
     rungs:
     - kind: label_anchor
@@ -137,14 +137,14 @@ targets:
       role: textbox
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/10_target.png
+      asset: artifacts/assets/member.open_sub_account/10_target.png
   t_review:
     rungs:
     - kind: role_name
       role: button
       name: Review
     - kind: picture
-      asset: runs/disc_f57bb148/screens/11_target.png
+      asset: artifacts/assets/member.open_sub_account/11_target.png
   t_continue:
     rungs:
     - kind: role_name
@@ -157,118 +157,151 @@ targets:
       role: null
       relation: right_of
     - kind: picture
-      asset: runs/disc_f57bb148/screens/13_target.png
+      asset: artifacts/assets/member.open_sub_account/13_target.png
 states:
 - id: s1_login
   checkpoint:
     type: element_present
     target: t_user_id
-- id: s2_search
+- id: s2_user_id_entered
+  checkpoint:
+    type: field_value
+    target: t_user_id
+    non_empty: true
+- id: s3_password_entered
+  checkpoint:
+    type: field_value
+    target: t_password
+    non_empty: true
+- id: s4_search
   checkpoint:
     type: element_present
     target: t_member_number
-- id: s3_members
+- id: s5_member_number_entered
+  checkpoint:
+    type: field_value
+    target: t_member_number
+    non_empty: true
+- id: s6_members
   checkpoint:
     type: element_present
     target: t_ok
-- id: s4_members_id
+- id: s7_members_id
   checkpoint:
     type: element_present
     target: t_savings_balance
-- id: s5_members_id
+- id: s8_savings_balance_read
+  checkpoint:
+    type: element_present
+    target: t_savings_balance
+- id: s9_members_id
   checkpoint:
     type: element_present
     target: t_account_type
-- id: s6_members_id
+- id: s10_account_type_entered
+  checkpoint:
+    type: field_value
+    target: t_account_type
+    non_empty: true
+- id: s11_nickname_entered
+  checkpoint:
+    type: field_value
+    target: t_nickname
+    non_empty: true
+- id: s12_members_id
   checkpoint:
     type: element_present
     target: t_continue
-- id: s7_members_id
+- id: s13_members_id
+  checkpoint:
+    type: element_present
+    target: t_new_account_number
+- id: s14_new_account_number_read
   checkpoint:
     type: element_present
     target: t_new_account_number
   terminal: succeeded
 transitions:
 - from_state: s1_login
-  to_state: s1_login
+  to_state: s2_user_id_entered
   action:
     type: type
     target: t_user_id
     value_ref: login_username
   risk: safe
-- from_state: s1_login
-  to_state: s1_login
+- from_state: s2_user_id_entered
+  to_state: s3_password_entered
   action:
     type: type
     target: t_password
     value_ref: login_password
   risk: safe
-- from_state: s1_login
-  to_state: s2_search
+- from_state: s3_password_entered
+  to_state: s4_search
   action:
     type: click
     target: t_sign_in
   risk: consequential
-- from_state: s2_search
-  to_state: s2_search
+- from_state: s4_search
+  to_state: s5_member_number_entered
   action:
     type: type
     target: t_member_number
     value: '{{member_number}}'
   risk: safe
-- from_state: s2_search
-  to_state: s3_members
+- from_state: s5_member_number_entered
+  to_state: s6_members
   action:
     type: click
     target: t_member_number_button
   risk: consequential
-- from_state: s3_members
-  to_state: s4_members_id
+- from_state: s6_members
+  to_state: s7_members_id
   action:
     type: click
     target: t_ok
   risk: consequential
-- from_state: s4_members_id
-  to_state: s4_members_id
+- from_state: s7_members_id
+  to_state: s8_savings_balance_read
   action:
     type: read
     target: t_savings_balance
     into: savings_balance
   risk: safe
-- from_state: s4_members_id
-  to_state: s5_members_id
+- from_state: s8_savings_balance_read
+  to_state: s9_members_id
   action:
     type: click
     target: t_open
   risk: consequential
-- from_state: s5_members_id
-  to_state: s5_members_id
+- from_state: s9_members_id
+  to_state: s10_account_type_entered
   action:
     type: select
     target: t_account_type
-    value: Savings
+    value: '{{account_type}}'
   risk: safe
-- from_state: s5_members_id
-  to_state: s5_members_id
+- from_state: s10_account_type_entered
+  to_state: s11_nickname_entered
   action:
     type: type
     target: t_nickname
     value: '{{nickname}}'
   risk: safe
-- from_state: s5_members_id
-  to_state: s6_members_id
+- from_state: s11_nickname_entered
+  to_state: s12_members_id
   action:
     type: click
     target: t_review
   risk: consequential
-- from_state: s6_members_id
-  to_state: s7_members_id
+- from_state: s12_members_id
+  to_state: s13_members_id
   action:
     type: click
     target: t_continue
   risk: consequential
-- from_state: s7_members_id
-  to_state: s7_members_id
+- from_state: s13_members_id
+  to_state: s14_new_account_number_read
   action:
     type: read
     target: t_new_account_number
@@ -276,7 +309,7 @@ transitions:
   risk: safe
 watchers: []
 provenance:
-  discovered_by: disc_f57bb148
+  discovered_by: 01-discovery-goal-reached
   contract_by: reviewer
   example_values:
     member_number: '54321'

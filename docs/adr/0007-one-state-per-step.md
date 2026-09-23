@@ -1,0 +1,9 @@
+# One State per step, one Checkpoint per State
+
+The Recorder used to make one State per page: every action on `/login` shared `s1_login`, and typing into a field was a self-transition with no assertion of its own. So a User ID that silently failed to take the text was only noticed when the sign-in click landed on the login page again, and a Watcher had to guess why. The brief's definition of a Checkpoint is "a condition you assert to confirm you actually reached the state you expected, rather than assuming the click worked"; a step with no Checkpoint assumes.
+
+Now a State is the screen as it must be after one Action, and it carries exactly one Checkpoint chosen by what that Action must have achieved: after `type` or `select`, `field_value non_empty` on that Target (non-empty rather than the value itself, so a secret is never written into a predicate); after a `click`, `element_present` of the first control the next step uses on the new screen; after a `read`, the Target read is still there. The last State is terminal. The schema did not change — the Predicate vocabulary already had `field_value` — only what the Recorder emits.
+
+This is the unit PreAct uses (one state per action, verified before the transition out of it fires), chosen here for the same reason: verify-before-act at *every* step is what makes replay trustworthy with no model in the loop. What stays different from PreAct is how surprises are handled: a Watcher fires from any State when a Checkpoint fails and is shared by every capability on the app, rather than a branch added per State — the better fit for one vendor product run by hundreds of institutions.
+
+Costs accepted: the sub-account Artifact went from 6 States to 13, and after a recovery the engine re-orients to the *first* State whose Checkpoint holds, so a run resumes at `s1_login` rather than `s2_user_id_entered` and re-types a field. Re-typing replaces the field's value, so that is safe by construction.

@@ -89,21 +89,21 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
                 f"flow, make it a Recoverable Watcher and delete this transition."
             )
 
-    # ── one state per page, transitions between them ────────────────────────
-    def state_id(path, index):
+    # ── one state per step ──────────────────────────────────────────────────
+    # A State is the screen as it must be after one action, and every State carries
+    # exactly one Checkpoint: what that action must have achieved. So every step is
+    # verified before the next one acts (ADR 0007) — the same unit PreAct uses — and
+    # the artifact reads as a straight line: at X (proved by …), do, now Y (proved by …).
+    def page_slug(path):
         # From the pattern, never the concrete route: /members/54321 -> members_id,
         # so a discovery value cannot survive in an identifier.
-        return f"s{index}_{slug(page_pattern(path).replace('/*', '_id').strip('/')) or 'start'}"
+        return slug(page_pattern(path).replace("/*", "_id").strip("/")) or "start"
 
-    current_path, index = None, 0
-    for i, a in enumerate(actions):
-        path = path_of(a["url_before"])
-        if path != current_path:
-            index += 1
-            current_path = path
-            states.append({"id": state_id(path, index), "checkpoint": None})
-        here = states[-1]["id"]
+    def control_slug(name):
+        return name[2:] if name.startswith("t_") else name
 
+    names: list[str] = []
+    for a in actions:
         # Two controls can share an anchor — the member field and the search icon
         # beside it both read "Member number" — so a name collision is disambiguated
         # by role rather than silently pointing at the wrong control.
@@ -111,6 +111,7 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
         if name in targets and targets[name] != a["target"]:
             name = f"{name}_{a['role']}"
         targets.setdefault(name, a["target"])
+        names.append(name)
         if a.get("crop"):
             kept = keep_asset(a["crop"], capability_id, assets_dir)
             if kept is not None:
@@ -121,9 +122,14 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
                     f"the record-time crop for {name} is missing ({a['crop']}), so it has "
                     f"no picture rung. Re-record, or accept a two-rung ladder.")
 
-        # the state a transition leads to: where this action actually landed
-        to_path = path_of(a.get("url_after") or a["url_before"])
-        to_state = here if to_path == path else state_id(to_path, index + 1)
+    if actions:
+        states.append({"id": f"s1_{page_slug(path_of(actions[0]['url_before']))}",
+                       "checkpoint": {"type": "element_present", "target": names[0]}})
+
+    for i, a in enumerate(actions):
+        name = names[i]
+        here = states[-1]["id"]
+        n = i + 2
 
         action = {"type": a["action"], "target": name}
         if a["action"] == "type":
@@ -148,24 +154,32 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
         elif a["action"] == "read":
             action["into"] = a["into"]
 
+        # the State this step leads to, and the one Checkpoint that proves it
+        after = path_of(a.get("url_after") or a["url_before"])
+        if a["action"] in ("type", "select"):
+            # the field now holds a value; non_empty rather than the value itself, so
+            # a secret is never written into a predicate
+            state = {"id": f"s{n}_{control_slug(name)}_entered",
+                     "checkpoint": {"type": "field_value", "target": name, "non_empty": True}}
+        elif a["action"] == "read":
+            state = {"id": f"s{n}_{control_slug(name)}_read",
+                     "checkpoint": {"type": "element_present", "target": name}}
+        else:
+            # a click: the screen it leads to is proved by the first control the next
+            # step uses there. A final click has nothing after it to look for.
+            nxt = names[i + 1] if i + 1 < len(names) else None
+            state = {"id": f"s{n}_{page_slug(after)}",
+                     "checkpoint": ({"type": "element_present", "target": nxt} if nxt else None)}
+        states.append(state)
+
         transitions.append({
-            "from_state": here, "to_state": to_state, "action": action,
+            "from_state": here, "to_state": state["id"], "action": action,
             # Every click arrives Consequential. Only a Reviewer may mark one Safe.
             "risk": "consequential" if a["action"] == "click" else "safe",
         })
 
-    # ── checkpoints: grounded in what was on screen when we acted ───────────
-    for state in states:
-        first = next(t for t in transitions if t["from_state"] == state["id"])
-        state["checkpoint"] = {"type": "element_present", "target": first["action"]["target"]}
     if states:
         states[-1]["terminal"] = "succeeded"
-
-    # make every to_state real
-    known = {s["id"] for s in states}
-    for t in transitions:
-        if t["to_state"] not in known:
-            t["to_state"] = states[-1]["id"]
 
     # ── needs: only what the run actually used ──────────────────────────────
     needs = {

@@ -34,9 +34,22 @@ and a transitive import-graph test asserts `discovery` is unreachable from `engi
 property of the code, not a sentence in a README. Surface is also the seam for other
 surfaces (§4).
 
-**The Contract is fixed before discovery.** Inferring a capability's signature from whatever
-one run happened to do makes the transcript the source of truth. The LLM proposes a Contract
-from the goal, a Reviewer confirms it, discovery has to satisfy it.
+**Where the goal enters.** A goal is stated once, by a Reviewer, at discovery —
+`tools.start` asks "What do you want to do today?", the model proposes a Contract and the
+narrowest Role, the Reviewer confirms, and the confirmed request is a file in
+[`contracts/`](./contracts/) that `tools.discover` runs. The same session reviews the
+draft Artifact the moment the run reaches its goal — which clicks are safe, how each
+declared outcome is recognised on screen (borrowing watchers from approved capabilities on
+the same app), who approves — writes the answers to `artifacts/<name>.decisions.yaml`,
+and approves only after lint and a model-free verify-replay on unseen inputs; production callers never state
+goals — they invoke an approved capability by name with typed inputs. The goal is free
+text and the model reads it every turn, but it is only one of three parts of a Discovery
+Request: the **Role** bounds what the goal may touch (pages, actions, whether it may commit),
+so "wire $5,000" under `balance_reader` is `policy_deny` at every step the model proposes
+toward it and `give_up` after three;
+and **the Contract is fixed before discovery.** Inferring a capability's signature from
+whatever one run happened to do makes the transcript the source of truth. The LLM proposes a
+Contract from the goal, a Reviewer confirms it, discovery has to satisfy it.
 
 Single process, files for state — no queue or service split, which the brief does not reward.
 Python, Playwright, Pydantic, YAML, Flask, Claude. `fake_bank/` is hostile on purpose:
@@ -84,11 +97,13 @@ stored as YAML, shown here as JSON to match the paper.
 <predicate> ::= element_present | text_present | field_value | url_matches | all | any
 ```
 
-One artifact, abridged — the last two states of `open_sub_account`, including the one
+One artifact, abridged — the last three states of `open_sub_account`, including the one
 consequential transition. Values are verbatim from
-[open_sub_account.1.0.0.yaml](./artifacts/open_sub_account.1.0.0.yaml); 4 of 6 states, 10 of
+[open_sub_account.1.0.0.yaml](./artifacts/open_sub_account.1.0.0.yaml); 10 of 13 states, 10 of
 12 transitions, 11 of 13 targets and 2 of 3 watchers are cut for space, and schema-default
-empty fields are omitted as Listing 1 does.
+empty fields are omitted as Listing 1 does. **One state per step** (ADR 0007): a state is the
+screen as it must be after one action, and it carries exactly one checkpoint — what that
+action must have achieved — so every step is verified before the next acts.
 
 ```json
 {
@@ -130,19 +145,23 @@ empty fields are omitted as Listing 1 does.
   },
   "states": [
     {
-      "id": "s6_members_id",
+      "id": "s12_members_id",
       "checkpoint": {"type": "element_present", "target": "t_continue"}
     },
     {
-      "id": "s7_members_id",
+      "id": "s13_members_id",
+      "checkpoint": {"type": "element_present", "target": "t_new_account_number"}
+    },
+    {
+      "id": "s14_new_account_number_read",
       "checkpoint": {"type": "element_present", "target": "t_new_account_number"},
       "terminal": "succeeded"
     }
   ],
   "transitions": [
     {
-      "from_state": "s6_members_id",
-      "to_state": "s7_members_id",
+      "from_state": "s12_members_id",
+      "to_state": "s13_members_id",
       "action": {"type": "click", "target": "t_continue"},
       "risk": "consequential",
       "verify_effect": {
@@ -151,8 +170,8 @@ empty fields are omitted as Listing 1 does.
       }
     },
     {
-      "from_state": "s7_members_id",
-      "to_state": "s7_members_id",
+      "from_state": "s13_members_id",
+      "to_state": "s14_new_account_number_read",
       "action": {
         "type": "read",
         "target": "t_new_account_number",
@@ -223,7 +242,7 @@ and a write-only one returns nothing typed to the caller. Doing both means a sin
 exercises typed outputs, business outcomes, recoverable conditions, escalation, the
 Consequential Action with its Verification Check, and Refused-when-unattended. The cost is an
 assumption: the flow presumes the member already holds a savings account to read, and a
-member without one would fail the `s4_members_id` checkpoint as an Unknown State. The right
+member without one would fail the `s7_members_id` checkpoint as an Unknown State. The right
 answer is a `NO_SAVINGS_ACCOUNT` outcome code — the same learning loop as the held-out
 `MAX_ACCOUNTS_REACHED`, and the next one to add (§7).
 
@@ -319,6 +338,13 @@ clicking again. It is consulted on one route only — when no Watcher recognises
 > on one transition — ask the Verification Check *before* a consequential action and skip
 > the action when the effect is already there — and it is item (0) of §7 for that reason.
 > Proving it needs a scenario that fails after the commit, which the demo app does not have.
+
+The unit of verification is the step: one state per action, each with one checkpoint
+(`field_value non_empty` after a type or select, the next control present after a click), so
+a field that silently did not take its text is caught there and not two clicks later — the
+same discipline PreAct calls verify-before-act, at the same granularity; where this design
+differs is that a surprise is handled by a Watcher shared across the app rather than a branch
+added per state (ADR 0007).
 
 Two places the taxonomy earns itself. **Session expiry is Recoverable, not an escalation**:
 we hold the service account credential, so the watcher needs no recovery action at all — the

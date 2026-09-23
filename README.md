@@ -28,7 +28,8 @@ Open <http://localhost:5001> and sign in as `svc_officer` / `officer-pw` to see 
 automation is working against. `GET /reset` restores the seed data, and every tool below
 calls it first, so the walkthrough is repeatable in any order.
 
-No API key is needed for steps 1–7. Step 8 needs one.
+No API key is needed for steps 1–7. Step 8 needs one: export `ANTHROPIC_API_KEY`, or put
+`ANTHROPIC_API_KEY=...` in a `.env` file in this folder (gitignored; `tools.discover` reads it).
 
 ---
 
@@ -73,19 +74,19 @@ of the iframe → open a sub-account → confirm → read back the new account n
 Each line is one Transition, and **`rung=` is which way of finding the control worked**:
 
 ```
-  s1_login         -> s1_login         type   t_user_id                secret:login_username    rung=label_anchor risk=safe
-  s1_login         -> s1_login         type   t_password               secret:login_password    rung=label_anchor risk=safe
-  s1_login         -> s2_search        click  t_sign_in                                         rung=role_name risk=safe
-  s2_search        -> s2_search        type   t_member_number          {{member_number}}        rung=label_anchor risk=safe
-  s2_search        -> s4_members_id    click  t_member_number_button                            rung=label_anchor risk=safe
-  s4_members_id    -> s4_members_id    read   t_savings_balance                                 rung=label_anchor risk=safe
+  s1_login         -> s2_user_id_entered type   t_user_id                secret:login_username    rung=label_anchor risk=safe
+  s2_user_id_entered -> s3_password_entered type   t_password               secret:login_password    rung=label_anchor risk=safe
+  s3_password_entered -> s4_search        click  t_sign_in                                         rung=role_name risk=safe
+  s4_search        -> s5_member_number_entered type   t_member_number          {{member_number}}        rung=label_anchor risk=safe
+  s5_member_number_entered -> s7_members_id    click  t_member_number_button                            rung=label_anchor risk=safe
+  s7_members_id    -> s8_savings_balance_read read   t_savings_balance                                 rung=label_anchor risk=safe
   ...
-  s6_members_id    -> s7_members_id    click  t_continue                                        rung=role_name risk=consequential
-  s7_members_id    -> s7_members_id    read   t_new_account_number                              rung=label_anchor risk=safe
+  s12_members_id   -> s13_members_id   click  t_continue                                        rung=role_name risk=consequential
+  s13_members_id   -> s14_new_account_number_read read   t_new_account_number                              rung=label_anchor risk=safe
 
 RESULT  succeeded
 OUTPUTS {'savings_balance': '$4210.00', 'new_account_number': 'SA-2001'}
-TIME    3.6s     evidence: runs/run_5a4c9085
+TIME    3.4s     evidence: runs/run_a7fe58ff
 ```
 
 Three things to notice. The password was never a literal — `secret:login_username` is a
@@ -137,7 +138,7 @@ python -m tools.operator
 ```
   INTERVENTION  run_bd7f80f8
   capability    member.open_sub_account
-  stopped at    s2_search  (w_approval_required)
+  stopped at    s5_member_number_entered  (w_approval_required)
   because       This member is flagged; only a supervisor may clear it.
   the session   http://127.0.0.1:5001/members
 ```
@@ -253,9 +254,136 @@ five replays regenerate from the current code with `python -m tools.make_evidenc
 This is the half with a model in it, and it only ever runs against a non-production
 environment (the code refuses otherwise).
 
+**Start with a goal:**
+
 ```bash
-ANTHROPIC_API_KEY=... python -m tools.discover 54321
+python -m tools.start
 ```
+
+```
+What do you want to do today?: look up a member and read their savings balance
+
+  capability  member.read_savings_balance
+  role        balance_reader — View member information and balances.
+  goal        Look up member {member_number} and read their current savings balance
+  input       member_number      string  ^[0-9]{5}$  (sensitive)
+
+  returns     succeeded         -> outputs:
+                                   savings_balance    money
+              business_outcome  -> one of:
+                                   MEMBER_NOT_FOUND   resolver: member
+                                   NOT_AUTHORIZED     resolver: institution_staff
+                                   NO_SAVINGS_ACCOUNT resolver: member
+              failed | refused | aborted | outcome_unknown  (engine; not reviewed here)
+
+Approve this contract? [Y/n/e]  y
+member_number [54321]: 12345
+Watch the browser? [Y/n]  y
+```
+
+The model proposes the Contract and the narrowest Role from the goal; the Reviewer approves
+it (`e` saves it to `contracts/` for editing first; `n` saves nothing). Then the browser
+opens and the run is narrated turn by turn. When it reaches the goal, the **second review**
+starts in the same terminal — the Artifact, the plan of steps the Recorder compiled:
+
+```
+  member.read_savings_balance 1.0.0   role balance_reader   status draft
+  7 states, 6 steps, 0 watchers
+
+  STEP 1   at s1_login      checkpoint: target t_user_id is on screen
+           type   <secret login_username>
+           into   target t_user_id  =  the textbox right of the caption "User ID"   (fallback: its picture)
+           then   s2_user_id_entered      checkpoint: field t_user_id holds a value
+
+  STEP 2   at s2_user_id_entered
+           type   <secret login_password>
+           into   target t_password  =  the textbox right of the caption "Password"   (fallback: its picture)
+           then   s3_password_entered      checkpoint: field t_password holds a value
+
+  STEP 3   at s3_password_entered
+           click  target t_sign_in  =  the button named "Sign in"   (fallback: its picture)
+           then   s4_search      checkpoint: target t_member_number is on screen
+           risk   CONSEQUENTIAL  <- you decide: does this click commit anything?
+
+  STEP 4   at s4_search
+           type   '{{member_number}}'
+           into   target t_member_number  =  the textbox right of the caption "Member number"   (fallback: its picture)
+           then   s5_member_number_entered      checkpoint: field t_member_number holds a value
+
+  STEP 5   at s5_member_number_entered
+           click  target t_member_number_button  =  the button right of the caption "Member number"   (fallback: its picture)
+           then   s6_members_id      checkpoint: target t_savings_balance is on screen
+           risk   CONSEQUENTIAL  <- you decide: does this click commit anything?
+
+  STEP 6   at s6_members_id
+           read   target t_savings_balance  =  the control right of the caption "Savings balance", inside frame /panel   (fallback: its picture)
+           into   output savings_balance
+           then   s7_savings_balance_read      checkpoint: target t_savings_balance is on screen
+           done   s7_savings_balance_read is terminal: SUCCEEDED
+
+  WATCHERS   if a checkpoint fails, which screen is it?
+           none yet  <- the next questions add them
+
+Review this artifact now? [Y/n]  y
+  t_sign_in (s3_password_entered -> s4_search): safe — it navigates, commits nothing? [Y/n]  y
+  t_member_number_button (s5_member_number_entered -> s6_members_id): safe — it navigates, commits nothing? [Y/n]  y
+  MEMBER_NOT_FOUND: reuse watcher w_not_found — text 'No records found' (from member.open_sub_account)? [Y/n]  y
+  NOT_AUTHORIZED: reuse watcher w_not_authorized — text 'not authorized to view' (from member.open_sub_account)? [Y/n]  y
+  NO_SAVINGS_ACCOUNT: no watcher can recognise it yet. [t]ext on screen that means it, or [d]rop it from the contract  d
+  approve as [reviewer:nasi]:
+
+  decisions saved to artifacts/read_savings_balance.decisions.yaml
+  lint, then verify-replay on member 54321 (discovery never saw it) with no model…
+
+  APPROVED -> artifacts/read_savings_balance.1.0.0.yaml
+  it is now live: CAPABILITY=member.read_savings_balance python -m tools.replay 12345
+```
+
+The Recorder decides nothing; each question is one it could not answer from the run. Every
+click arrives Consequential and only a person downgrades it. A declared outcome needs a
+watcher that can recognise it — borrowed from another approved capability on this app when
+one exists — or it is dropped, because an answer the caller is promised but can never
+receive is worse than none. The answers are a file, `artifacts/<name>.decisions.yaml`,
+applied mechanically; approval is refused unless the result lints clean **and** replays
+successfully, with no model, on a member the discovery run never saw. To redo a review:
+
+```bash
+python -m tools.start --review runs/disc_12e097f2
+``` The flag-driven equivalent, for scripts:
+
+```bash
+ANTHROPIC_API_KEY=... python -m tools.discover                 # the sub-account request, member 54321
+ANTHROPIC_API_KEY=... python -m tools.discover 99999           # same goal; expects report_outcome
+```
+
+**A goal is stated once, by a Reviewer, at discovery.** Production callers never state
+goals — they invoke an approved capability by name with typed inputs (steps 1–7). A
+Discovery Request is three things, and only the first is free text:
+
+| Part | Who owns it | What it does |
+|---|---|---|
+| **goal** | the Reviewer, in words | what the model reads every turn |
+| **Role** | `config/roles/` | bounds the goal: pages, actions, whether it may commit |
+| **Contract** | the Reviewer | fixes the capability's signature *before* any run |
+
+`contracts/*.yaml` holds one request per capability; every flag overrides one field, and
+the origin is never a flag — it comes from the Tenant's own Policy file:
+
+```bash
+# a different goal, under a Role that may not commit anything
+ANTHROPIC_API_KEY=... python -m tools.discover --contract contracts/read_balance.yaml
+# or spell it out
+ANTHROPIC_API_KEY=... python -m tools.discover \
+    --goal "Look up member {member_number} and read their current savings balance" \
+    --contract contracts/read_balance.yaml --role balance_reader --tenant bank_a \
+    --values member_number=12345
+python -m tools.discover --dry-run --contract contracts/read_balance.yaml   # no key: show the request
+```
+
+Type a goal that strays outside its Role — "wire $5,000 from member 12345" under
+`balance_reader` — and every step the model proposes toward it is `policy_deny` (no
+`/transfers` page in that Role, no commit allowed); three denials in a row and the run ends
+`give_up`. The Role bounds the goal, not the wording.
 
 The model gets a masked accessibility list plus a screenshot and proposes **one action per
 turn**; code checks it against policy and performs it. It never sees a password, never sees a
@@ -292,7 +420,7 @@ and assets.
 ### 9. The tests
 
 ```bash
-python -m pytest -q          # 148 passing, ~4½ minutes
+python -m pytest -q          # 172 passing, ~5 minutes
 ```
 
 Nothing is mocked: the demo app is the fixture, and each test reads as "replay for 99999 and
@@ -319,5 +447,6 @@ cannot reach past the acting interface of the Surface.
 | `cua/policy.py` · `cua/roles.py` · `cua/profile.py` · `cua/store.py` | permissions, and which Artifact is live |
 | `cua/redact.py` | the Redaction Chokepoint — every channel passes through it |
 | `config/` | the Baseline, the Roles, each Tenant's Policy, each app's Profile |
+| `contracts/` | one Discovery Request per capability: goal, Role, Contract, example values |
 | `artifacts/` | the draft, the Reviewer's decisions, and the approved capability |
 | `evidence/` | seven committed runs, with a guide |

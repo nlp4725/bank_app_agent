@@ -47,7 +47,7 @@ One thing done to the surface — **click, type, select, read** — and nothing 
 _Avoid_: Step, instruction, command, operation
 
 **State**:
-A named point in a flow, carrying the Checkpoint that must hold for the run to believe it is there.
+The screen as it must be after one Action — one State per step, carrying exactly one Checkpoint: what that Action must have achieved (a field now holds a value, the next control is on screen). Every step is therefore verified before the next one acts (ADR 0007).
 _Avoid_: Page, screen, node
 
 **Transition**:

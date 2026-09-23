@@ -14,7 +14,7 @@ also hold `console.txt`, which is the most readable view: one line per transitio
 target, **which rung of the ladder matched**, and the risk label.
 
 Capability under test: [`artifact/open_sub_account.1.0.0.yaml`](./artifact/) — approved,
-role `account_opener`, 6 states, 12 transitions, 7 watchers, 1 consequential action. Beside
+role `account_opener`, 13 states, 12 transitions, 7 watchers, 1 consequential action. Beside
 it: the `draft.yaml` the Recorder produced, and `decisions.yaml`, the Reviewer's answers to
 its suggestions.
 
@@ -75,8 +75,8 @@ Read `trail.jsonl` in order:
 
 ```
 watcher_matched      w_approval_required   condition=escalate
-intervention_raised  s2_search             + intervention.json + screen_1.png
-operator_acted       by=auto:blocker cleared  decision=resume  navigated=true
+intervention_raised  s5_member_number_entered   + intervention.json + screen_1.png
+operator_acted       by=operator:callback  decision=resume  navigated=true
 result               succeeded
 ```
 
@@ -96,8 +96,8 @@ Member 33333 already holds the maximum sub-accounts. `MAX_ACCOUNTS_REACHED` is d
 guess:
 
 ```
-checkpoint_missed    s7_members_id   expected=t_new_account_number
-verification_check   s6_members_id   took_effect=false
+checkpoint_missed    s13_members_id   expected=t_new_account_number
+verification_check   s12_members_id   took_effect=false
 result               failed  unknown_state  (+ screen_1.png)
 ```
 
