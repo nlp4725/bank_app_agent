@@ -296,6 +296,12 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                 continue
 
             url_before = surface.url
+            # The picture rung is for controls a person recognises by sight — a button,
+            # an unlabelled icon. It is taken BEFORE acting and only for a click: a crop
+            # of a field after typing, or of a cell being read, is a picture of a value,
+            # and a value must never be persisted into an artifact.
+            crop = (surface.crop(control, str(shots / f"{turn:02d}_target.png"))
+                    if call.name == "click" else None)
             try:
                 record = _perform(surface, call, control, secrets, outputs)
                 failures = 0
@@ -308,7 +314,6 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                                 detail="three failed actions in a row")
                 continue
 
-            crop = surface.crop(control, str(shots / f"{turn:02d}_target.png"))
             record.update({"turn": turn, "crop": crop,
                            "url_before": url_before, "url_after": surface.url})
             actions.append(record)

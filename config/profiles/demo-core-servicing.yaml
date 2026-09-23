@@ -24,6 +24,11 @@ readable_regions: [t_balance, t_new_number]
 # an undeclared control would blind the model to something it must act on.
 sensitive_regions: [t_member_name, t_member_since]
 
+# Every value cell whose caption is not in readable_anchors is painted black as well —
+# the text channel's default-deny, applied to pixels. Text that is not a value cell but
+# still identifies a person is named here by pattern: the member number in the heading.
+sensitive_text: ['Member [0-9]{5}', 'SA-[0-9]{4}']     # the heading, and account numbers wherever they appear
+
 # During discovery there are no Targets yet, so the same allowlist is expressed by the
 # caption a human reads beside the value. The goal needs these two and nothing else.
 readable_anchors: ["Savings balance", "New account number"]

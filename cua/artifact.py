@@ -278,6 +278,9 @@ class AppProfile(Strict):
     # During discovery there are no Targets yet, so the same allowlist is expressed by
     # the caption a human reads beside the value.
     readable_anchors: list[str] = Field(default_factory=list)
+    # On-screen text that is not a value cell but must not be in a picture: regexes,
+    # painted black at capture (a member number in a page heading).
+    sensitive_text: list[str] = Field(default_factory=list)
 
 
 def merged(artifact: Artifact, profile: AppProfile | None) -> Artifact:

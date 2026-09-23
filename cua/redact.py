@@ -62,9 +62,10 @@ class Redactor:
     Regions painted black at capture). Built from the App Profile, because what is
     sensitive is a property of the app, not of one capability.
 
-    Pixels alone are a deny-list, deliberately: hiding a value costs nothing, but
-    blacking out a control the model must act on would blind it. That asymmetry is
-    the residual risk recorded in docs/security-model.md.
+    Pixels follow the same default-deny as text: every value cell whose caption is not
+    a Readable Anchor is painted, plus declared Sensitive Regions and text patterns.
+    Controls are never painted — blacking out a button the model must act on would
+    blind it — which is the residual risk recorded in docs/security-model.md.
     """
 
     def __init__(self, profile=None, *, mask_values: bool = True, mask_pixels: bool = True):
@@ -108,8 +109,13 @@ class Redactor:
         Text redaction cannot clean pixels, so this happens at capture rather than
         afterwards — and it happens here, so no caller can capture around it.
         """
+        readable = (set(self.profile.readable_anchors) if self.profile is not None
+                    and self.mask_pixels else None)
+        patterns = tuple(self.profile.sensitive_text) if self.profile is not None \
+            and self.mask_pixels else ()
         try:
-            surface.screenshot(path, mask_targets=self.masked_targets(), scale=scale)
+            surface.screenshot(path, mask_targets=self.masked_targets(), scale=scale,
+                               readable_anchors=readable, sensitive_text=patterns)
         except Exception:
             return ""
         return path

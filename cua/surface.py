@@ -19,6 +19,7 @@ interface is what let a driver object leak upwards: the engine reached for
 import fnmatch
 import subprocess
 import sys
+import re
 import time
 from dataclasses import dataclass
 
@@ -118,18 +119,36 @@ class Surface:
                 pass
         return "\n".join(chunks)
 
-    def screenshot(self, path: str, mask_targets: list | None = None, scale: str = "css"):
-        """Paint over declared regions as the image is captured.
+    def screenshot(self, path: str, mask_targets: list | None = None, scale: str = "css",
+                   readable_anchors: set | None = None, sensitive_text: tuple = ()):
+        """Paint over what must not be in the picture, as the image is captured.
 
-        Text redaction cannot clean pixels, so anything sensitive is masked at
-        capture time rather than afterwards. Regions are Targets, so they are
-        declared in the App Profile and reviewable there.
+        Text redaction cannot clean pixels, so masking happens at capture time rather
+        than afterwards. Three kinds of region, all declared in the App Profile:
+        `mask_targets` (Sensitive Regions, by Target); every value cell whose caption is
+        not in `readable_anchors` — the same default-deny the text channel applies, so a
+        value the model may not read in text is not visible to it in pixels either; and
+        `sensitive_text`, patterns for on-screen text that is not a value cell (a member
+        number in a heading). Controls are never masked: the model must see what it acts on.
         """
         masks = []
         for target in (mask_targets or []):
             found = self.resolve(target, timeout_ms=0)
             if found is not None:
                 masks.append(found.locator)
+        if readable_anchors is not None:
+            for cell in self.values(0):
+                if cell["anchor"] not in readable_anchors:
+                    masks.append(cell["locator"])
+        for pattern in sensitive_text:
+            rx = re.compile(pattern)
+            for frame in self.page.frames:
+                try:
+                    hits = frame.get_by_text(rx)
+                    for i in range(min(hits.count(), 20)):
+                        masks.append(hits.nth(i))
+                except Exception:
+                    continue
         self.page.screenshot(path=path, mask=masks, mask_color="#000000", scale=scale)
 
     # ── resolving a Target ───────────────────────────────────────────────────

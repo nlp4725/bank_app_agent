@@ -34,7 +34,9 @@ its suggestions.
 secrets it never saw, found the unlabelled search icon by its neighbouring caption, dismissed
 an interstitial itself, read a value out of an iframe, and stopped at the confirmation screen.
 
-Redaction was on throughout. In the `observed` events the model is reading things like
+Redaction was on throughout. One thing these two folders predate: the screenshots here paint only the two declared Sensitive Regions (member name, member since). Since then the image channel took the text channel's default-deny — every value cell not declared readable, and the member number in the heading, are painted too (see `03`–`06`, regenerated) — and target crops are taken before acting and only for clicks. These two runs are real model runs and stay as recorded rather than being re-bought; the values visible in them are the demo app's seed data.
+
+In the `observed` events the model is reading things like
 `textbox (no accessible name) near text: "User ID" value: (hidden)` and a masked page text —
 it works from the *label* that says which cell to read, not from the value in it.
 

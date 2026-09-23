@@ -117,7 +117,7 @@ def record(actions: list[dict], contract: dict, example_values: dict, *,
             if kept is not None:
                 targets[name].setdefault("rungs", []).append(
                     {"kind": "picture", "asset": kept})
-            else:
+            elif a["action"] == "click":          # only a click has a picture rung
                 suggestions.append(
                     f"the record-time crop for {name} is missing ({a['crop']}), so it has "
                     f"no picture rung. Re-record, or accept a two-rung ladder.")

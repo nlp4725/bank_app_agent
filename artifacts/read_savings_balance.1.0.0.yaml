@@ -125,18 +125,12 @@ targets:
       anchor: User ID
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.read_savings_balance/01_target.png
-      threshold: 0.94
   t_password:
     rungs:
     - kind: label_anchor
       anchor: Password
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.read_savings_balance/02_target.png
-      threshold: 0.94
   t_sign_in:
     rungs:
     - kind: role_name
@@ -151,9 +145,6 @@ targets:
       anchor: Member number
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.read_savings_balance/04_target.png
-      threshold: 0.94
   t_member_number_button:
     rungs:
     - kind: label_anchor
@@ -170,9 +161,6 @@ targets:
     - kind: label_anchor
       anchor: Savings balance
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.read_savings_balance/06_target.png
-      threshold: 0.94
 watchers:
 - id: w_not_found
   trigger:

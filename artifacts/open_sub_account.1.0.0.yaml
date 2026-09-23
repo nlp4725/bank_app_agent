@@ -212,18 +212,12 @@ targets:
       anchor: User ID
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/01_target.png
-      threshold: 0.94
   t_password:
     rungs:
     - kind: label_anchor
       anchor: Password
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/02_target.png
-      threshold: 0.94
   t_sign_in:
     rungs:
     - kind: role_name
@@ -238,9 +232,6 @@ targets:
       anchor: Member number
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/04_target.png
-      threshold: 0.94
   t_member_number_button:
     rungs:
     - kind: label_anchor
@@ -265,9 +256,6 @@ targets:
     - kind: label_anchor
       anchor: Savings balance
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/07_target.png
-      threshold: 0.94
   t_open:
     rungs:
     - kind: role_name
@@ -289,18 +277,12 @@ targets:
       anchor: Account type
       role: combobox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/09_target.png
-      threshold: 0.94
   t_nickname:
     rungs:
     - kind: label_anchor
       anchor: Nickname
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/10_target.png
-      threshold: 0.94
   t_review:
     rungs:
     - kind: role_name
@@ -319,9 +301,6 @@ targets:
     - kind: label_anchor
       anchor: New account number
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/13_target.png
-      threshold: 0.94
 watchers:
 - id: w_system_notice
   trigger:

@@ -58,16 +58,12 @@ targets:
       anchor: User ID
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/01_target.png
   t_password:
     rungs:
     - kind: label_anchor
       anchor: Password
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/02_target.png
   t_sign_in:
     rungs:
     - kind: role_name
@@ -81,8 +77,6 @@ targets:
       anchor: Member number
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/04_target.png
   t_member_number_button:
     rungs:
     - kind: label_anchor
@@ -104,8 +98,6 @@ targets:
       anchor: Savings balance
       role: null
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/07_target.png
     frame:
       url_contains: /panel
   t_open:
@@ -128,16 +120,12 @@ targets:
       anchor: Account type
       role: combobox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/09_target.png
   t_nickname:
     rungs:
     - kind: label_anchor
       anchor: Nickname
       role: textbox
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/10_target.png
   t_review:
     rungs:
     - kind: role_name
@@ -156,8 +144,6 @@ targets:
       anchor: New account number
       role: null
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/13_target.png
 states:
 - id: s1_login
   checkpoint:

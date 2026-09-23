@@ -148,9 +148,10 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
 
     class Recorder:
         """Stands in for the browser: records what it was asked to mask."""
-        def __init__(self): self.asked = None
-        def screenshot(self, path, mask_targets=None, scale="css"):
-            self.asked = mask_targets
+        def __init__(self): self.asked = None; self.readable = None; self.patterns = None
+        def screenshot(self, path, mask_targets=None, scale="css", readable_anchors=None,
+                       sensitive_text=()):
+            self.asked, self.readable, self.patterns = mask_targets, readable_anchors, sensitive_text
             pathlib_write(path)
 
     def pathlib_write(path):
@@ -163,6 +164,9 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
     writer.close()
     assert surface.asked and len(surface.asked) == 2, \
         "a replay screenshot was captured without the declared Sensitive Regions"
+    assert surface.readable == {"Savings balance", "New account number"}, \
+        "value cells must be painted unless their caption is a Readable Anchor"
+    assert "Member [0-9]{5}" in surface.patterns
 
 
 def test_a_writer_with_no_profile_still_masks_text_and_patterns():
@@ -177,3 +181,53 @@ def tmp():
     import tempfile
     from pathlib import Path
     return Path(tempfile.mkdtemp())
+
+
+# ── pixels take the same default as text ─────────────────────────────────────
+
+def _member_page(surface):
+    surface.goto("/login")
+    tb = surface.page.get_by_role("textbox")
+    tb.nth(0).fill("svc_officer"); tb.nth(1).fill("officer-pw")
+    surface.page.get_by_role("button", name="Sign in").click()
+    surface.page.wait_for_load_state()
+    surface.page.get_by_role("textbox").first.fill("12345")
+    surface.page.get_by_role("button").last.click()
+    surface.page.wait_for_load_state(); surface.page.wait_for_timeout(800)
+
+
+def _is_black(png, box):
+    from PIL import Image
+    img = Image.open(png).convert("RGB")
+    x, y = int(box["x"] + box["width"] / 2), int(box["y"] + box["height"] / 2)
+    return img.getpixel((x, y)) == (0, 0, 0)
+
+
+def test_a_value_cell_not_declared_readable_is_painted_black(bank_app, tmp_path):
+    """The Checking balance is a value nobody declared readable: hidden in text, so hidden
+    in pixels. The Savings balance is a Readable Anchor: visible in both. The member
+    number in the heading is not a cell at all; the profile names it by pattern."""
+    from cua.redact import Redactor
+    from cua.surface import Surface
+    surface = Surface(bank_app)
+    try:
+        _member_page(surface)
+        cells = {c["anchor"]: c["box"] for c in surface.values(0)}
+        heading = surface.page.get_by_text("Member 12345").first.bounding_box()
+        shot = str(tmp_path / "member.png")
+        Redactor(load_profile("demo-core-servicing")).screenshot(surface, shot)
+        assert _is_black(shot, cells["Checking balance"])
+        assert not _is_black(shot, cells["Savings balance"])
+        assert _is_black(shot, heading)
+    finally:
+        surface.close()
+
+
+def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
+    """Discovery crops a target before acting, and only for a click: a field after
+    typing or a cell being read is a picture of a value."""
+    import inspect
+    from cua import discovery
+    src = inspect.getsource(discovery.discover)
+    assert 'if call.name == "click" else None' in src
+    assert src.index("surface.crop(") < src.index("record = _perform(")

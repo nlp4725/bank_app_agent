@@ -26,4 +26,4 @@ replaying for member 44444 at bank_a (http://127.0.0.1:5001) — no model in the
 
 RESULT  succeeded
 OUTPUTS {'savings_balance': '$2380.40', 'new_account_number': 'SA-2001'}
-TIME    9.3s     evidence: runs/run_ac4054d5
+TIME    9.7s     evidence: runs/run_948f84a3

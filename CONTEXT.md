@@ -199,7 +199,7 @@ A Target whose **value** may be seen — by the model, and in evidence. Everythi
 _Avoid_: Whitelist, visible field
 
 **Sensitive Region**:
-A Target whose **pixels** are painted black when a screenshot is captured. Pixels take the opposite default from values, deliberately: hiding a value costs nothing, but blacking out a control the model must act on would blind it. That makes the image channel a deny-list, and the residual risk recorded in [docs/security-model.md](./docs/security-model.md).
+A Target whose **pixels** are painted black when a screenshot is captured, on top of the default: every value cell whose caption is not a Readable Anchor is painted too, and so is any on-screen text matching a declared pattern. Controls are never painted — blacking out a control the model must act on would blind it — which is the residual risk recorded in [docs/security-model.md](./docs/security-model.md).
 _Avoid_: Blackout, redaction zone
 
 **Two-Person Approval**:
@@ -271,7 +271,8 @@ and Replay calls no model at all**, so nothing leaves the institution during pro
                   ← the only layer that can hide a name or a date of birth
   3. PATTERN      what does come through still passes the net
                   SSN · card · email · phone · date · currency
-  4. PIXELS       declared Sensitive Regions painted black at capture,
+  4. PIXELS       value cells not declared readable, declared Sensitive Regions and
+                  declared text patterns painted black at capture,
                   cropped and downscaled
 ```
 
