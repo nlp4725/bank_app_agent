@@ -28,10 +28,12 @@ RED, RED_BG = "#a8251e", "#fae9e6"
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
-W, H = 1240, 730
+W = 1240
 NODE_W, NODE_H = 240, 78
-ROW_Y = [168, 412]
+COLS = 3
 COL_X = [58, 500, 942]
+ROW_STEP = 150            # node height plus room for the wrap arrow and its label
+FIRST_ROW_Y = 128
 
 out = []
 add = out.append
@@ -52,12 +54,17 @@ def node(x, y, state, terminal=False):
         f'stroke="{stroke}" stroke-width="1.6"/>')
     text(x + 14, y + 27, state["id"], size=14.5, font=MONO, weight="600",
          fill=GREEN if terminal else INK)
-    cp = state["checkpoint"]
-    what = cp.get("target") or cp.get("value")
-    text(x + 14, y + 48, cp["type"], size=10.5, font=MONO, fill=MUTED)
+    cp = state["checkpoint"] or {}
+    what = cp.get("target") or cp.get("value") or cp.get("pattern") or ""
+    kind = cp.get("type", "no checkpoint")
+    if cp.get("non_empty"):
+        kind += "  non_empty"
+    elif cp.get("equals") is not None:
+        what = f"{what} == {cp['equals']}"
+    text(x + 14, y + 48, kind, size=10.5, font=MONO, fill=MUTED)
     text(x + 14, y + 64, what, size=10.5, font=MONO, fill=stroke)
     if terminal:
-        text(x + NODE_W - 12, y + 27, "terminal", size=10.5, fill=GREEN,
+        text(x + NODE_W - 12, y + 64, "terminal", size=10.5, fill=GREEN,
              weight="600", anchor="end")
 
 
@@ -94,10 +101,14 @@ art = yaml.safe_load(ARTIFACT.read_text())
 profile = yaml.safe_load(PROFILE.read_text())
 states = {s["id"]: s for s in art["states"]}
 order = [s["id"] for s in art["states"]]
-pos = {}                       # state id -> (x, y), snaking
+rows = -(-len(order) // COLS)
+ROW_Y = [FIRST_ROW_Y + r * ROW_STEP for r in range(rows)]
+band_y = ROW_Y[-1] + NODE_H + 70
+H = band_y + 130 + 40
+pos = {}                       # state id -> (x, y), snaking: even rows left to right
 for i, sid in enumerate(order):
-    row, col = divmod(i, 3)
-    pos[sid] = (COL_X[col] if row == 0 else COL_X[2 - col], ROW_Y[row])
+    row, col = divmod(i, COLS)
+    pos[sid] = (COL_X[col] if row % 2 == 0 else COL_X[COLS - 1 - col], ROW_Y[row])
 
 add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" '
     f'height="{H}" font-family="{SANS}">')
@@ -116,7 +127,7 @@ text(58, 66, f'role {cap["role"]}  ·  {cap["status"]}, approved by '
              f'{len(art["transitions"])} transitions', size=11.5, fill=MUTED)
 text(W - 58, 44, "each node carries the Checkpoint that must hold to believe we are there",
      size=11, fill=MUTED, anchor="end")
-text(W - 58, 62, "read the top row left to right, then drop down and read back",
+text(W - 58, 62, "one State per step: read each row, then drop down and read the next back",
      size=11, fill=MUTED, anchor="end")
 
 # self-loops first, so arrows draw over nothing
@@ -149,21 +160,24 @@ for t in art["transitions"]:
               y1 + NODE_H / 2, color=colour)
         mid = (sx + ex) / 2
         label(mid, y1 + NODE_H / 2 - 22, [name], colour)
+        if value and not risky:
+            label(mid, y1 + NODE_H / 2 + 22, [value], MUTED, size=10)
         if risky:
+            ve = t.get("verify_effect", {}).get("predicate", {})
             label(mid, y1 + NODE_H / 2 + 22,
-                  ["consequential", "verify_effect:", "text_present {{nickname}}"], RED)
+                  ["consequential", "verify_effect:",
+                   f"{ve.get('type', '')} {ve.get('value', ve.get('target', ''))}".strip()], RED)
     else:                                          # the wrap between rows
         cx = x1 + NODE_W / 2
         arrow(cx, y1 + NODE_H + 4, cx, y2 - 6, color=colour)
-        label(cx - 14, y1 + NODE_H + 34, [name], colour, anchor="end")
+        label(cx - 14, y1 + NODE_H + 30, [name] + ([value] if value else []), colour, anchor="end")
 
 # ── watchers: global, so a band rather than an edge ─────────────────────────
-band_y = 556
 add(f'<rect x="58" y="{band_y}" width="{W - 116}" height="130" rx="9" fill="{AMBER_BG}" '
     f'stroke="{AMBER}" stroke-width="1.3" stroke-dasharray="5 4"/>')
 for sid in order:
     x, y = pos[sid]
-    if y == ROW_Y[1]:
+    if y == ROW_Y[-1]:
         arrow(x + NODE_W / 2, band_y - 4, x + NODE_W / 2, y + NODE_H + 6,
               color=AMBER, width=1.2, dash="4 4")
 text(74, band_y + 25, "Watchers — evaluated at every State, so they belong to none of them",
@@ -185,9 +199,9 @@ for i, (wid, condition, source, shadowed) in enumerate(chips):
     cx = 74 + col * cw
     cy = band_y + 38 + row * 46
     colour = MUTED if shadowed else CONDITION_COLOUR.get(condition, MUTED)
+    dashed = ' stroke-dasharray="4 3"' if shadowed else ""
     add(f'<rect x="{cx}" y="{cy}" width="{cw - 12}" height="38" rx="6" '
-        f'fill="#ffffff" stroke="{colour}" stroke-width="1.3" '
-        f'{"stroke-dasharray=\"4 3\"" if shadowed else ""}/>')
+        f'fill="#ffffff" stroke="{colour}" stroke-width="1.3"{dashed}/>')
     text(cx + 10, cy + 16, wid, size=10.5, font=MONO, fill=MUTED if shadowed else INK)
     text(cx + 10, cy + 31, condition, size=9.5, fill=colour, weight="600")
     text(cx + cw - 22, cy + 31,

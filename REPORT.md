@@ -258,13 +258,16 @@ action must have achieved — so every step is verified before the next acts.
 ```
 
 The same program drawn as a state machine, after PreAct's Figure 4 — nodes are States
-carrying the Checkpoint that must hold to believe we are there, arrows are Transitions
-carrying an Action. Read the top row left to right, then drop down and read back.
+carrying the one Checkpoint that must hold to believe we are there, arrows are Transitions
+carrying an Action. One State per step (ADR 0007): after a `type` or `select` the
+Checkpoint is `field_value non_empty` on that field; after a `click`, the first control the
+next step needs. Read each row, then drop down and read the next one back.
 
 ![open_sub_account as a state machine](./docs/figures/open_sub_account.svg)
 
-Self-loops are Actions that do not leave a State (typing a field, reading a value). The one
-red edge is the commit: `consequential`, so it carries a Verification Check and needs two
+There are no self-loops: every Action, including typing a field, leads to a new State with
+its own Checkpoint, so a field that did not take its text is caught there. The one red edge
+is the commit: `consequential`, so it carries a Verification Check and needs two
 approvals. Watchers sit in a band rather than on an edge because they are evaluated at every
 State — three belong to this Artifact, five come from the App Profile shared by every
 capability on this app, and where both declare the same id the Artifact's wins. Regenerate
