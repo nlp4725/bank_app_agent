@@ -181,7 +181,7 @@ def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact
     def ask(prompt):
         seen.append(prompt)
         if "Review this artifact" in prompt: return "y"
-        if "safe — it navigates" in prompt:
+        if "is this action safe" in prompt:
             return "n" if "t_continue" in prompt else "y"      # the commit stays consequential
         if "interruption" in prompt: return "y" if "'OK'" in prompt else "n"
         if "identifies it" in prompt: return "System notice"
@@ -219,7 +219,7 @@ def test_a_failed_verify_replay_refuses_and_keeps_the_decisions(tmp_path, monkey
     import yaml
     spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
     def ask(prompt):
-        if "safe — it navigates" in prompt: return "n" if "t_continue" in prompt else "y"
+        if "is this action safe" in prompt: return "n" if "t_continue" in prompt else "y"
         if "interruption" in prompt: return "y" if "'OK'" in prompt else "n"
         if "identifies it" in prompt: return "System notice"
         if "no watcher can recognise" in prompt: return "d"

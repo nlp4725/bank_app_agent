@@ -325,8 +325,11 @@ starts in the same terminal — the Artifact, the plan of steps the Recorder com
            none yet  <- the next questions add them
 
 Review this artifact now? [Y/n]  y
-  t_sign_in (s3_password_entered -> s4_search): safe — it navigates, commits nothing? [Y/n]  y
-  t_member_number_button (s5_member_number_entered -> s6_members_id): safe — it navigates, commits nothing? [Y/n]  y
+
+  STEP 3  click the button named "Sign in"   (target t_sign_in, s3_password_entered -> s4_search)
+          is this action safe — it only navigates, commits nothing? [Y/n]  y
+  STEP 5  click the button right of the caption "Member number"   (target t_member_number_button, s5_member_number_entered -> s6_members_id)
+          is this action safe — it only navigates, commits nothing? [Y/n]  y
   MEMBER_NOT_FOUND: reuse watcher w_not_found — text 'No records found' (from member.open_sub_account)? [Y/n]  y
   NOT_AUTHORIZED: reuse watcher w_not_authorized — text 'not authorized to view' (from member.open_sub_account)? [Y/n]  y
   NO_SAVINGS_ACCOUNT: no watcher can recognise it yet. [t]ext on screen that means it, or [d]rop it from the contract  d

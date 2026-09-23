@@ -309,19 +309,23 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
     decisions = {"version": draft["capability"]["version"], "approvals": [],
                  "safe_targets": [], "interruptions": [], "watchers": [], "keep_outcomes": []}
 
-    # 1. risk: every click arrived Consequential
+    # 1. risk: every click arrived Consequential. The risk is the action's — doing
+    #    this, here — so the question names the step and the action; the decisions
+    #    file records the answer by the target it acts on, which is how it is applied.
     print()
-    for t in draft["transitions"]:
+    for n, t in enumerate(draft["transitions"], 1):
         if t["risk"] != "consequential":
             continue
         hint = t.get("risk_suggestion")
         default = "n" if hint and _re.search(r"creat|commit|submit|open", hint, _re.I) else "y"
-        q = (f"  {t['action']['target']} ({t['from_state']} -> {t['to_state']}): "
-             f"safe — it navigates, commits nothing? [{'Y/n' if default == 'y' else 'y/N'}]  ")
-        if hint:
-            print(f"  ({hint})")
+        target = t["action"]["target"]
+        q = (f"  STEP {n}  {t['action']['type']} {_target_words(draft, target).split('   (')[0]}"
+             f"   (target {target}, {t['from_state']} -> {t['to_state']})\n"
+             + (f"          the model's note: {hint}\n" if hint else "")
+             + f"          is this action safe — it only navigates, commits nothing? "
+             f"[{'Y/n' if default == 'y' else 'y/N'}]  ")
         if (ask(q).strip().lower() or default).startswith("y"):
-            decisions["safe_targets"].append(t["action"]["target"])
+            decisions["safe_targets"].append(target)
 
     # 2. interruptions the Recorder noticed
     for s in suggestions:
@@ -376,7 +380,8 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
     inputs = list(draft["contract"]["inputs"])
     for t in still:
         target = t["action"]["target"]
-        print(f"  {target} commits. To check its effect without clicking it again:")
+        print(f"  the {t['action']['type']} on {target} commits. To check its effect without "
+              f"doing it again:")
         goto = ask(f"    page to open afterwards [/members/{{{{{inputs[0] if inputs else 'id'}}}}}]: ").strip() \
                or (f"/members/{{{{{inputs[0]}}}}}" if inputs else "/")
         text = ask(f"    text on that page that proves it happened (may use {{{{input}}}}): ").strip()
