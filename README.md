@@ -65,8 +65,8 @@ The member number selects the scenario:
 
 ```bash
 python -m tools.replay --list                 # the catalog: every capability, and whether it is approved
-python -m tools.replay 12345 --headed         # the default capability, browser visible
-python -m tools.replay 12345 --headed --capability member.read_savings_balance
+python -m tools.replay 12345 --headed         # asks which capability when more than one is approved
+python -m tools.replay 12345 --headed --capability member.open_sub_account
 ```
 
 Which artifact runs is the Capability Store's answer: the highest **approved** version of the

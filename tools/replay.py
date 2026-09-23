@@ -1,7 +1,7 @@
 """Replay an approved capability. No model is involved.
 
     python -m tools.replay --list                        # the catalog: what can be replayed
-    python -m tools.replay 12345                         # the default capability, member 12345
+    python -m tools.replay 12345                         # asks which capability, if more than one
     python -m tools.replay 12345 --capability member.read_savings_balance
     python -m tools.replay 12345 --headed                # watch the browser
     python -m tools.replay 99999                         # a business outcome
@@ -24,7 +24,7 @@ from cua.engine import RunContext, replay
 from cua.narration import from_env
 from cua.store import artifacts, load_capability, origin_for, overlay_for
 
-DEFAULT_CAPABILITY = os.environ.get("CAPABILITY", "member.open_sub_account")
+DEFAULT_CAPABILITY = os.environ.get("CAPABILITY")      # unset: choose from the catalog
 VENDOR_APP = "demo-core-servicing"
 DEMO_VALUES = {"account_type": "savings", "nickname": "Live demo"}   # for inputs the caller did not give
 
@@ -57,6 +57,32 @@ def catalog() -> str:
         f"role {a.capability.role:16s} inputs {', '.join(a.contract.inputs)}"
         + ("" if a.capability.status == "approved" else "   (not replayable)")
         for a in rows)
+
+
+def choose_capability(ask=input) -> str:
+    """Which approved capability to run, when the caller did not say.
+
+    One approved capability needs no question. Several do: a caller invokes a
+    capability *by name*, so the name is never assumed on their behalf."""
+    approved = sorted((a for a in artifacts() if a.capability.status == "approved"),
+                      key=lambda a: a.capability.id)
+    ids = sorted({a.capability.id for a in approved})
+    if not ids:
+        raise SystemExit("no approved capability to replay — approve one with tools.start first")
+    if len(ids) == 1:
+        return ids[0]
+    print("\nWhich capability?\n")
+    for n, cid in enumerate(ids, 1):
+        art = next(a for a in approved if a.capability.id == cid)
+        print(f"  {n}. {cid:30s} role {art.capability.role:16s} "
+              f"inputs {', '.join(art.contract.inputs)}")
+    while True:
+        answer = ask(f"\n  number or name [1]: ").strip() or "1"
+        if answer in ids:
+            return answer
+        if answer.isdigit() and 1 <= int(answer) <= len(ids):
+            return ids[int(answer) - 1]
+        print(f"  not one of the {len(ids)} above")
 
 
 def inputs_for(art, member: str, given: dict | None = None) -> dict:
@@ -124,7 +150,8 @@ def parse_args(argv=None):
     p.add_argument("member", nargs="?", default="12345", help="member number (default 12345)")
     p.add_argument("tenant", nargs="?", default="bank_a", help="whose instance (default bank_a)")
     p.add_argument("--capability", "-c", default=DEFAULT_CAPABILITY,
-                   help=f"capability id to replay (default {DEFAULT_CAPABILITY}); see --list")
+                   help="capability id to replay (see --list); asked for when omitted and "
+                        "more than one is approved")
     p.add_argument("--list", action="store_true", help="show the capability catalog and exit")
     p.add_argument("--headed", action="store_true", default=os.environ.get("HEADED") == "1",
                    help="watch the browser (or HEADED=1)")
@@ -143,7 +170,8 @@ def main(argv=None):
         print(catalog())
         print()
         return 0
-    r = run_replay(args.capability, args.member, args.tenant, headed=args.headed,
+    capability = args.capability or choose_capability()
+    r = run_replay(capability, args.member, args.tenant, headed=args.headed,
                    attended=args.attended, values=parse_values(args.values), wait_s=args.wait)
     return 0 if r.status in ("succeeded", "business_outcome") else 1
 
