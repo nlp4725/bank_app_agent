@@ -56,42 +56,43 @@ Python, Playwright, Pydantic, YAML, Flask, Claude. `fake_bank/` is hostile on pu
 server-rendered nested tables, no ids or test ids, session-scoped control names, an
 unlabelled icon button, duplicate "Open" text, balances in an iframe.
 
-**Every module, in the order the data flows through it.** `cua/` is the system; `tools/`
-are entry points that only wire it together; `fake_bank/` is the target. Nothing in `cua/`
-imports from `tools/`.
+**Every module, in the order the data flows through it — with what goes in and what comes
+out.** `cua/` is the system; `tools/` are entry points that only wire it together;
+`fake_bank/` is the target. Nothing in `cua/` imports from `tools/`. Examples are the demo's
+real values.
 
-| Module | Does |
-|---|---|
-| **discovery** — once per capability, model in the loop | |
-| `cua/discovery.py` | the only module that touches a model: proposes a Contract + Role from a goal; runs the observe → decide → act loop, one policy-checked action per turn |
-| `cua/recorder.py` | turns a finished run into a draft Artifact — one State + one Checkpoint per step, Targets as ladders, inputs as placeholders; decides nothing |
-| `cua/review.py` | applies a Reviewer's decisions mechanically; approves only if lint passes and a model-free verify-replay succeeds |
-| `cua/lint.py` | what a well-formed Artifact must also satisfy: every outcome has a watcher, every placeholder an input, every commit a Verification Check |
-| **the artifact** | |
-| `cua/artifact.py` | the schema — a closed vocabulary of four actions, four predicates, three rungs; an unknown key is rejected |
-| `cua/store.py` | which Artifact is live: the highest approved version of a capability id, with its App Profile and Tenant Overlay |
-| `cua/profile.py` · `cua/overlay.py` | the App Profile (shared watchers, readable/sensitive regions) and Tenant Overlays (how a control is found, never what the flow does) |
-| **production** — every invocation, no model | |
-| `cua/policy.py` · `cua/roles.py` | permissions as an intersection: Baseline ∩ Role ∩ Tenant grant ∩ Needs; refused before the browser opens |
-| `cua/engine.py` | the Replay Engine: checkpoint → resolve → policy → act → checkpoint; Watchers on a miss; recovery budgets; escalation; the Verification Check |
-| `cua/predicates.py` | evaluates the four predicates against a Surface, with placeholders rendered from the run's inputs |
-| `cua/surface.py` | the only module that touches a browser: the rung ladder, frames, request interception, the acting and recording interfaces |
-| `cua/handoff.py` | control transfer as a lease: automation → awaiting operator → operator in control → resuming; who may act, and when |
-| `cua/result.py` | the result contract: one shape, six statuses |
-| **cross-cutting** | |
-| `cua/redact.py` | the Redaction Chokepoint: structural, origin, pattern and pixel layers, for both the model and the evidence |
-| `cua/evidence.py` | every log line, screenshot and result passes through here; write-ahead line before a consequential action |
-| `cua/narration.py` | how a run looks to a person watching it, and nothing else |
-| **entry points** | |
-| `tools/start.py` | the front door: goal → proposed contract → discovery → artifact review → approval → watch it replay |
-| `tools/discover.py` · `tools/record.py` · `tools/review.py` | the same chain as flags, one stage each |
-| `tools/replay.py` | invoke an approved capability by name with typed inputs; `--list` is the catalog |
-| `tools/operator.py` · `tools/operator_console.py` | the Operator's side of a handoff — a terminal, and a mock page |
-| `tools/make_evidence.py` · `tools/show_run.py` · `tools/a11y_dump.py` · `tools/smoke_llm.py` | regenerate `evidence/`; read a run; see a page as the model does; one model turn to check the key |
-| `tools/demo_b1.py` · `tools/demo_b2.py` | the unlabelled-control and two-institution demonstrations |
-| **the target** | |
-| `fake_bank/app.py` · `fake_bank/data.py` | the hostile stand-in: nested tables, no ids, session-scoped control names, an iframe, and one scenario per member number |
-| **tests** (`tests/`) | one file per concern: schema, lint, predicates, replay, safety, handoff, PII, store, the two demos, the front door, and three defects a review surfaced, held shut |
+| Module | In → Out (example) | Does |
+|---|---|---|
+| **discovery** — once per capability, model in the loop | | |
+| `cua/discovery.py` | `propose_contract("read a member's savings balance")` → `{role: balance_reader, contract: {inputs: {member_number…}, outputs: {savings_balance: money}, outcomes: […]}}` ; `discover(DiscoveryRequest(goal, contract, role, origin))` → `DiscoveryResult(ending=goal_reached, outputs={savings_balance: "$4210.00"}, draft=runs/disc_x/draft.yaml)` + `trail.jsonl` | the only module that touches a model: proposes a Contract + Role from a goal; runs observe → decide → act, one policy-checked action per turn |
+| `cua/recorder.py` | `actions.json` (13 recorded actions: url, action, target ladder, value) + contract + example values → draft dict: 14 states, 13 transitions, `{{member_number}}` where `54321` was typed; plus suggestions (`"action 6 clicks 'OK' on /members, a page visited once…"`) | turns a run into a draft Artifact — one State + one Checkpoint per step; decides nothing |
+| `cua/review.py` | `apply_decisions(draft, decisions.yaml)` → candidate (4 clicks now safe, `t_ok` → `w_system_notice`, 2 watchers added, `VALIDATION_REJECTED` dropped) ; `approve(candidate, verify)` → `(Artifact status=approved, [])` or `(None, ["[consequential_without_verification] …"])` | applies a Reviewer's decisions mechanically; approves only if lint passes and a model-free verify-replay succeeds |
+| `cua/lint.py` | `lint(artifact)` → `[Issue(code="unreachable_outcome", where="contract", detail="'NO_SAVINGS_ACCOUNT' is declared but no watcher can produce it")]` or `[]` | what a well-formed Artifact must also satisfy before it can be trusted |
+| **the artifact** | | |
+| `cua/artifact.py` | `Artifact.model_validate(yaml)` → typed `Artifact`, or `ValidationError: transitions.3.action.type … 'hover' is not one of click/type/select/read` | the schema — a closed vocabulary; an unknown key or action is rejected |
+| `cua/store.py` | `load_capability("member.open_sub_account")` → the `1.0.0` approved Artifact with its App Profile merged (7 watchers); `artifacts()` → every file on disk, for `--list` | which Artifact is live: the highest approved version of a capability id |
+| `cua/profile.py` · `cua/overlay.py` | `load_profile("demo-core-servicing")` → shared watchers (`w_session_expired`…), readable/sensitive regions ; `apply_overlay(artifact, overlays/lakeside.yaml)` → same flow, `t_member_field` now found by caption "Find member by #"; an overlay adding a transition → refused | per-app knowledge shared by every capability; per-tenant appearance, never behaviour |
+| **production** — every invocation, no model | | |
+| `cua/policy.py` · `cua/roles.py` | `policy_for(artifact, "bank_b").refuse_reason(artifact)` → `"tenant 'bank_b' does not grant role 'account_opener'"` ; for `bank_a` → `None` ; `allows_page("/admin")` → `False` | permissions as an intersection: Baseline ∩ Role ∩ Tenant grant ∩ Needs; refused before the browser opens |
+| `cua/engine.py` | `replay(artifact, {member_number: "12345", …}, RunContext(origin))` → `RunResult(status=succeeded, outputs={savings_balance: "$4210.00", new_account_number: "SA-2001"})` ; member `99999` → `RunResult(status=business_outcome, outcome={code: MEMBER_NOT_FOUND, resolver: member, retry_same_inputs: never})` ; `33333` → `RunResult(status=failed, reason=unknown_state, step=s13_members_id, verified_effect=False)` | the Replay Engine: checkpoint → resolve → policy → act → checkpoint; Watchers on a miss; recovery budgets; escalation; the Verification Check |
+| `cua/predicates.py` | `holds({type: field_value, target: t_member_number, non_empty: true})` → `True`/`False` ; `holds({type: text_present, value: "No records found"}, timeout_ms=0)` → `True` on the not-found screen | evaluates the four predicates against a Surface, placeholders rendered from the run's inputs |
+| `cua/surface.py` | `resolve(t_member_number_button)` → `Resolved(locator, matched_by="label_anchor", rung_index=0)` or `None` ; `controls()` → `[{index: 2, role: "textbox", name: "", anchor: "User ID", is_password: False, frame_url: …}, …]` ; `text()` → all visible text, frames included | the only module that touches a browser: the rung ladder, frames, request interception |
+| `cua/handoff.py` | `Control.move(AWAITING_OPERATOR, "operator")` → lease held by operator, or `ControlError("cannot move from automation to resuming")` ; `Intervention(...).write(dir)` → `intervention.json` ; `wait_for_decision(dir, 120s)` → `("resume", "operator:jane")` / `("resume", "auto:blocker cleared")` / `("timeout", "")` | control transfer as a lease: one holder at a time, the same live session |
+| `cua/result.py` | the dataclass every run returns: `status` ∈ {succeeded, business_outcome, failed, refused, aborted, outcome_unknown}, `outputs`, `outcome`, `reason`, `step`, `expected`, `observed`, `verified_effect`, `evidence_id` | the result contract: one shape, six statuses |
+| **cross-cutting** | | |
+| `cua/redact.py` | `redact_text("SSN 123-45-6789, $4,210.00")` → `"SSN [ssn], $*,***.**"` ; `value(anchor="Member name", raw="Alex Rivera")` → `"(hidden)"` (not a Readable Region) ; `value(anchor="Savings balance", raw="$4210.00")` → `"$*,***.**"` ; a password → `"(protected)"` | the Redaction Chokepoint: structural, origin, pattern and pixel layers, for the model and the evidence alike |
+| `cua/evidence.py` | `event(run_id, "about_to", step=s12_members_id, action=click, target=t_continue, risk=consequential)` → one masked line in `runs/run_x/trail.jsonl` ; `snap(surface)` → `screen_1.png` with Sensitive Regions black ; `unfinished("runs")` → runs that died mid-commit | every log line, screenshot and result passes through here; write-ahead line before a commit |
+| `cua/narration.py` | `transition(t, found)` → `s5_member_number_entered -> s7_members_id  click t_member_number_button  rung=label_anchor risk=safe` on the console; `Silent` → nothing | how a run looks to a person watching it, and nothing else |
+| **entry points** | | |
+| `tools/start.py` | a goal typed at the prompt → `contracts/read_savings_balance.yaml` → a headed discovery → `artifacts/read_savings_balance.decisions.yaml` → `artifacts/read_savings_balance.1.0.0.yaml` (approved) → a watched replay | the front door: both reviews in one sitting |
+| `tools/discover.py` · `tools/record.py` · `tools/review.py` | `--contract contracts/x.yaml --values member_number=12345` → `runs/disc_x/` ; `record runs/disc_x` → `artifacts/x.draft.yaml` ; `review runs/disc_x` → `artifacts/x.1.0.0.yaml` or `REFUSED: …` | the same chain as flags, one stage each |
+| `tools/replay.py` | `12345 -c member.read_savings_balance` → `RESULT succeeded  OUTPUTS {'savings_balance': '$4210.00'}` ; `--list` → the catalog | invoke an approved capability by name with typed inputs |
+| `tools/operator.py` · `tools/operator_console.py` | `runs/run_x/intervention.json` → printed request / a web page ; `resume` → `runs/run_x/decision.json` | the Operator's side of a handoff |
+| `tools/make_evidence.py` · `tools/show_run.py` · `tools/a11y_dump.py` · `tools/smoke_llm.py` | the approved artifact → `evidence/03…07/` ; a run dir → its turns as a story ; a URL → the numbered control list the model sees ; a key → one tool call and a token count | regenerate, read, inspect, check |
+| `tools/demo_b1.py` · `tools/demo_b2.py` | → the unlabelled search icon found by caption ; → one artifact at two institutions, with and without its overlay | the two demonstrations |
+| **the target** | | |
+| `fake_bank/app.py` · `fake_bank/data.py` | `POST /members {member: 88888}` → the login page with "Your session has expired" (once) ; `44444` → the supervisor screen ; `99999` → "No records found" ; `GET /reset` → seed data restored | the hostile stand-in: one scenario per member number |
+| **tests** (`tests/`) | 172 tests; the demo app is the fixture, reset before each; `test_safety` also asserts the import graph (no model SDK reachable from replay; Playwright only in `surface.py`) | one file per concern |
 
 ## 2. Artifact schema
 
