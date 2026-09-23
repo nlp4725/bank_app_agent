@@ -215,3 +215,10 @@ def test_a_text_trigger_too_short_to_name_a_screen_is_refused():
                           "provenance": "reviewer:test"})
     codes = [i.code for i in lint(Artifact.model_validate(d))]
     assert "weak_trigger" in codes
+
+
+def test_two_states_with_one_id_are_refused():
+    d = artifact_dict()
+    d["states"].append(dict(d["states"][0]))          # a second "sign_in"
+    codes = [i.code for i in lint(Artifact.model_validate(d))]
+    assert "duplicate_state" in codes

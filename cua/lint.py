@@ -47,6 +47,15 @@ def lint(artifact: Artifact, unattended: bool = False) -> list[Issue]:
     a = artifact
 
     state_ids = {s.id for s in a.states}
+    # 0. A State id is the name everything else uses to point at it — transitions,
+    #    resume_at, the trail, an intervention — so two States sharing one would make
+    #    "go back to X" ambiguous.
+    seen = set()
+    for st in a.states:
+        if st.id in seen:
+            issues.append(Issue("duplicate_state", f"state {st.id}",
+                                "two States share this id; every reference must be unambiguous"))
+        seen.add(st.id)
     target_ids = set(a.targets)
     declared_outcomes = {o.code for o in a.contract.outcomes}
     produced_outcomes = {w.outcome for w in a.watchers if w.outcome}
