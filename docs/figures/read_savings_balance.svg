@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 746" width="1240" height="746" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="a6f6f6f" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6f6f6f"/></marker>
+<marker id="aa8251e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a8251e"/></marker>
+<marker id="a1b7450" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1b7450"/></marker>
+<marker id="a2b5fd9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2b5fd9"/></marker>
+<marker id="aa1670a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a1670a"/></marker>
+</defs>
+<rect width="1240" height="746" fill="#ffffff"/>
+<text x="58" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#1a1a1a" font-weight="700" text-anchor="start">member.read_savings_balance@1.0.0</text>
+<text x="58" y="66" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">role balance_reader  ·  approved, approved by 1  ·  7 states, 6 transitions</text>
+<text x="1182" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#6f6f6f" font-weight="normal" text-anchor="end">each node carries the Checkpoint that must hold to believe we are there</text>
+<text x="1182" y="62" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#6f6f6f" font-weight="normal" text-anchor="end">one State per step: read each row, then drop down and read the next back</text>
+<rect x="58" y="128" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="72" y="155" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s1_login</text>
+<text x="72" y="176" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">element_present</text>
+<text x="72" y="192" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_user_id</text>
+<rect x="500" y="128" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="514" y="155" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s2_user_id_entered</text>
+<text x="514" y="176" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">field_value  non_empty</text>
+<text x="514" y="192" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_user_id</text>
+<rect x="942" y="128" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="956" y="155" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s3_password_entered</text>
+<text x="956" y="176" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">field_value  non_empty</text>
+<text x="956" y="192" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_password</text>
+<rect x="942" y="278" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="956" y="305" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s4_search</text>
+<text x="956" y="326" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">element_present</text>
+<text x="956" y="342" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_member_number</text>
+<rect x="500" y="278" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="514" y="305" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s5_member_number_entered</text>
+<text x="514" y="326" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">field_value  non_empty</text>
+<text x="514" y="342" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_member_number</text>
+<rect x="58" y="278" width="240" height="78" rx="9" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.6"/>
+<text x="72" y="305" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1a1a1a" font-weight="600" text-anchor="start">s6_members_id</text>
+<text x="72" y="326" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">element_present</text>
+<text x="72" y="342" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#2b5fd9" font-weight="normal" text-anchor="start">t_savings_balance</text>
+<rect x="58" y="428" width="240" height="78" rx="9" fill="#e4f2ec" stroke="#1b7450" stroke-width="1.6"/>
+<text x="72" y="455" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14.5" fill="#1b7450" font-weight="600" text-anchor="start">s7_savings_balance_read</text>
+<text x="72" y="476" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">element_present</text>
+<text x="72" y="492" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1b7450" font-weight="normal" text-anchor="start">t_savings_balance</text>
+<text x="286" y="492" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#1b7450" font-weight="600" text-anchor="end">terminal</text>
+<path d="M 302 167.0 L 496 167.0" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="399.0" y="145.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="middle">type t_user_id</text>
+<text x="399.0" y="189.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#6f6f6f" font-weight="normal" text-anchor="middle">secret:login_username</text>
+<path d="M 744 167.0 L 938 167.0" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="841.0" y="145.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="middle">type t_password</text>
+<text x="841.0" y="189.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#6f6f6f" font-weight="normal" text-anchor="middle">secret:login_password</text>
+<path d="M 1062.0 210 L 1062.0 272" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="1048.0" y="236" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="end">click t_sign_in</text>
+<path d="M 946 317.0 L 744 317.0" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="841.0" y="295.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="middle">type t_member_number</text>
+<text x="841.0" y="339.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#6f6f6f" font-weight="normal" text-anchor="middle">{{member_number}}</text>
+<path d="M 504 317.0 L 302 317.0" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="399.0" y="295.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="middle">click t_member_number_button</text>
+<path d="M 178.0 360 L 178.0 422" stroke="#6f6f6f" stroke-width="1.6" fill="none" marker-end="url(#a6f6f6f)"/>
+<text x="164.0" y="386" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="end">read t_savings_balance</text>
+<text x="164.0" y="400" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#6f6f6f" font-weight="normal" text-anchor="end">→ savings_balance</text>
+<rect x="58" y="576" width="1124" height="130" rx="9" fill="#fbf0d9" stroke="#a1670a" stroke-width="1.3" stroke-dasharray="5 4"/>
+<path d="M 178.0 572 L 178.0 512" stroke="#a1670a" stroke-width="1.2" fill="none" marker-end="url(#aa1670a)" stroke-dasharray="4 4"/>
+<text x="74" y="601" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" fill="#a1670a" font-weight="700" text-anchor="start">Watchers — evaluated at every State, so they belong to none of them</text>
+<rect x="74.0" y="614" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#1b7450" stroke-width="1.3"/>
+<text x="84.0" y="630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_not_found</text>
+<text x="84.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#1b7450" font-weight="600" text-anchor="start">business_outcome</text>
+<text x="325.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">artifact</text>
+<rect x="347.0" y="614" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#1b7450" stroke-width="1.3"/>
+<text x="357.0" y="630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_not_authorized</text>
+<text x="357.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#1b7450" font-weight="600" text-anchor="start">business_outcome</text>
+<text x="598.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">artifact</text>
+<rect x="620.0" y="614" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.3"/>
+<text x="630.0" y="630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_session_expired</text>
+<text x="630.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#2b5fd9" font-weight="600" text-anchor="start">recoverable</text>
+<text x="871.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">App Profile</text>
+<rect x="893.0" y="614" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.3"/>
+<text x="903.0" y="630" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_system_notice</text>
+<text x="903.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#2b5fd9" font-weight="600" text-anchor="start">recoverable</text>
+<text x="1144.0" y="645" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">App Profile</text>
+<rect x="74.0" y="660" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#2b5fd9" stroke-width="1.3"/>
+<text x="84.0" y="676" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_app_error</text>
+<text x="84.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#2b5fd9" font-weight="600" text-anchor="start">recoverable</text>
+<text x="325.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">App Profile</text>
+<rect x="347.0" y="660" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#a1670a" stroke-width="1.3"/>
+<text x="357.0" y="676" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_approval_required</text>
+<text x="357.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#a1670a" font-weight="600" text-anchor="start">escalate</text>
+<text x="598.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">App Profile</text>
+<rect x="620.0" y="660" width="261.0" height="38" rx="6" fill="#ffffff" stroke="#a8251e" stroke-width="1.3"/>
+<text x="630.0" y="676" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" text-anchor="start">w_not_permitted</text>
+<text x="630.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#a8251e" font-weight="600" text-anchor="start">hard_failure</text>
+<text x="871.0" y="691" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9" fill="#6f6f6f" font-weight="normal" text-anchor="end">App Profile</text>
+<text x="58" y="732" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="9.5" fill="#6f6f6f" font-weight="normal" text-anchor="start">Generated from artifacts/read_savings_balance.1.0.0.yaml and config/profiles/demo-core-servicing.yaml by docs/figures/make_state_machine.py</text>
+</svg>

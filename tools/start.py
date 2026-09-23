@@ -365,6 +365,9 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
         if answer.lower().startswith("t") or (answer and not answer.lower().startswith("d")):
             text = answer[1:].strip() if answer.lower().startswith("t") else answer
             text = text or ask("    the text: ").strip()
+            while text and len(text) < 6:
+                print(f"    {text!r} is too short to identify a screen; quote the message the app shows")
+                text = ask("    the text (or Enter to drop the outcome): ").strip()
             if text:
                 decisions["watchers"].append({
                     "id": f"w_{_slug(text)}", "trigger": {"type": "text_present", "value": text},

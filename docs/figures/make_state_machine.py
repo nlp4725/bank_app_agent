@@ -16,9 +16,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-ARTIFACT = ROOT / "artifacts/open_sub_account.1.0.0.yaml"
+# python docs/figures/make_state_machine.py [artifacts/<name>.1.0.0.yaml]
+ARTIFACT = ROOT / (sys.argv[1] if len(sys.argv) > 1 else "artifacts/open_sub_account.1.0.0.yaml")
 PROFILE = ROOT / "config/profiles/demo-core-servicing.yaml"
-OUT = Path(__file__).resolve().parent / "open_sub_account.svg"
+OUT = Path(__file__).resolve().parent / (ARTIFACT.name.split(".")[0] + ".svg")
 
 INK, MUTED, RULE = "#1a1a1a", "#6f6f6f", "#d4d2cc"
 BLUE, BLUE_BG = "#2b5fd9", "#eaf0fd"
@@ -208,7 +209,7 @@ for i, (wid, condition, source, shadowed) in enumerate(chips):
          "shadowed by artifact" if shadowed else source, size=9, fill=MUTED, anchor="end")
 
 text(58, H - 14,
-     "Generated from artifacts/open_sub_account.1.0.0.yaml and "
+     f"Generated from {ARTIFACT.relative_to(ROOT)} and "
      "config/profiles/demo-core-servicing.yaml by docs/figures/make_state_machine.py",
      size=9.5, fill=MUTED)
 add('</svg>')

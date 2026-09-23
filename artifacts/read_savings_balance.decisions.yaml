@@ -1,5 +1,7 @@
 # What the Reviewer decided about the draft compiled from disc_438fdc9d.
 # Applied mechanically by cua/review.py; nothing here is inferred.
+# NO_SAVINGS_ACCOUNT dropped: the demo app has no member without a savings account,
+# so no watcher can honestly recognise it. Promised-but-impossible is worse than absent.
 version: 1.0.0
 approvals:
 - reviewer:nasi
@@ -24,15 +26,7 @@ watchers:
   outcome: NOT_AUTHORIZED
   extract: {}
   provenance: reuse:member.open_sub_account
-- id: w_y
-  trigger:
-    type: text_present
-    value: y
-  condition: business_outcome
-  outcome: NO_SAVINGS_ACCOUNT
-  provenance: reviewer:nasi
 keep_outcomes:
 - MEMBER_NOT_FOUND
 - NOT_AUTHORIZED
-- NO_SAVINGS_ACCOUNT
 verify_effects: []

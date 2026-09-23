@@ -32,12 +32,6 @@ contract:
     caller_hint: Have staff grant this login access to the member's records.
     retry_same_inputs: never
     data: {}
-  - code: NO_SAVINGS_ACCOUNT
-    meaning: The member exists but holds no savings account to read.
-    resolver: member
-    caller_hint: Ask the member which account they meant; no savings balance exists.
-    retry_same_inputs: never
-    data: {}
 needs:
   pages:
   - /login
@@ -196,16 +190,8 @@ watchers:
   outcome: NOT_AUTHORIZED
   extract: {}
   provenance: reuse:member.open_sub_account
-- id: w_y
-  trigger:
-    type: text_present
-    value: y
-  condition: business_outcome
-  outcome: NO_SAVINGS_ACCOUNT
-  extract: {}
-  provenance: reviewer:nasi
 provenance:
-  discovered_by: disc_438fdc9d
+  discovered_by: disc_ac14d814
   contract_by: reviewer
   example_values:
     member_number: '12345'

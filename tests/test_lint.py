@@ -205,3 +205,13 @@ def test_an_overlay_key_that_nothing_applies_is_refused_not_ignored():
         issues = lint_overlay(art, dict(overlay_dict(), **{key: value}))
         assert any(i.code == "overlay_unknown_key" and i.where == key for i in issues), \
             f"an overlay declaring {key!r} was accepted although nothing applies it"
+
+
+def test_a_text_trigger_too_short_to_name_a_screen_is_refused():
+    """The letter y matches nearly every page; a business outcome on it is a coin flip."""
+    d = artifact_dict()
+    d["watchers"].append({"id": "w_y", "trigger": {"type": "text_present", "value": "y"},
+                          "condition": "business_outcome", "outcome": "MEMBER_NOT_FOUND",
+                          "provenance": "reviewer:test"})
+    codes = [i.code for i in lint(Artifact.model_validate(d))]
+    assert "weak_trigger" in codes

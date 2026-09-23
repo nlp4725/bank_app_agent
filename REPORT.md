@@ -387,6 +387,30 @@ same discipline PreAct calls verify-before-act, at the same granularity; where t
 differs is that a surprise is handled by a Watcher shared across the app rather than a branch
 added per state (ADR 0007).
 
+Walk the smaller capability to see what that buys. `member.read_savings_balance` is seven
+States in a line; each node is a claim about the screen, each arrow an action:
+
+![read_savings_balance as a state machine](./docs/figures/read_savings_balance.svg)
+
+Now the same chain under four real replays, drawn from their trails
+(`docs/figures/make_paths.py` runs them; nothing here is hand-placed). The happy path never
+leaves the chain. The other three fail the same checkpoint — `s6_members_id`, "the balance is
+on screen" — and are answered three different ways, which is the whole point of separating
+the conditions: `99999` is a Business Outcome, so the run stops and the caller gets
+`MEMBER_NOT_FOUND`; `88888` is Recoverable, so the engine asks which checkpoint holds now,
+finds `s1_login`, and runs the chain again from there; `44444` is an Escalate, so a supervisor
+acts in the live browser and the run resumes at `s6_members_id` because that claim now holds.
+A step list can restart from the top; it cannot resume at step six because a human left the
+screen there, and it cannot tell "no such member" from "the page did not load".
+
+![read_savings_balance under four runs](./docs/figures/read_savings_balance_paths.svg)
+
+What this is not: a graph with branching forward edges. The happy path is a chain, as in
+PreAct's own Listing 1, and the schema could store a second exit from a State but the engine
+walks transitions in order and would not choose between them. Branching here lives in the
+Watchers, which fire from any State — the right shape for "something unexpected appeared",
+which is the branching a bank flow needs, and the one that scales across tenants.
+
 Two places the taxonomy earns itself. **Session expiry is Recoverable, not an escalation**:
 we hold the service account credential, so the watcher needs no recovery action at all — the
 engine re-observes, asks which Checkpoint holds, lands on `s1_login` and replays the login

@@ -15,6 +15,9 @@ from .roles import UnknownRole, covers, get_role
 PLACEHOLDER = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
 
 
+MIN_TRIGGER_TEXT = 6      # a text trigger shorter than this cannot name a screen
+
+
 @dataclass(frozen=True)
 class Issue:
     code: str
@@ -92,6 +95,15 @@ def lint(artifact: Artifact, unattended: bool = False) -> list[Issue]:
     for code in declared_outcomes - produced_outcomes:
         issues.append(Issue("unreachable_outcome", "contract",
                             f"{code!r} is declared but no watcher can produce it"))
+
+    # 4b. A Watcher's text trigger must be able to name a screen. One letter matches
+    #     nearly every page, so a business outcome would be reported at random.
+    for w in a.watchers:
+        value = getattr(w.trigger, "value", None)
+        if w.trigger.type == "text_present" and value is not None and len(value.strip()) < MIN_TRIGGER_TEXT:
+            issues.append(Issue("weak_trigger", f"watcher {w.id}",
+                                f"text {value!r} is too short to identify a screen "
+                                f"(fewer than {MIN_TRIGGER_TEXT} characters)"))
 
     # 5. Only a terminal state may lack a checkpoint.
     for s in a.states:
