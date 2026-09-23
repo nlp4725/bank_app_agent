@@ -478,8 +478,14 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
         return 2
     out = ARTIFACTS / f"{stem}.{approved.capability.version}.yaml"
     out.write_text(yaml.safe_dump(approved.model_dump(exclude_none=True), sort_keys=False, width=100))
-    print(f"\n  APPROVED -> {out}\n"
-          f"  it is now live: CAPABILITY={spec['capability_id']} python -m tools.replay {seen}")
+    print(f"\n  APPROVED -> {out}")
+    # The walk-through shows the flow; the file is what was approved, and it also
+    # carries the contract, needs and provenance the walk-through leaves out.
+    if (ask("  show the approved file? [y/N]  ").strip().lower() or "n").startswith("y"):
+        print()
+        print("\n".join("    " + line for line in out.read_text().splitlines()))
+    print(f"\n  it is now live — replay it with no model:\n"
+          f"    CAPABILITY={spec['capability_id']} python -m tools.replay {seen}")
     return 0
 
 
