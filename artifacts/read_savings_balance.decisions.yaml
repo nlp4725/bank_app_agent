@@ -2,7 +2,7 @@
 # Applied mechanically by cua/review.py; nothing here is inferred.
 version: 1.0.0
 approvals:
-- 'yes'
+- reviewer:nasi
 safe_targets:
 - t_sign_in
 - t_member_number_button

@@ -6,7 +6,7 @@ capability:
   role: balance_reader
   status: approved
   approvals:
-  - 'yes'
+  - reviewer:nasi
 contract:
   inputs:
     member_number:
