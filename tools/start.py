@@ -117,7 +117,7 @@ def save(spec: dict) -> Path:
 
 def run(goal: str | None = None, *, tenant: str = "bank_a", ask=input,
         propose=propose_contract, discover_fn=discover, headed: bool | None = None,
-        slowmo: int = 400, replay_fn=None) -> int:
+        slowmo: int = 400, replay_fn=None, watch_fn=None) -> int:
     """The conversation. Returns a shell exit code."""
     goal = goal or ask("What do you want to do today?: ").strip()
     if not goal:
@@ -159,7 +159,8 @@ def run(goal: str | None = None, *, tenant: str = "bank_a", ask=input,
     result = discover_fn(request)
     report(result, actions=not result.draft)      # the draft shows the steps in full
     if result.draft:
-        return review_artifact(spec, result.trace_dir, tenant=tenant, ask=ask, replay_fn=replay_fn)
+        return review_artifact(spec, result.trace_dir, tenant=tenant, ask=ask, replay_fn=replay_fn,
+                               watch_fn=watch_fn)
     return 0 if result.ending in ("goal_reached", "report_outcome") else 2
 
 
@@ -418,8 +419,13 @@ def _slug(text: str) -> str:
     return _re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:32]
 
 
+def _watch(capability: str, member: str, tenant: str) -> None:
+    from tools.replay import run_replay
+    run_replay(capability, member, tenant, headed=True)
+
+
 def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=input,
-                    replay_fn=None, reviewer: str | None = None) -> int:
+                    replay_fn=None, reviewer: str | None = None, watch_fn=None) -> int:
     """Show the draft, ask the decisions, apply, verify, save. Returns an exit code."""
     import os
     import urllib.request
@@ -485,7 +491,9 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
         print()
         print("\n".join("    " + line for line in out.read_text().splitlines()))
     print(f"\n  it is now live — replay it with no model:\n"
-          f"    CAPABILITY={spec['capability_id']} python -m tools.replay {seen}")
+          f"    python -m tools.replay {seen} --capability {spec['capability_id']}")
+    if (ask("\n  Watch it replay now, in a visible browser? [Y/n]  ").strip().lower() or "y").startswith("y"):
+        (watch_fn or _watch)(spec["capability_id"], seen, tenant)
     return 0
 
 

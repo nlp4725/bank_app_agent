@@ -191,6 +191,7 @@ def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact
         if "proves it happened" in prompt: return "{{nickname}}"
         if "approve as" in prompt: return "reviewer:nasi"
         if "second approver" in prompt: return "reviewer:sam"
+        if "Watch it replay" in prompt: return "n"
         return ""
     verified = {}
     def fake_replay(art, inputs):
@@ -240,3 +241,36 @@ def test_declining_the_review_leaves_the_draft_and_runs_nothing(tmp_path, monkey
     code = start.review_artifact(spec, RUN, ask=lambda p: "n",
                                  replay_fn=lambda a, i: pytest.fail("must not run"))
     assert code == 0 and list(tmp_path.glob("*")) == []
+
+
+def test_the_watch_step_replays_the_capability_just_approved(tmp_path, monkeypatch):
+    monkeypatch.setattr(start, "ARTIFACTS", tmp_path)
+    import yaml
+    spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
+    def ask(prompt):
+        if "is this action safe" in prompt: return "n" if "t_continue" in prompt else "y"
+        if "interruption" in prompt: return "y" if "'OK'" in prompt else "n"
+        if "identifies it" in prompt: return "System notice"
+        if "no watcher can recognise" in prompt: return "d"
+        if "page to open afterwards" in prompt: return ""
+        if "proves it happened" in prompt: return "{{nickname}}"
+        if "second approver" in prompt: return "reviewer:sam"
+        if "show the approved file" in prompt: return "n"
+        if "Watch it replay" in prompt: return "y"
+        return "y" if "?" in prompt else "reviewer:nasi"
+    watched = {}
+    start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: _Ok(),
+                          watch_fn=lambda cap, member, tenant: watched.update(cap=cap, member=member))
+    assert watched == {"cap": "member.open_sub_account", "member": "54321"}   # the discovery member
+
+
+def test_replay_inputs_are_filtered_to_the_contract():
+    from cua.store import load_capability
+    from tools.replay import inputs_for, parse_args
+    art = load_capability("member.open_sub_account")
+    assert inputs_for(art, "12345") == {"member_number": "12345", "account_type": "savings",
+                                        "nickname": "Live demo"}
+    assert inputs_for(art, "12345", {"nickname": "Mine", "bogus": "x"})["nickname"] == "Mine"
+    assert "bogus" not in inputs_for(art, "12345", {"bogus": "x"})
+    a = parse_args(["12345", "--capability", "member.read_savings_balance", "--headed"])
+    assert (a.member, a.capability, a.headed, a.tenant) == ("12345", "member.read_savings_balance", True, "bank_a")

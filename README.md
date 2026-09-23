@@ -64,10 +64,13 @@ The member number selects the scenario:
 ### 1. Watch one capability run
 
 ```bash
-HEADED=1 python -m tools.replay 12345
+python -m tools.replay --list                 # the catalog: every capability, and whether it is approved
+python -m tools.replay 12345 --headed         # the default capability, browser visible
+python -m tools.replay 12345 --headed --capability member.read_savings_balance
 ```
 
-A browser opens and drives itself. Drop `HEADED=1` to run it headless in about 3 seconds.
+Which artifact runs is the Capability Store's answer: the highest **approved** version of the
+capability id — a draft never replays. A browser opens and drives itself. Drop `HEADED=1` to run it headless in about 3 seconds.
 The capability is `member.open_sub_account`: sign in → search → read the savings balance out
 of the iframe → open a sub-account → confirm → read back the new account number.
 
@@ -339,7 +342,10 @@ Review this artifact now? [Y/n]  y
   lint, then verify-replay on member 54321 (discovery never saw it) with no model…
 
   APPROVED -> artifacts/read_savings_balance.1.0.0.yaml
-  it is now live: CAPABILITY=member.read_savings_balance python -m tools.replay 12345
+  it is now live — replay it with no model:
+    python -m tools.replay 12345 --capability member.read_savings_balance
+
+  Watch it replay now, in a visible browser? [Y/n]  y
 ```
 
 The Recorder decides nothing; each question is one it could not answer from the run. Every
