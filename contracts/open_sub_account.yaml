@@ -1,0 +1,37 @@
+# A Discovery Request: what a Reviewer hands to discovery, once, to make a capability.
+# The goal is free text — the model reads it every turn. The Role bounds what that
+# goal may touch (pages, actions, whether it may commit), and the Contract fixes the
+# capability's signature before any run, so the transcript never becomes the source
+# of truth. See REPORT §1, "Where the goal enters".
+capability_id: member.open_sub_account
+vendor_app: demo-core-servicing
+role: account_opener
+
+goal: >-
+  Open a savings sub-account for member {member_number} and reach the confirmation
+  screen. Read the member's savings balance on the way.
+
+example_values:
+  member_number: "54321"
+  account_type: savings
+  nickname: Holiday fund
+
+contract:
+  inputs:
+    member_number: {type: string, pattern: "^[0-9]{5}$", sensitive: true}
+    account_type: {type: enum, values: [savings, checking, holiday]}
+    nickname: {type: string, max_length: 20}
+  outputs:
+    savings_balance: {type: money}
+    new_account_number: {type: string}
+  outcomes:
+    - code: MEMBER_NOT_FOUND
+      meaning: No member exists with that number.
+      resolver: member
+      caller_hint: Ask the member to re-check the number.
+    - code: NOT_AUTHORIZED
+      meaning: This login may not view that member.
+      resolver: institution_staff
+    - code: VALIDATION_REJECTED
+      meaning: The application rejected the values.
+      resolver: member

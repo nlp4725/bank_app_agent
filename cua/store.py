@@ -49,6 +49,11 @@ def _index() -> dict:
     return found
 
 
+def artifacts() -> list[Artifact]:
+    """Every Artifact on disk, approved or not — what a Reviewer may borrow from."""
+    return list(_index().values())
+
+
 def load_capability(capability_id: str, version: str | None = None) -> Artifact:
     """The Artifact a Calling Agent would get, with its App Profile already merged.
 

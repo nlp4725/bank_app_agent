@@ -1,0 +1,31 @@
+# Proposed by the model from a goal typed in words; confirmed by a Reviewer in tools.start.
+capability_id: member.read_savings_balance
+vendor_app: demo-core-servicing
+role: balance_reader
+goal: Look up the member identified by {member_number} and read their savings_balance.
+example_values:
+  member_number: '12345'
+contract:
+  inputs:
+    member_number:
+      type: string
+      sensitive: true
+      pattern: ^[0-9]{5}$
+      max_length: 5
+  outputs:
+    savings_balance:
+      type: money
+      sensitive: false
+  outcomes:
+  - code: MEMBER_NOT_FOUND
+    meaning: No member exists with that number.
+    resolver: member
+    caller_hint: Confirm the 5-digit member number with the member and retry.
+  - code: NOT_AUTHORIZED
+    meaning: This login may not view that member.
+    resolver: institution_staff
+    caller_hint: Ask staff to grant this login access to the member record.
+  - code: NO_SAVINGS_ACCOUNT
+    meaning: The member exists but holds no savings account to read.
+    resolver: member
+    caller_hint: The member must open a savings account before a balance can be read.

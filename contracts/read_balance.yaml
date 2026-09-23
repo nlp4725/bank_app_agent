@@ -1,0 +1,31 @@
+# A second Discovery Request on the same app: a different goal under a narrower Role.
+# balance_reader may not commit anything and signs in as the read-only service
+# account, so a goal that strays toward opening or moving anything is refused at the
+# allowlist before the browser opens — the Role, not the wording, bounds the goal.
+capability_id: member.read_savings_balance
+vendor_app: demo-core-servicing
+role: balance_reader
+
+goal: >-
+  Look up member {member_number} and read their current savings balance.
+
+example_values:
+  member_number: "54321"
+
+contract:
+  inputs:
+    member_number: {type: string, pattern: "^[0-9]{5}$", sensitive: true}
+  outputs:
+    savings_balance: {type: money}
+  outcomes:
+    - code: MEMBER_NOT_FOUND
+      meaning: No member exists with that number.
+      resolver: member
+      caller_hint: Ask the member to re-check the number.
+    - code: NOT_AUTHORIZED
+      meaning: This login may not view that member.
+      resolver: institution_staff
+    - code: NO_SAVINGS_ACCOUNT
+      meaning: The member exists but holds no savings account to read.
+      resolver: member
+      caller_hint: Ask the member which account they mean.

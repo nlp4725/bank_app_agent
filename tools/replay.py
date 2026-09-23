@@ -16,7 +16,7 @@ from cua.engine import RunContext, replay
 from cua.narration import from_env
 from cua.store import load_capability, origin_for, overlay_for
 
-CAPABILITY = "member.open_sub_account"
+CAPABILITY = os.environ.get("CAPABILITY", "member.open_sub_account")   # any approved capability
 VENDOR_APP = "demo-core-servicing"
 
 

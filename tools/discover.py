@@ -1,54 +1,172 @@
-"""Run one Discovery Run against the demo app.
+"""Run one Discovery Run: a goal in words, bounded by a Role, against a Tenant's app.
 
-    ANTHROPIC_API_KEY=... python -m tools.discover 54321
-    ANTHROPIC_API_KEY=... python -m tools.discover 99999      # expects report_outcome
+    ANTHROPIC_API_KEY=... python -m tools.discover                       # the default request
+    (or put ANTHROPIC_API_KEY=... in a gitignored .env and omit it)
+    ANTHROPIC_API_KEY=... python -m tools.discover 99999                 # expects report_outcome
+    ANTHROPIC_API_KEY=... python -m tools.discover --contract contracts/read_balance.yaml
+    ANTHROPIC_API_KEY=... python -m tools.discover \\
+        --goal "Look up member {member_number} and read their savings balance" \\
+        --contract contracts/read_balance.yaml --role balance_reader --tenant bank_a
+    python -m tools.discover --dry-run ...                               # show the request, touch nothing
+
+A Discovery Request is three things, and only the first is free text: the goal (the
+model reads it every turn), the Role (what the goal may touch — pages, actions, whether
+it may commit), and the Contract (the capability's signature, fixed before any run).
+`contracts/*.yaml` holds one request per capability; every flag overrides one field.
+The origin is never a flag: it comes from the Tenant's own Policy file.
 """
 
+import argparse
 import json
 import os
-import sys
+from pathlib import Path
+
+import yaml
 
 from cua.discovery import DiscoveryRequest, discover
 from cua.profile import load_profile
 from cua.store import origin_for
 
-CONTRACT = {
-    "inputs": {
-        "member_number": {"type": "string", "pattern": r"^[0-9]{5}$", "sensitive": True},
-        "account_type": {"type": "enum", "values": ["savings", "checking", "holiday"]},
-        "nickname": {"type": "string", "max_length": 20},
-    },
-    "outputs": {"savings_balance": {"type": "money"}, "new_account_number": {"type": "string"}},
-    "outcomes": [
-        {"code": "MEMBER_NOT_FOUND", "meaning": "No member exists with that number.",
-         "resolver": "member", "caller_hint": "Ask the member to re-check the number."},
-        {"code": "NOT_AUTHORIZED", "meaning": "This login may not view that member.",
-         "resolver": "institution_staff"},
-        {"code": "VALIDATION_REJECTED", "meaning": "The application rejected the values.",
-         "resolver": "member"},
-    ],
-}
-
-GOAL = ("Open a savings sub-account for member {member_number} and reach the "
-        "confirmation screen. Read the member's savings balance on the way.")
+DEFAULT_CONTRACT = Path("contracts/open_sub_account.yaml")
+DOTENV = Path(".env")
 
 
-def main():
-    member = sys.argv[1] if len(sys.argv) > 1 else "54321"
-    values = {"member_number": member, "account_type": "savings", "nickname": "Holiday fund"}
-    result = discover(DiscoveryRequest(
-        goal=GOAL.format(**values),
-        vendor_app="demo-core-servicing",
-        role="account_opener",
-        contract=CONTRACT,
+def load_dotenv(path: Path = DOTENV) -> list[str]:
+    """`NAME=value` lines from a gitignored file into the environment, for the one tool
+    that needs a key. A variable already set wins, so a shell export still overrides.
+    Returns the names it set — never the values."""
+    if not path.exists():
+        return []
+    loaded = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        name, value = name.strip(), value.strip().strip("'\"")
+        if name and name not in os.environ:
+            os.environ[name] = value
+            loaded.append(name)
+    return loaded
+
+
+def load_request(path: Path = DEFAULT_CONTRACT) -> dict:
+    """One Discovery Request file: capability_id, vendor_app, role, goal, contract,
+    example_values."""
+    return yaml.safe_load(Path(path).read_text())
+
+
+# Kept by name: tools/record.py, tools/review.py and the tests compile the shipped
+# discovery run against this same Contract, so it lives in one file, not two.
+_DEFAULT = load_request()
+CONTRACT = _DEFAULT["contract"]
+GOAL = _DEFAULT["goal"]
+
+
+class _Keep(dict):
+    """`{member_number}` is filled; a brace the values do not name is left as written,
+    so a goal can mention something that is not an input without crashing."""
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def render_goal(goal: str, values: dict) -> str:
+    return goal.format_map(_Keep(values))
+
+
+def parse_values(pairs: list[str]) -> dict:
+    values = {}
+    for pair in pairs:
+        if "=" not in pair:
+            raise SystemExit(f"--values takes name=value pairs, not {pair!r}")
+        name, value = pair.split("=", 1)
+        values[name.strip()] = value
+    return values
+
+
+def request_from_spec(spec: dict, values: dict, *, tenant: str = "bank_a",
+                      headed: bool = False, slowmo: int = 0, goal: str | None = None,
+                      role: str | None = None, capability: str | None = None) -> DiscoveryRequest:
+    """A Discovery Request file plus this run's values -> what discovery receives.
+    Shared by the flag-driven tool and the interactive one."""
+    vendor_app = spec["vendor_app"]
+    return DiscoveryRequest(
+        goal=render_goal(goal or spec["goal"], values),
+        vendor_app=vendor_app,
+        role=role or spec["role"],
+        contract=spec["contract"],
         example_values=values,
-        origin=origin_for("bank_a", "demo-core-servicing"),
-        app_profile=load_profile("demo-core-servicing"),
-        headless=os.environ.get("HEADED") != "1",   # HEADED=1 to watch the browser
+        tenant=tenant,
+        origin=origin_for(tenant, vendor_app),
+        app_profile=load_profile(vendor_app),
+        headless=not headed,
         verbose=True,
-        capability_id="member.open_sub_account",
-        slow_mo_ms=int(os.environ.get("SLOWMO", "0")),
-    ))
+        capability_id=capability or spec["capability_id"],
+        slow_mo_ms=slowmo,
+    )
+
+
+def build(args) -> DiscoveryRequest:
+    spec = load_request(args.contract)
+    values = dict(spec.get("example_values", {}))
+    if args.member:
+        values["member_number"] = args.member
+    values.update(parse_values(args.values))
+    return request_from_spec(spec, values, tenant=args.tenant, headed=args.headed,
+                             slowmo=args.slowmo, goal=args.goal, role=args.role,
+                             capability=args.capability)
+
+
+def describe(request: DiscoveryRequest) -> str:
+    contract = request.contract
+    return "\n".join([
+        f"  goal        {request.goal}",
+        f"  capability  {request.capability_id}",
+        f"  vendor app  {request.vendor_app}",
+        f"  role        {request.role}",
+        f"  tenant      {request.tenant}  ->  {request.origin}",
+        f"  inputs      {', '.join(contract.get('inputs', {}))}",
+        f"  outputs     {', '.join(contract.get('outputs', {}))}",
+        f"  outcomes    {', '.join(o['code'] for o in contract.get('outcomes', []))}",
+        f"  values      {json.dumps(request.example_values)}",
+    ])
+
+
+def parse_args(argv=None):
+    p = argparse.ArgumentParser(prog="python -m tools.discover", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("member", nargs="?", help="member number (shorthand for --values member_number=…)")
+    p.add_argument("--goal", help="the goal, in words; {name} is filled from --values")
+    p.add_argument("--contract", type=Path, default=DEFAULT_CONTRACT,
+                   help=f"Discovery Request file (default: {DEFAULT_CONTRACT})")
+    p.add_argument("--role", help="Role that bounds the goal (default: the file's)")
+    p.add_argument("--tenant", default="bank_a",
+                   help="whose instance to discover against; the origin comes from its Policy")
+    p.add_argument("--capability", help="capability id for the draft (default: the file's)")
+    p.add_argument("--values", nargs="*", default=[], metavar="NAME=VALUE",
+                   help="example input values, overriding the file's")
+    p.add_argument("--headed", action="store_true", default=os.environ.get("HEADED") == "1",
+                   help="show the browser (or HEADED=1)")
+    p.add_argument("--slowmo", type=int, default=int(os.environ.get("SLOWMO", "0")),
+                   help="ms between actions, so a person can follow (or SLOWMO=…)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="print the resolved request and exit; no browser, no model")
+    return p.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+    load_dotenv()
+    request = build(args)
+    print("\n=== discovery request ===")
+    print(describe(request))
+    if args.dry_run:
+        return
+
+    report(discover(request))
+
+
+def report(result, actions: bool = True) -> None:
     print("\n=== result ===")
     print(result)
     print("outputs:", json.dumps(result.outputs, indent=2))
@@ -58,6 +176,8 @@ def main():
         print("  suggestions for the Reviewer:")
         for s in result.suggestions:
             print("   -", s[:104])
+    if not actions:
+        return
     print("\n=== actions recorded ===")
     for a in result.actions:
         rungs = " -> ".join(r["kind"] for r in a["target"]["rungs"]) or "(no rungs!)"
