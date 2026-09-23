@@ -66,6 +66,7 @@ The member number selects the scenario:
 ```bash
 python -m tools.replay --list                 # the catalog: every capability, and whether it is approved
 python -m tools.replay 12345 --headed         # asks which capability when more than one is approved
+python -m tools.replay 12345 --headed --slowmo 2000    # slower, to follow along
 python -m tools.replay 12345 --headed --capability member.open_sub_account
 ```
 
@@ -345,7 +346,7 @@ Review this artifact now? [Y/n]  y
   it is now live — replay it with no model:
     python -m tools.replay 12345 --capability member.read_savings_balance
 
-  Watch it replay now, in a visible browser? [Y/n]  y
+  Watch it replay now, in a visible browser, 2s per step? [Y/n]  y
 ```
 
 The Recorder decides nothing; each question is one it could not answer from the run. Every

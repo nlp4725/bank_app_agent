@@ -430,9 +430,12 @@ def _slug(text: str) -> str:
     return _re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:32]
 
 
+WATCH_PACE_MS = 2000      # between steps when watching a replay after approval
+
+
 def _watch(capability: str, member: str, tenant: str) -> None:
     from tools.replay import run_replay
-    run_replay(capability, member, tenant, headed=True)
+    run_replay(capability, member, tenant, headed=True, slowmo_ms=WATCH_PACE_MS)
 
 
 def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=input,
@@ -504,7 +507,8 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
         print("\n".join("    " + line for line in out.read_text().splitlines()))
     print(f"\n  it is now live — replay it with no model:\n"
           f"    python -m tools.replay {seen} --capability {spec['capability_id']}")
-    if (ask("\n  Watch it replay now, in a visible browser? [Y/n]  ").strip().lower() or "y").startswith("y"):
+    if (ask(f"\n  Watch it replay now, in a visible browser, {WATCH_PACE_MS / 1000:g}s per step? "
+            f"[Y/n]  ").strip().lower() or "y").startswith("y"):
         (watch_fn or _watch)(spec["capability_id"], seen, tenant)
     return 0
 

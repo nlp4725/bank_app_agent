@@ -4,6 +4,7 @@
     python -m tools.replay 12345                         # asks which capability, if more than one
     python -m tools.replay 12345 --capability member.read_savings_balance
     python -m tools.replay 12345 --headed                # watch the browser
+    python -m tools.replay 12345 --headed --slowmo 2000  # slower, to follow along
     python -m tools.replay 99999                         # a business outcome
     python -m tools.replay 12345 lakeside --headed       # the second institution + overlay
     python -m tools.replay 44444 --headed --attended     # pauses for a human to take over
@@ -93,7 +94,8 @@ def inputs_for(art, member: str, given: dict | None = None) -> dict:
 
 
 def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: bool = False,
-               attended: bool = False, values: dict | None = None, wait_s: float = 240.0):
+               attended: bool = False, values: dict | None = None, wait_s: float = 240.0,
+               slowmo_ms: int | None = None):
     """One replay, narrated to the console. Returns the RunResult."""
     # One question to the Capability Store: which Artifact is live, where this Tenant
     # runs it, and what it looks like there.
@@ -112,6 +114,8 @@ def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: 
     reset_or_exit(origin)
     started = time.time()
     env = dict(os.environ, VERBOSE="1", HEADED="1" if headed else os.environ.get("HEADED", "0"))
+    if slowmo_ms is not None:
+        env["SLOWMO"] = str(slowmo_ms)          # ms between steps, so a person can follow
     r = replay(art, inputs_for(art, member, values),
                RunContext(origin=origin, tenant=tenant, overlay=overlay, headless=not headed,
                           narrator=from_env(env), attended=attended, operator_timeout_s=wait_s))
@@ -160,6 +164,8 @@ def parse_args(argv=None):
     p.add_argument("--values", nargs="*", metavar="NAME=VALUE", help="other typed inputs")
     p.add_argument("--wait", type=float, default=float(os.environ.get("WAIT", "240")),
                    help="seconds to wait for an Operator when attended")
+    p.add_argument("--slowmo", type=int, default=None, metavar="MS",
+                   help="ms between steps when headed (default 900; try 2000 to follow along)")
     return p.parse_args(argv)
 
 
@@ -172,7 +178,8 @@ def main(argv=None):
         return 0
     capability = args.capability or choose_capability()
     r = run_replay(capability, args.member, args.tenant, headed=args.headed,
-                   attended=args.attended, values=parse_values(args.values), wait_s=args.wait)
+                   attended=args.attended, values=parse_values(args.values), wait_s=args.wait,
+                   slowmo_ms=args.slowmo)
     return 0 if r.status in ("succeeded", "business_outcome") else 1
 
 

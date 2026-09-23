@@ -272,8 +272,9 @@ def test_replay_inputs_are_filtered_to_the_contract():
                                         "nickname": "Live demo"}
     assert inputs_for(art, "12345", {"nickname": "Mine", "bogus": "x"})["nickname"] == "Mine"
     assert "bogus" not in inputs_for(art, "12345", {"bogus": "x"})
-    a = parse_args(["12345", "--capability", "member.read_savings_balance", "--headed"])
-    assert (a.member, a.capability, a.headed, a.tenant) == ("12345", "member.read_savings_balance", True, "bank_a")
+    a = parse_args(["12345", "--capability", "member.read_savings_balance", "--headed", "--slowmo", "2000"])
+    assert (a.member, a.capability, a.headed, a.tenant, a.slowmo) == (
+        "12345", "member.read_savings_balance", True, "bank_a", 2000)
 
 
 def test_replay_asks_which_capability_when_more_than_one_is_approved():
