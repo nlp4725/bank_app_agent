@@ -1,0 +1,211 @@
+schema_version: 1
+capability:
+  id: member.read_savings_balance
+  version: 1.0.0
+  vendor_app: demo-core-servicing
+  role: balance_reader
+  status: approved
+  approvals:
+  - 'yes'
+contract:
+  inputs:
+    member_number:
+      type: string
+      pattern: ^[0-9]{5}$
+      max_length: 5
+      sensitive: true
+      required: true
+  outputs:
+    savings_balance:
+      type: money
+      sensitive: false
+  outcomes:
+  - code: MEMBER_NOT_FOUND
+    meaning: No member exists with that number.
+    resolver: member
+    caller_hint: Confirm the 5-digit member number with the member and try again.
+    retry_same_inputs: never
+    data: {}
+  - code: NOT_AUTHORIZED
+    meaning: This login may not view that member.
+    resolver: institution_staff
+    caller_hint: Have staff grant this login access to the member's records.
+    retry_same_inputs: never
+    data: {}
+  - code: NO_SAVINGS_ACCOUNT
+    meaning: The member exists but holds no savings account to read.
+    resolver: member
+    caller_hint: Ask the member which account they meant; no savings balance exists.
+    retry_same_inputs: never
+    data: {}
+needs:
+  pages:
+  - /login
+  - /members/*
+  - /search
+  actions:
+  - click
+  - read
+  - type
+  secrets:
+  - login_password
+  - login_username
+states:
+- id: s1_login
+  checkpoint:
+    type: element_present
+    target: t_user_id
+- id: s2_user_id_entered
+  checkpoint:
+    type: field_value
+    target: t_user_id
+    non_empty: true
+- id: s3_password_entered
+  checkpoint:
+    type: field_value
+    target: t_password
+    non_empty: true
+- id: s4_search
+  checkpoint:
+    type: element_present
+    target: t_member_number
+- id: s5_member_number_entered
+  checkpoint:
+    type: field_value
+    target: t_member_number
+    non_empty: true
+- id: s6_members_id
+  checkpoint:
+    type: element_present
+    target: t_savings_balance
+- id: s7_savings_balance_read
+  checkpoint:
+    type: element_present
+    target: t_savings_balance
+  terminal: succeeded
+transitions:
+- from_state: s1_login
+  to_state: s2_user_id_entered
+  action:
+    type: type
+    target: t_user_id
+    value_ref: login_username
+  risk: safe
+- from_state: s2_user_id_entered
+  to_state: s3_password_entered
+  action:
+    type: type
+    target: t_password
+    value_ref: login_password
+  risk: safe
+- from_state: s3_password_entered
+  to_state: s4_search
+  action:
+    type: click
+    target: t_sign_in
+  risk: safe
+- from_state: s4_search
+  to_state: s5_member_number_entered
+  action:
+    type: type
+    target: t_member_number
+    value: '{{member_number}}'
+  risk: safe
+- from_state: s5_member_number_entered
+  to_state: s6_members_id
+  action:
+    type: click
+    target: t_member_number_button
+  risk: safe
+- from_state: s6_members_id
+  to_state: s7_savings_balance_read
+  action:
+    type: read
+    target: t_savings_balance
+    into: savings_balance
+  risk: safe
+targets:
+  t_user_id:
+    rungs:
+    - kind: label_anchor
+      anchor: User ID
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/01_target.png
+      threshold: 0.94
+  t_password:
+    rungs:
+    - kind: label_anchor
+      anchor: Password
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/02_target.png
+      threshold: 0.94
+  t_sign_in:
+    rungs:
+    - kind: role_name
+      role: button
+      name: Sign in
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/03_target.png
+      threshold: 0.94
+  t_member_number:
+    rungs:
+    - kind: label_anchor
+      anchor: Member number
+      role: textbox
+      relation: right_of
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/04_target.png
+      threshold: 0.94
+  t_member_number_button:
+    rungs:
+    - kind: label_anchor
+      anchor: Member number
+      role: button
+      relation: right_of
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/05_target.png
+      threshold: 0.94
+  t_savings_balance:
+    frame:
+      url_contains: /panel
+    rungs:
+    - kind: label_anchor
+      anchor: Savings balance
+      relation: right_of
+    - kind: picture
+      asset: artifacts/assets/member.read_savings_balance/06_target.png
+      threshold: 0.94
+watchers:
+- id: w_not_found
+  trigger:
+    type: text_present
+    value: No records found
+  condition: business_outcome
+  outcome: MEMBER_NOT_FOUND
+  extract: {}
+  provenance: reuse:member.open_sub_account
+- id: w_not_authorized
+  trigger:
+    type: text_present
+    value: not authorized to view
+  condition: business_outcome
+  outcome: NOT_AUTHORIZED
+  extract: {}
+  provenance: reuse:member.open_sub_account
+- id: w_y
+  trigger:
+    type: text_present
+    value: y
+  condition: business_outcome
+  outcome: NO_SAVINGS_ACCOUNT
+  extract: {}
+  provenance: reviewer:nasi
+provenance:
+  discovered_by: disc_438fdc9d
+  contract_by: reviewer
+  example_values:
+    member_number: '12345'

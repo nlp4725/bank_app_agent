@@ -1,0 +1,38 @@
+# What the Reviewer decided about the draft compiled from disc_438fdc9d.
+# Applied mechanically by cua/review.py; nothing here is inferred.
+version: 1.0.0
+approvals:
+- 'yes'
+safe_targets:
+- t_sign_in
+- t_member_number_button
+interruptions: []
+watchers:
+- id: w_not_found
+  trigger:
+    type: text_present
+    value: No records found
+  condition: business_outcome
+  outcome: MEMBER_NOT_FOUND
+  extract: {}
+  provenance: reuse:member.open_sub_account
+- id: w_not_authorized
+  trigger:
+    type: text_present
+    value: not authorized to view
+  condition: business_outcome
+  outcome: NOT_AUTHORIZED
+  extract: {}
+  provenance: reuse:member.open_sub_account
+- id: w_y
+  trigger:
+    type: text_present
+    value: y
+  condition: business_outcome
+  outcome: NO_SAVINGS_ACCOUNT
+  provenance: reviewer:nasi
+keep_outcomes:
+- MEMBER_NOT_FOUND
+- NOT_AUTHORIZED
+- NO_SAVINGS_ACCOUNT
+verify_effects: []

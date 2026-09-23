@@ -283,3 +283,10 @@ def test_replay_asks_which_capability_when_more_than_one_is_approved():
     assert picked == "member.read_savings_balance" and asked          # two approved on disk
     assert choose_capability(ask=lambda p: "1") == "member.open_sub_account"   # sorted: first
     assert choose_capability(ask=lambda p: "") == "member.open_sub_account"    # default
+
+
+def test_an_approver_must_be_role_name_so_yes_is_not_a_signature():
+    answers = iter(["yes", "y", "reviewer:nasi"])
+    got = start._approver(lambda p: next(answers), "approve as: ", None)
+    assert got == "reviewer:nasi"
+    assert start._approver(lambda p: "", "approve as [reviewer:x]: ", "reviewer:x") == "reviewer:x"

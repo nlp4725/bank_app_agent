@@ -394,14 +394,25 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
             print(f"    no check given: {target} will be refused for unattended replay")
 
     # 5. who approves — two names when anything still commits
-    first = ask(f"  approve as [{reviewer}]: ").strip() or reviewer
-    decisions["approvals"] = [first]
+    decisions["approvals"] = [_approver(ask, f"  approve as [{reviewer}]: ", reviewer)]
     if still:
         print(f"  {len(still)} step(s) still commit: a second approval is required")
-        second = ask("  second approver: ").strip()
+        second = _approver(ask, "  second approver: ", None)
         if second:
             decisions["approvals"].append(second)
     return decisions
+
+
+APPROVER = _re.compile(r"^[a-z_]+:[A-Za-z0-9_.-]+$")     # role:name, e.g. reviewer:nasi
+
+
+def _approver(ask, prompt: str, default: str | None) -> str | None:
+    """A name in the form role:name. 'yes' is an answer to a different question."""
+    while True:
+        answer = ask(prompt).strip() or default
+        if answer is None or APPROVER.match(answer):
+            return answer
+        print(f"    an approver is written role:name, e.g. reviewer:{answer.lower()}")
 
 
 def _transition_clicking(draft: dict, label: str):
