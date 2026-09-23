@@ -56,6 +56,43 @@ Python, Playwright, Pydantic, YAML, Flask, Claude. `fake_bank/` is hostile on pu
 server-rendered nested tables, no ids or test ids, session-scoped control names, an
 unlabelled icon button, duplicate "Open" text, balances in an iframe.
 
+**Every module, in the order the data flows through it.** `cua/` is the system; `tools/`
+are entry points that only wire it together; `fake_bank/` is the target. Nothing in `cua/`
+imports from `tools/`.
+
+| Module | Does |
+|---|---|
+| **discovery** — once per capability, model in the loop | |
+| `cua/discovery.py` | the only module that touches a model: proposes a Contract + Role from a goal; runs the observe → decide → act loop, one policy-checked action per turn |
+| `cua/recorder.py` | turns a finished run into a draft Artifact — one State + one Checkpoint per step, Targets as ladders, inputs as placeholders; decides nothing |
+| `cua/review.py` | applies a Reviewer's decisions mechanically; approves only if lint passes and a model-free verify-replay succeeds |
+| `cua/lint.py` | what a well-formed Artifact must also satisfy: every outcome has a watcher, every placeholder an input, every commit a Verification Check |
+| **the artifact** | |
+| `cua/artifact.py` | the schema — a closed vocabulary of four actions, four predicates, three rungs; an unknown key is rejected |
+| `cua/store.py` | which Artifact is live: the highest approved version of a capability id, with its App Profile and Tenant Overlay |
+| `cua/profile.py` · `cua/overlay.py` | the App Profile (shared watchers, readable/sensitive regions) and Tenant Overlays (how a control is found, never what the flow does) |
+| **production** — every invocation, no model | |
+| `cua/policy.py` · `cua/roles.py` | permissions as an intersection: Baseline ∩ Role ∩ Tenant grant ∩ Needs; refused before the browser opens |
+| `cua/engine.py` | the Replay Engine: checkpoint → resolve → policy → act → checkpoint; Watchers on a miss; recovery budgets; escalation; the Verification Check |
+| `cua/predicates.py` | evaluates the four predicates against a Surface, with placeholders rendered from the run's inputs |
+| `cua/surface.py` | the only module that touches a browser: the rung ladder, frames, request interception, the acting and recording interfaces |
+| `cua/handoff.py` | control transfer as a lease: automation → awaiting operator → operator in control → resuming; who may act, and when |
+| `cua/result.py` | the result contract: one shape, six statuses |
+| **cross-cutting** | |
+| `cua/redact.py` | the Redaction Chokepoint: structural, origin, pattern and pixel layers, for both the model and the evidence |
+| `cua/evidence.py` | every log line, screenshot and result passes through here; write-ahead line before a consequential action |
+| `cua/narration.py` | how a run looks to a person watching it, and nothing else |
+| **entry points** | |
+| `tools/start.py` | the front door: goal → proposed contract → discovery → artifact review → approval → watch it replay |
+| `tools/discover.py` · `tools/record.py` · `tools/review.py` | the same chain as flags, one stage each |
+| `tools/replay.py` | invoke an approved capability by name with typed inputs; `--list` is the catalog |
+| `tools/operator.py` · `tools/operator_console.py` | the Operator's side of a handoff — a terminal, and a mock page |
+| `tools/make_evidence.py` · `tools/show_run.py` · `tools/a11y_dump.py` · `tools/smoke_llm.py` | regenerate `evidence/`; read a run; see a page as the model does; one model turn to check the key |
+| `tools/demo_b1.py` · `tools/demo_b2.py` | the unlabelled-control and two-institution demonstrations |
+| **the target** | |
+| `fake_bank/app.py` · `fake_bank/data.py` | the hostile stand-in: nested tables, no ids, session-scoped control names, an iframe, and one scenario per member number |
+| **tests** (`tests/`) | one file per concern: schema, lint, predicates, replay, safety, handoff, PII, store, the two demos, the front door, and three defects a review surfaced, held shut |
+
 ## 2. Artifact schema
 
 Shaped after PreAct's Listing 1 — a state machine the engine runs directly, each state
