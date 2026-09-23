@@ -468,7 +468,8 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     def verify(art: Artifact):
         if replay_fn is not None:
             return replay_fn(art, inputs)
-        urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
+        from tools.replay import reset_or_exit
+        reset_or_exit(origin)
         ready = Artifact.model_validate({**art.model_dump(), "capability":
                                          {**art.model_dump()["capability"], "status": "approved"}})
         return replay(merged(ready, profile), inputs, RunContext(origin=origin, tenant=tenant))

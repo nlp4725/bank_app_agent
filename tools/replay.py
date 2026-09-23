@@ -17,6 +17,7 @@ import argparse
 import os
 import sys
 import time
+import urllib.error
 import urllib.request
 
 from cua.engine import RunContext, replay
@@ -82,7 +83,7 @@ def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: 
         print("  3. python -m tools.operator resume     (or: abort)")
     print(f"\nreplaying for member {member} at {tenant} ({origin}) — no model in the loop\n")
 
-    urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
+    reset_or_exit(origin)
     started = time.time()
     env = dict(os.environ, VERBOSE="1", HEADED="1" if headed else os.environ.get("HEADED", "0"))
     r = replay(art, inputs_for(art, member, values),
@@ -95,6 +96,18 @@ def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: 
         print(f"OUTCOME {r.outcome}")
     print(f"TIME    {time.time() - started:.1f}s     evidence: {r.evidence_id}")
     return r
+
+
+def reset_or_exit(origin: str) -> None:
+    """Restore the demo app's seed data — or say plainly that it is not running."""
+    try:
+        urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
+    except (urllib.error.URLError, OSError) as e:
+        raise SystemExit(
+            f"\nthe demo app is not answering at {origin} ({getattr(e, 'reason', e)}).\n"
+            f"start it in another terminal, then run this again:\n"
+            f"    python -m fake_bank.app                          # {origin}\n"
+            f"    SKIN=bank2 PORT=5002 python -m fake_bank.app     # the second institution\n")
 
 
 def parse_values(pairs):
