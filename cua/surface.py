@@ -439,6 +439,15 @@ class RecordingSurface:
     def crop(self, control: dict, path: str):
         return self.surface.crop(control, path)
 
+    def field_value(self, control: dict) -> str:
+        """What an enumerated field currently holds, for the observation.
+
+        The one read a Discovery Run makes of a control it did not act on. It goes
+        through the acting half's `value_of` rather than the locator in the dict, so
+        nothing above this module calls a driver method.
+        """
+        return self.surface.value_of(Resolved(control["locator"], "discovery", 0))
+
     # ── acting on something the model pointed at ─────────────────────────────
 
     def act_on(self, control: dict, kind: str, value: str | None = None) -> str | None:

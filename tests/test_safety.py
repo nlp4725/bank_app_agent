@@ -251,6 +251,18 @@ def test_only_the_surface_module_touches_playwright():
         assert "playwright" not in imports_of(path)[0], f"{rel(path)} imports playwright"
 
 
+def test_a_locator_never_leaves_the_surface():
+    """controls() and values() carry the driver's locator so the surface can act on
+    them later. Nothing above the seam may touch it: discovery used to call
+    `c["locator"].input_value()`, a driver method, and the attribute guard above
+    could not see it because the name was not `surface`."""
+    for path in sources() - under("surface"):
+        hits = [n.lineno for n in ast.walk(ast.parse(path.read_text()))
+                if isinstance(n, ast.Subscript) and isinstance(n.slice, ast.Constant)
+                and n.slice.value == "locator"]
+        assert not hits, f"{rel(path)}:{hits} reaches into a locator"
+
+
 # ── the Surface seam: two interfaces, and nothing reaching past them ──────────
 
 ACTING = {"origin", "allowed_origins", "blocked_requests", "url", "goto", "text",

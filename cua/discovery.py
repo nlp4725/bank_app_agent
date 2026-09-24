@@ -161,10 +161,7 @@ def observation(surface: RecordingSurface, redactor: Redactor) -> tuple[str, lis
             lines.append(f'[{c["index"]}] text  "{c["anchor"]}": {shown}{note}')
             continue
         if c["role"] in ("textbox", "combobox"):
-            try:
-                raw = c["locator"].input_value()
-            except Exception:
-                raw = ""
+            raw = surface.field_value(c)
             if raw:
                 value = f'  value: {redactor.value(c["anchor"], raw, is_password=c["is_password"])}'
         lines.append(f'[{c["index"]}] {c["role"]} {label}{hint}{value}')
