@@ -5,9 +5,7 @@ engine knows about surprises is in the four Conditions; everything it knows abou
 *this* app is data in the Artifact.
 """
 
-import os
 import re
-import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -21,40 +19,12 @@ from .policy import PolicyError, policy_for, route_of
 from .predicates import Predicates, render
 from .redact import for_app
 from .result import RunResult
+from .secrets import EnvSecrets, MissingSecret
 from .surface import Surface
 
 OBSERVE = object()      # "a recovery ran: look at where it left us, do not re-act"
 DEFAULT_TIMEOUT_MS = 6000
 DEFAULT_RECOVERY_BUDGET = 2
-
-
-class MissingSecret(Exception):
-    pass
-
-
-DEMO_ACCOUNTS = {           # the demo app only; documented in the README
-    "svc_read": {"login_username": "svc_read", "login_password": "read-only-pw"},
-    "svc_officer": {"login_username": "svc_officer", "login_password": "officer-pw"},
-}
-
-
-class EnvSecrets:
-    """Secrets by reference, resolved at the moment of use, never stored.
-
-    Which credential is used follows from the Role's Service Account, so a
-    read-only capability signs in as a login that cannot commit anything.
-    """
-
-    def __init__(self, service_account: str = "svc_officer"):
-        self.service_account = service_account
-
-    def get(self, name: str) -> str:
-        value = os.environ.get(f"SECRET_{self.service_account}_{name}".upper())
-        if value is None:
-            value = DEMO_ACCOUNTS.get(self.service_account, {}).get(name)
-        if value is None:
-            raise MissingSecret(name)
-        return value
 
 
 @dataclass
@@ -110,8 +80,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     refusal = policy.refuse_reason(artifact, origin=ctx.origin)
     if refusal:
         return evidence.refused(run_id, refusal)
-    if ctx.secrets is None:
-        ctx.secrets = EnvSecrets(policy.service_account())
+    secrets = ctx.secrets or EnvSecrets(policy.service_account())
 
     if artifact.capability.status != "approved":
         return evidence.refused(run_id, f"artifact is {artifact.capability.status!r}, not approved")
@@ -123,7 +92,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
         return evidence.refused(run_id, "a consequential action has no verification check")
     for name in artifact.needs.secrets:
         try:
-            ctx.secrets.get(name)
+            secrets.get(name)
         except MissingSecret:
             return evidence.refused(run_id, f"secret {name!r} does not resolve")
 
@@ -141,7 +110,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
                       slow_mo_ms=narrator.slow_mo_ms)
     try:
         return Run(artifact, inputs, ctx, surface, evidence, run_id, policy,
-                   narrator).execute()
+                   narrator, secrets).execute()
     finally:
         narrator.linger(surface)
         surface.close()
@@ -162,8 +131,9 @@ class Run:
     """
 
     def __init__(self, artifact, inputs, ctx, surface, evidence, run_id, policy,
-                 narrator=None):
+                 narrator=None, secrets=None):
         self.artifact = artifact
+        self.secrets = secrets if secrets is not None else ctx.secrets
         self.inputs = inputs
         self.ctx = ctx
         self.surface = surface
@@ -276,7 +246,7 @@ class Run:
         if action.type == "click":
             self.surface.click(found)
         elif action.type == "type":
-            value = (self.ctx.secrets.get(action.value_ref) if action.value_ref
+            value = (self.secrets.get(action.value_ref) if action.value_ref
                      else render(action.value, self.inputs))
             self.surface.type(found, value)
         elif action.type == "select":

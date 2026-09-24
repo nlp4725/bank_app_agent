@@ -23,6 +23,7 @@ from .artifact import AppProfile
 from .evidence import EvidenceWriter
 from .policy import policy_for_role, route_of
 from .redact import PROTECTED, Redactor, for_app
+from .secrets import EnvSecrets
 from .surface import RecordingSurface, Surface
 
 MODEL = os.environ.get("DISCOVERY_MODEL", "claude-opus-5")
@@ -399,7 +400,6 @@ def _b64(path):
 
 
 def _default_secrets(policy):
-    from .engine import EnvSecrets
     return EnvSecrets(policy.service_account())
 
 

