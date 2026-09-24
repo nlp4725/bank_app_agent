@@ -119,59 +119,136 @@ def test_every_policy_decision_is_recorded(artifact, bank_app, tmp_path):
 
 
 # ── tests that are controls ───────────────────────────────────────────────────
+#
+# The boundaries are asserted over the whole package, wherever a file lives. LAYOUT
+# says where each concern is; a move changes one row here and nothing else. Every
+# row must name at least one real file, so a rule can never pass by finding nothing —
+# which is what the flat-layout version of these tests would have done the moment a
+# module moved into a package.
 
-def imports_of(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text())
-    found = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            found.update(a.name.split(".")[0] for a in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            found.add(node.module.split(".")[0])
-    return found
-
+LAYOUT = {
+    "replay_entry": "engine.py",       # a Production Replay starts here; it reaches only what this reaches
+    "predicates": "predicates.py",
+    "discovery": ["discovery.py"],     # the only files that may import a model SDK
+    "surface": ["surface.py"],         # the only files that may import playwright
+}
 
 MODEL_SDKS = {"anthropic", "openai", "google", "litellm"}
 
 
-def module_graph(entry: str) -> set[str]:
-    """Every cua module reachable from `entry`, transitively."""
+def sources() -> set[Path]:
+    return set(CUA.rglob("*.py"))
+
+
+def under(key: str) -> set[Path]:
+    """The files a LAYOUT row names: a file, or every file below a directory."""
+    entries = LAYOUT[key]
+    found = set()
+    for entry in (entries if isinstance(entries, list) else [entries]):
+        path = CUA / entry
+        if path.is_file():
+            found.add(path)
+        elif path.is_dir():
+            found.update(path.rglob("*.py"))
+    return found
+
+
+def rel(path: Path) -> str:
+    return str(path.relative_to(CUA.parent))
+
+
+def _module_file(base: Path, dotted: str) -> Path | None:
+    """The file a dotted name resolves to from `base`: x/y.py, or x/y/__init__.py."""
+    path = base.joinpath(*dotted.split(".")) if dotted else base
+    if path.with_suffix(".py").is_file():
+        return path.with_suffix(".py")
+    if (path / "__init__.py").is_file():
+        return path / "__init__.py"
+    return None
+
+
+def imports_of(path: Path) -> tuple[set[str], set[Path]]:
+    """(external top-level packages, cua files) this file imports — at module level
+    or inside a function, absolute or relative."""
+    externals: set[str] = set()
+    internal: set[Path] = set()
+
+    def internal_from(base: Path, module: str, names) -> None:
+        found = _module_file(base, module)
+        if found is not None:
+            internal.add(found)
+        for alias in names:                 # `from .replay import engine` names a module
+            sub = _module_file(base, f"{module}.{alias.name}" if module else alias.name)
+            if sub is not None:
+                internal.add(sub)
+
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                top, _, rest = alias.name.partition(".")
+                if top == "cua":
+                    internal_from(CUA, rest, [])
+                else:
+                    externals.add(top)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                base = path.parent
+                for _ in range(node.level - 1):
+                    base = base.parent
+                internal_from(base, node.module or "", node.names)
+            elif node.module:
+                top, _, rest = node.module.partition(".")
+                if top == "cua":
+                    internal_from(CUA, rest, node.names)
+                else:
+                    externals.add(top)
+    return externals, internal
+
+
+def reachable(entry: Path) -> set[Path]:
+    """Every cua file reachable from `entry`, transitively."""
     seen, queue = set(), [entry]
     while queue:
-        name = queue.pop()
-        if name in seen:
+        path = queue.pop()
+        if path in seen:
             continue
-        seen.add(name)
-        path = CUA / f"{name}.py"
-        if not path.exists():
-            continue
-        for imported in imports_of(path):
-            if (CUA / f"{imported}.py").exists():
-                queue.append(imported)
+        seen.add(path)
+        queue.extend(imports_of(path)[1])
     return seen
+
+
+def replay_entry() -> Path:
+    (entry,) = under("replay_entry")
+    return entry
+
+
+def test_the_layout_names_files_that_exist():
+    for key in LAYOUT:
+        assert under(key), f"LAYOUT[{key!r}] names no file, so the rules below would check nothing"
 
 
 def test_replay_cannot_reach_a_model_sdk():
     """Not 'no file imports it' — the replay path cannot reach it, transitively."""
-    for name in module_graph("engine"):
-        assert not (imports_of(CUA / f"{name}.py") & MODEL_SDKS), \
-            f"replay reaches {name}.py, which imports a model SDK"
+    for path in reachable(replay_entry()):
+        assert not (imports_of(path)[0] & MODEL_SDKS), \
+            f"replay reaches {rel(path)}, which imports a model SDK"
 
 
 def test_the_model_sdk_lives_only_in_discovery():
-    users = {p.stem for p in CUA.glob("*.py") if imports_of(p) & MODEL_SDKS}
-    assert users == {"discovery"}, f"unexpected model SDK users: {users}"
+    users = {p for p in sources() if imports_of(p)[0] & MODEL_SDKS}
+    assert users, "nothing imports a model SDK: the rule has nothing to check"
+    outside = users - under("discovery")
+    assert not outside, f"unexpected model SDK users: {sorted(map(rel, outside))}"
 
 
 def test_discovery_is_not_reachable_from_replay():
-    assert "discovery" not in module_graph("engine")
+    crossed = reachable(replay_entry()) & under("discovery")
+    assert not crossed, f"replay reaches discovery: {sorted(map(rel, crossed))}"
 
 
 def test_only_the_surface_module_touches_playwright():
-    for path in CUA.glob("*.py"):
-        if path.name == "surface.py":
-            continue
-        assert "playwright" not in imports_of(path), f"{path.name} imports playwright"
+    for path in sources() - under("surface"):
+        assert "playwright" not in imports_of(path)[0], f"{rel(path)} imports playwright"
 
 
 # ── the Surface seam: two interfaces, and nothing reaching past them ──────────
@@ -181,13 +258,15 @@ ACTING = {"origin", "allowed_origins", "blocked_requests", "url", "goto", "text"
           "read", "value_of", "frame_urls"}
 
 
-def _attributes_used_on(path, variable):
-    """Every `variable.X` in a module, statically."""
-    import ast
-    tree = ast.parse(Path(path).read_text())
-    return {n.attr for n in ast.walk(tree)
-            if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
-            and n.value.id == variable}
+def _attributes_used_on(paths, variable):
+    """Every `variable.X` across these files, statically."""
+    used = set()
+    for path in paths:
+        tree = ast.parse(Path(path).read_text())
+        used |= {n.attr for n in ast.walk(tree)
+                 if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
+                 and n.value.id == variable}
+    return used
 
 
 def test_the_replay_path_uses_only_the_acting_interface():
@@ -196,12 +275,12 @@ def test_the_replay_path_uses_only_the_acting_interface():
     This is the assertion that makes a scripted Surface possible: the engine used to
     read `surface.page.frames` and call the private `_tick`.
     """
-    used = _attributes_used_on(CUA / "engine.py", "surface")
+    used = _attributes_used_on(under("replay_entry"), "surface")
     assert used <= ACTING, f"the engine reaches past the acting interface: {used - ACTING}"
 
 
 def test_the_predicate_evaluator_needs_only_four_observations():
-    used = _attributes_used_on(CUA / "predicates.py", "surface")
+    used = _attributes_used_on(under("predicates"), "surface")
     assert used <= {"text", "url", "resolve", "value_of", "wait", "goto"}, used
 
 
@@ -214,6 +293,6 @@ def test_the_recording_interface_does_not_offer_the_acting_one():
 
 
 def test_discovery_acts_through_the_recording_interface_not_on_a_locator():
-    used = _attributes_used_on(CUA / "discovery.py", "surface")
+    used = _attributes_used_on(under("discovery"), "surface")
     assert "act_on" in used
     assert not ({"click", "type", "select", "read", "page"} & used), used
