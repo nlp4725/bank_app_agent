@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from cua.engine import RunContext, replay                      # noqa: E402
+from cua.replay import RunContext, replay                      # noqa: E402
 from cua.governance.store import load_capability, origin_for               # noqa: E402
 from tools.make_evidence import clears_the_flag                 # noqa: E402
 
