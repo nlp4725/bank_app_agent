@@ -33,9 +33,9 @@ from pathlib import Path
 
 import yaml
 
-from cua.discovery import ProposalError, discover, propose_contract
+from cua.discovery import ProposalError, discover, propose_contract, request_from_spec
 from cua.governance.roles import get_role
-from tools.discover import load_dotenv, report, request_from_spec
+from tools._cli import load_dotenv, report
 
 VENDOR_APP = "demo-core-servicing"
 CONTRACTS = Path("contracts")

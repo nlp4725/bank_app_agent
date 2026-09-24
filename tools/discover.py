@@ -17,37 +17,18 @@ The origin is never a flag: it comes from the Tenant's own Policy file.
 """
 
 import argparse
-import json
 import os
 from pathlib import Path
 
 import yaml
 
-from cua.discovery import DiscoveryRequest, discover
-from cua.governance.profile import load_profile
-from cua.governance.store import origin_for
+from cua.discovery import DiscoveryRequest, discover, request_from_spec
+from tools._cli import load_dotenv, report
+
+__all__ = ["CONTRACT", "DEFAULT_CONTRACT", "GOAL", "build", "load_dotenv", "load_request",
+           "main", "parse_args", "parse_values", "report", "request_from_spec"]
 
 DEFAULT_CONTRACT = Path("contracts/open_sub_account.yaml")
-DOTENV = Path(".env")
-
-
-def load_dotenv(path: Path = DOTENV) -> list[str]:
-    """`NAME=value` lines from a gitignored file into the environment, for the one tool
-    that needs a key. A variable already set wins, so a shell export still overrides.
-    Returns the names it set — never the values."""
-    if not path.exists():
-        return []
-    loaded = []
-    for line in path.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, value = line.split("=", 1)
-        name, value = name.strip(), value.strip().strip("'\"")
-        if name and name not in os.environ:
-            os.environ[name] = value
-            loaded.append(name)
-    return loaded
 
 
 def load_request(path: Path = DEFAULT_CONTRACT) -> dict:
@@ -63,17 +44,6 @@ CONTRACT = _DEFAULT["contract"]
 GOAL = _DEFAULT["goal"]
 
 
-class _Keep(dict):
-    """`{member_number}` is filled; a brace the values do not name is left as written,
-    so a goal can mention something that is not an input without crashing."""
-    def __missing__(self, key):
-        return "{" + key + "}"
-
-
-def render_goal(goal: str, values: dict) -> str:
-    return goal.format_map(_Keep(values))
-
-
 def parse_values(pairs: list[str]) -> dict:
     values = {}
     for pair in pairs:
@@ -82,28 +52,6 @@ def parse_values(pairs: list[str]) -> dict:
         name, value = pair.split("=", 1)
         values[name.strip()] = value
     return values
-
-
-def request_from_spec(spec: dict, values: dict, *, tenant: str = "bank_a",
-                      headed: bool = False, slowmo: int = 0, goal: str | None = None,
-                      role: str | None = None, capability: str | None = None) -> DiscoveryRequest:
-    """A Discovery Request file plus this run's values -> what discovery receives.
-    Shared by the flag-driven tool and the interactive one."""
-    vendor_app = spec["vendor_app"]
-    return DiscoveryRequest(
-        goal=render_goal(goal or spec["goal"], values),
-        vendor_app=vendor_app,
-        role=role or spec["role"],
-        contract=spec["contract"],
-        example_values=values,
-        tenant=tenant,
-        origin=origin_for(tenant, vendor_app),
-        app_profile=load_profile(vendor_app),
-        headless=not headed,
-        verbose=True,
-        capability_id=capability or spec["capability_id"],
-        slow_mo_ms=slowmo,
-    )
 
 
 def build(args) -> DiscoveryRequest:
@@ -164,25 +112,6 @@ def main(argv=None):
         return
 
     report(discover(request))
-
-
-def report(result, actions: bool = True) -> None:
-    print("\n=== result ===")
-    print(result)
-    print("outputs:", json.dumps(result.outputs, indent=2))
-    print("evidence:", result.trace_dir)
-    if result.draft:
-        print(f"\n=== draft artifact compiled automatically ===\n  {result.draft}")
-        print("  suggestions for the Reviewer:")
-        for s in result.suggestions:
-            print("   -", s[:104])
-    if not actions:
-        return
-    print("\n=== actions recorded ===")
-    for a in result.actions:
-        rungs = " -> ".join(r["kind"] for r in a["target"]["rungs"]) or "(no rungs!)"
-        print(f'  {a["turn"]:2d} {a["action"]:7s} {rungs:28s} '
-              f'anchor={a["anchor"]!r} value={a.get("value")!r}')
 
 
 if __name__ == "__main__":

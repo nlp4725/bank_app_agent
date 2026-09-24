@@ -6,9 +6,10 @@ successful run to the Recorder. Nothing in `cua.replay` can reach this package.
 """
 
 from .propose import ProposalError, propose_contract, spec_from_proposal
-from .request import DiscoveryRequest, DiscoveryResult
+from .request import DiscoveryRequest, DiscoveryResult, render_goal, request_from_spec
 from .model import MODEL, Model, ToolCall, Turn
 from .run import discover, observation
 
 __all__ = ["MODEL", "DiscoveryRequest", "DiscoveryResult", "Model", "ProposalError", "ToolCall",
-           "Turn", "discover", "observation", "propose_contract", "spec_from_proposal"]
+           "Turn", "discover", "observation", "propose_contract", "render_goal", "request_from_spec",
+           "spec_from_proposal"]
