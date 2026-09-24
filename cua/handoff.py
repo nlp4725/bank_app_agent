@@ -67,11 +67,6 @@ class Intervention:
     instruction: str | None = None
     raised_at: float = field(default_factory=time.time)
 
-    def write(self, directory: Path) -> Path:
-        path = Path(directory) / "intervention.json"
-        path.write_text(json.dumps(self.__dict__, indent=2))
-        return path
-
 
 def wait_for_decision(directory: Path, timeout_s: float, poll,
                       cleared=None) -> tuple[str, str]:

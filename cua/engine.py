@@ -415,7 +415,7 @@ class Run:
                                state=transition.from_state, reason=reason,
                                watcher=watcher_id, url=self.surface.url, screenshot=shot,
                                instruction=(watcher.operator_instruction if watcher else None))
-        path = request.write(self.evidence.dir)
+        path = self.evidence.intervention(request)
         self.event("intervention_raised", step=transition.from_state,
                    watcher=watcher_id, reason=reason, request=str(path))
 

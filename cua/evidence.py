@@ -36,6 +36,28 @@ class EvidenceWriter:
         self._fh.flush()          # write-ahead: the line survives a crash
         return record
 
+    def intervention(self, request) -> Path:
+        """What the Operator is given, written through the same gate as everything
+        else in this directory. It used to be dumped by the request itself, so the one
+        file an Operator reads was the one file the Redactor never saw."""
+        path = self.dir / "intervention.json"
+        path.write_text(json.dumps(self.redactor.fields(dict(request.__dict__)), indent=2))
+        return path
+
+    def raw_json(self, name: str, data) -> Path:
+        """The one write that does not pass the Redactor, by name.
+
+        A Discovery Run's actions are what the Recorder compiles: they must keep the
+        example values a Reviewer declared, or the Recorder cannot turn them into
+        inputs. Secrets never reach this list (they are PROTECTED before it is built),
+        and the Reviewer sees every example value in the draft's provenance. The
+        exemption is a method here so it is visible in one place, not a Path.write_text
+        somewhere else.
+        """
+        path = self.dir / name
+        path.write_text(json.dumps(data, indent=2))
+        return path
+
     def snap(self, surface) -> str:
         """A screenshot, with the declared Sensitive Regions already painted black.
 

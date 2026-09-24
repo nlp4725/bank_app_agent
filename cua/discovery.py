@@ -381,7 +381,7 @@ def _end(trace, run_id, ending, turns, actions, outputs, outcome=None, detail=No
          request=None):
     trace.event(run_id, "ended", ending=ending, turns=turns, outcome=outcome, detail=detail)
     clean = [{k: v for k, v in a.items() if k != "locator"} for a in actions]
-    (Path(trace.dir) / "actions.json").write_text(json.dumps(clean, indent=2))
+    trace.raw_json("actions.json", clean)
 
     draft, suggestions = None, []
     if ending == "goal_reached" and request is not None and request.compile_draft:
