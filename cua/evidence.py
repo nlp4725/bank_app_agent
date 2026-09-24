@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .redact import Redactor
-from .result import RunResult
+from .domain.result import RunResult
 
 
 class EvidenceWriter:

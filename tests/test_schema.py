@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from cua.artifact import Artifact
+from cua.domain.artifact import Artifact
 
 from .fixtures import artifact_dict
 

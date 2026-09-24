@@ -11,7 +11,7 @@ from functools import lru_cache
 
 import yaml
 
-from .artifact import Artifact, merged
+from .domain.artifact import Artifact, merged
 from .paths import ARTIFACTS_DIR, OVERLAYS_DIR, POLICIES_DIR
 from .profile import load_profile
 

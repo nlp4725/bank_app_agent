@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from cua.artifact import AppProfile, Artifact, merged
+from cua.domain.artifact import AppProfile, Artifact, merged
 from cua.profile import load_profile
 from cua.engine import RunContext, replay
 from cua.policy import Policy, load_baseline, load_tenant_policy
@@ -140,6 +140,7 @@ def test_every_policy_decision_is_recorded(artifact, bank_app, tmp_path):
 # module moved into a package.
 
 LAYOUT = {
+    "domain": "domain",               # pure: no file, browser, model or clock
     "replay_entry": "engine.py",       # a Production Replay starts here; it reaches only what this reaches
     "predicates": "predicates.py",
     "discovery": ["discovery.py"],     # the only files that may import a model SDK
@@ -147,6 +148,8 @@ LAYOUT = {
 }
 
 MODEL_SDKS = {"anthropic", "openai", "google", "litellm"}
+NOT_IN_DOMAIN = MODEL_SDKS | {"playwright", "yaml", "os", "sys", "pathlib", "json", "shutil",
+                              "subprocess", "time", "datetime", "uuid", "flask"}
 
 
 def sources() -> set[Path]:
@@ -238,6 +241,16 @@ def replay_entry() -> Path:
 def test_the_layout_names_files_that_exist():
     for key in LAYOUT:
         assert under(key), f"LAYOUT[{key!r}] names no file, so the rules below would check nothing"
+
+
+def test_the_domain_imports_nothing_that_does_anything():
+    """Models and rules only: no file, browser, model, clock or framework. And nothing
+    from the rest of cua, so the domain cannot depend on the code that uses it."""
+    for path in under("domain"):
+        externals, internal = imports_of(path)
+        assert not (externals & NOT_IN_DOMAIN), f"{rel(path)} imports {externals & NOT_IN_DOMAIN}"
+        outside = internal - under("domain")
+        assert not outside, f"{rel(path)} imports {sorted(map(rel, outside))}"
 
 
 def test_replay_cannot_reach_a_model_sdk():

@@ -7,7 +7,7 @@ clean and replays successfully on inputs the Discovery Run never saw.
 
 from copy import deepcopy
 
-from .artifact import Artifact
+from .domain.artifact import Artifact
 from .lint import lint
 
 

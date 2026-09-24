@@ -19,7 +19,7 @@ from pathlib import Path
 
 import anthropic
 
-from .artifact import AppProfile
+from .domain.artifact import AppProfile
 from .evidence import EvidenceWriter
 from .policy import policy_for_role, route_of
 from .redact import PROTECTED, Redactor, for_app
@@ -496,7 +496,7 @@ def propose_tool(role_names: list[str]) -> dict:
 def spec_from_proposal(proposal: dict, vendor_app: str) -> dict:
     """The model's answer as a Discovery Request, validated against the Contract
     schema the engine runs. A shape the engine does not know is refused here."""
-    from .artifact import Contract
+    from .domain.artifact import Contract
     from .roles import list_roles
 
     if proposal.get("role") not in list_roles(vendor_app):

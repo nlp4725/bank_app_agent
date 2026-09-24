@@ -25,7 +25,7 @@ from dataclasses import dataclass
 
 from playwright.sync_api import sync_playwright
 
-from .artifact import Target
+from .domain.artifact import Target
 
 INTERACTIVE_FALLBACK = "td, span, div, p, strong, b"
 

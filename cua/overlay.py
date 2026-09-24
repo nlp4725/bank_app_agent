@@ -5,8 +5,8 @@ cosmetic per-tenant file change what a reviewed capability does, so those keys
 are rejected outright rather than merged. See CONTEXT.md, "Tenant Overlay".
 """
 
-from .artifact import Artifact
-from .lint import Issue
+from .domain.artifact import Artifact
+from .domain.issue import Issue
 from .roles import covers
 
 # `targets` is the only key that is applied. The other three say who the overlay is

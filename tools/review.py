@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from cua.artifact import Artifact, merged
+from cua.domain.artifact import Artifact, merged
 from cua.engine import RunContext, replay
 from cua.profile import load_profile
 from cua.recorder import record_from_run

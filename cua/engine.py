@@ -10,15 +10,16 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .artifact import Artifact
+from .domain.artifact import Artifact
 from .evidence import EvidenceWriter
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .narration import Silent
 from .policy import PolicyError, policy_for, route_of
-from .predicates import Predicates, render
+from .domain.placeholders import render
+from .predicates import Predicates
 from .redact import for_app
-from .result import RunResult
+from .domain.result import RunResult
 from .secrets import EnvSecrets, MissingSecret
 from .surface import Surface
 

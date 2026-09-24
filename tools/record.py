@@ -7,7 +7,7 @@ import sys
 
 import yaml
 
-from cua.artifact import Artifact
+from cua.domain.artifact import Artifact
 from cua.lint import lint
 from cua.recorder import record_from_run
 from tools.discover import CONTRACT

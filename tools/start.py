@@ -446,7 +446,7 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     """Show the draft, ask the decisions, apply, verify, save. Returns an exit code."""
     import os
     import urllib.request
-    from cua.artifact import Artifact, merged
+    from cua.domain.artifact import Artifact, merged
     from cua.engine import RunContext, replay
     from cua.profile import load_profile
     from cua.recorder import record_from_run

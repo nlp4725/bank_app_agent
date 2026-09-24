@@ -8,8 +8,9 @@ not depend on the demo app being up.
 
 import pytest
 
-from cua.artifact import Artifact
-from cua.predicates import Predicates, render
+from cua.domain.artifact import Artifact
+from cua.domain.placeholders import render
+from cua.predicates import Predicates
 
 from .fixtures import artifact_dict
 
@@ -55,7 +56,7 @@ def evaluate(artifact, predicate, surface, **inputs):
 
 
 def P(**kw):
-    from cua.artifact import Artifact as _A
+    from cua.domain.artifact import Artifact as _A
     return _A.model_validate({**artifact_dict(), "states": [
         {"id": "s", "checkpoint": kw}]}).states[0].checkpoint
 

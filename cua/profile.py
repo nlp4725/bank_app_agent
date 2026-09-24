@@ -10,7 +10,7 @@ from functools import lru_cache
 
 import yaml
 
-from .artifact import AppProfile
+from .domain.artifact import AppProfile
 from .paths import PROFILES_DIR
 
 

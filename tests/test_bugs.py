@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from cua.artifact import Artifact, merged
+from cua.domain.artifact import Artifact, merged
 from cua.engine import RunContext, replay
 from cua.evidence import unfinished
 from cua.policy import Policy, load_baseline, policy_for, policy_for_role

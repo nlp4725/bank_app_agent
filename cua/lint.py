@@ -6,24 +6,13 @@ into a checkpoint, a placeholder nothing fills, an outcome promised to the calle
 that nothing can produce.
 """
 
-from dataclasses import dataclass
-
-from .artifact import Artifact
-from .predicates import PLACEHOLDER
+from .domain.artifact import Artifact
+from .domain.issue import Issue
+from .domain.placeholders import PLACEHOLDER
 from .roles import UnknownRole, covers, get_role
 
 
 MIN_TRIGGER_TEXT = 6      # a text trigger shorter than this cannot name a screen
-
-
-@dataclass(frozen=True)
-class Issue:
-    code: str
-    where: str
-    detail: str
-
-    def __str__(self):
-        return f"[{self.code}] {self.where}: {self.detail}"
 
 
 def _strings(obj, path="") -> list[tuple[str, str]]:

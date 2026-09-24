@@ -7,7 +7,7 @@ work is knowing *which field* a value came from. See CONTEXT.md, "Redaction".
 import pytest
 from pydantic import ValidationError
 
-from cua.artifact import AppProfile, Artifact, Watcher, merged
+from cua.domain.artifact import AppProfile, Artifact, Watcher, merged
 from cua.profile import load_profile
 from cua.redact import HIDDEN, PROTECTED, mask_value, redact_text
 

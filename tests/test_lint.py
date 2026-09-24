@@ -6,7 +6,7 @@ caller that nothing can produce.
 """
 
 from cua.profile import load_profile
-from cua.artifact import Artifact
+from cua.domain.artifact import Artifact
 from cua.lint import lint
 
 from .fixtures import artifact_dict, overlay_dict
@@ -162,7 +162,7 @@ def test_an_overlay_cannot_widen_needs():
 # ── App Profile: what every capability on one vendor app shares ───────────────
 
 def test_app_wide_watchers_reach_every_artifact():
-    from cua.artifact import AppProfile, merged
+    from cua.domain.artifact import AppProfile, merged
     art = Artifact.model_validate(artifact_dict())
     profile = load_profile("demo-core-servicing")
     assert [w.id for w in art.watchers] == ["w_not_found", "w_not_authorized", "w_validation"]
@@ -173,7 +173,7 @@ def test_app_wide_watchers_reach_every_artifact():
 
 
 def test_an_artifacts_own_watcher_wins_over_the_profiles():
-    from cua.artifact import AppProfile, merged
+    from cua.domain.artifact import AppProfile, merged
     d = artifact_dict()
     d["watchers"].append({
         "id": "w_system_notice",
@@ -187,7 +187,7 @@ def test_an_artifacts_own_watcher_wins_over_the_profiles():
 
 def test_a_profile_for_another_app_is_refused():
     import pytest
-    from cua.artifact import AppProfile, merged
+    from cua.domain.artifact import AppProfile, merged
     p = load_profile("demo-core-servicing").model_dump(mode="python")
     p["app_profile"] = "some-other-product"
     with pytest.raises(ValueError):
