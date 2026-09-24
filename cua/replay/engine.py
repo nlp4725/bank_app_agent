@@ -5,13 +5,13 @@ engine knows about surprises is in the four Conditions; everything it knows abou
 *this* app is data in the Artifact.
 """
 
-import re
 import uuid
 from pathlib import Path
 
 from ..domain.artifact import Artifact
 from ..domain.placeholders import render
 from ..domain.result import RunResult
+from ..domain.rules import validate_inputs
 from ..evidence import EvidenceWriter
 from ..governance.overlay import apply_overlay, lint_overlay
 from ..governance.policy import PolicyError, policy_for, route_of
@@ -28,21 +28,6 @@ OBSERVE = object()      # "a recovery ran: look at where it left us, do not re-a
 DEFAULT_TIMEOUT_MS = 6000
 DEFAULT_RECOVERY_BUDGET = 2
 
-
-def validate_inputs(artifact: Artifact, inputs: dict) -> str | None:
-    for name, spec in artifact.contract.inputs.items():
-        if name not in inputs:
-            if spec.required:
-                return f"missing required input {name!r}"
-            continue
-        value = str(inputs[name])
-        if spec.pattern and not re.fullmatch(spec.pattern, value):
-            return f"input {name!r} does not match {spec.pattern}"
-        if spec.values and value not in spec.values:
-            return f"input {name!r} must be one of {spec.values}"
-        if spec.max_length and len(value) > spec.max_length:
-            return f"input {name!r} is longer than {spec.max_length}"
-    return None
 
 
 def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:

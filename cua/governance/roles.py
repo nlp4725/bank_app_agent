@@ -1,10 +1,10 @@
 """Roles: named permission bundles per vendor app, written ahead of discovery."""
 
-import fnmatch
 from functools import lru_cache
 
 import yaml
 
+from ..domain.rules import covers  # noqa: F401  (re-exported: callers ask roles for it)
 from ..paths import ROLES_DIR
 
 
@@ -31,8 +31,3 @@ def get_role(vendor_app: str, role: str) -> dict:
     if role not in roles or not isinstance(roles[role], dict):
         raise UnknownRole(f"{vendor_app} has no role {role!r}")
     return roles[role]
-
-
-def covers(patterns: list[str], value: str) -> bool:
-    """Is `value` permitted by any of the role's patterns?"""
-    return any(fnmatch.fnmatch(value, p) or value == p for p in patterns)

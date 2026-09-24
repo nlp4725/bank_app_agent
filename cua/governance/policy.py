@@ -12,23 +12,13 @@ from functools import lru_cache
 import yaml
 
 from ..paths import CONFIG, POLICIES_DIR
-from .roles import covers, get_role
+from ..domain.rules import covers, route_of  # noqa: F401  (route_of re-exported)
+from .roles import get_role
 
 
 class PolicyError(Exception):
     pass
 
-
-def route_of(url: str, origin: str) -> str:
-    """The route the Policy is asked about, from where the browser is.
-
-    A URL that is not under the run's origin cannot be made origin-relative, so it is
-    asked about whole and fails the allowlist — fail closed, rather than slicing a
-    string into something that happens to match. Both workflows ask this way: the
-    Discovery Run used to slice blindly.
-    """
-    origin = origin.rstrip("/")
-    return (url[len(origin):] if url.startswith(origin) else url) or "/"
 
 
 @lru_cache(maxsize=None)
