@@ -418,8 +418,9 @@ class RecordingSurface:
     def text(self) -> str:
         return self.surface.text()
 
-    def screenshot(self, path: str, mask_targets=None, scale: str = "css"):
-        return self.surface.screenshot(path, mask_targets=mask_targets, scale=scale)
+    def screenshot(self, path: str, mask_targets=None, scale: str = "css", **masking):
+        # every masking argument the Redactor passes goes straight through
+        return self.surface.screenshot(path, mask_targets, scale, **masking)
 
     def close(self):
         self.surface.close()

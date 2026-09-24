@@ -84,6 +84,22 @@ class Redactor:
     def text(self, value: str) -> str:
         return redact_text(value)
 
+    def page_text(self, surface) -> str:
+        """Everything visible on the page, on its way to a model: origin first, then
+        patterns. Every value cell whose caption is not a Readable Anchor is replaced by
+        (hidden) — a name has no shape a pattern could find, so this is the layer that
+        hides it — then declared text patterns, then the pattern net over what is left.
+        The same declarations paint the screenshot, so the two channels agree."""
+        text = surface.text()
+        if self.profile is not None and self.mask_values:
+            readable = set(self.profile.readable_anchors)
+            for cell in surface.values(0):
+                if cell["anchor"] not in readable and cell["text"]:
+                    text = text.replace(cell["text"], HIDDEN)
+            for pattern in self.profile.sensitive_text:
+                text = re.sub(pattern, HIDDEN, text)
+        return redact_text(text)
+
     def fields(self, value, keep_values: bool = False):
         """Log fields and returned outputs. Outputs are the answer, so they pass
         through in full; the record of them is masked."""

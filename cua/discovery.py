@@ -168,7 +168,7 @@ def observation(surface: RecordingSurface, redactor: Redactor) -> tuple[str, lis
             if raw:
                 value = f'  value: {redactor.value(c["anchor"], raw, is_password=c["is_password"])}'
         lines.append(f'[{c["index"]}] {c["role"]} {label}{hint}{value}')
-    page_text = redactor.text(surface.text())[:1500]
+    page_text = redactor.page_text(surface)[:1500]
     return "\n".join(lines) + f"\n\nvisible text (masked):\n{page_text}", controls
 
 
@@ -228,9 +228,10 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                 return _end(trace, run_id, "stuck_detected", turn, actions, outputs,
                             detail="the same screen three times")
 
-            messages.append({"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/png",
-                                             "data": _b64(shot)}},
+            # A capture that could not be masked is not sent at all: text only.
+            image = ([{"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                                                   "data": _b64(shot)}}] if shot else [])
+            messages.append({"role": "user", "content": image + [
                 {"type": "text", "text":
                     f"goal: {request.goal}\n"
                     f"example input values: {json.dumps(request.example_values)}\n"
@@ -260,7 +261,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                         reason=call.input.get("reason"))
             _say(request.verbose,
                  f"   model -> {call.name}({', '.join(f'{k}={v!r}' for k, v in call.input.items() if k != 'reason')})"
-                 f"\n           \"{call.input.get('reason', '')}\"")
+                 f"\n           \"{redactor.text(call.input.get('reason', ''))}\"")
 
             # ── endings the model chooses ───────────────────────────────────
             if call.name == "goal_reached":

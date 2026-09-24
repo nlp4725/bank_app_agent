@@ -231,3 +231,23 @@ def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
     src = inspect.getsource(discovery.discover)
     assert 'if call.name == "click" else None' in src
     assert src.index("surface.crop(") < src.index("record = _perform(")
+
+
+def test_the_page_text_the_model_reads_hides_a_value_no_pattern_can_find(bank_app):
+    """The gap this closed: the 'visible text' block went through the pattern net only,
+    so a name — which no pattern can find — reached the model and, repeated in its
+    reason, the trail. Page text now goes through origin masking like the cells do."""
+    from cua.redact import Redactor
+    from cua.surface import Surface
+    surface = Surface(bank_app)
+    try:
+        _member_page(surface)
+        raw = surface.text()
+        assert "Jane Q. Public" in raw                      # it is on the page
+        shown = Redactor(load_profile("demo-core-servicing")).page_text(surface)
+        assert "Jane Q. Public" not in shown
+        assert "Member 12345" not in shown                  # declared text pattern
+        assert "(hidden)" in shown
+        assert "Savings balance" in shown                   # captions stay: the model needs them
+    finally:
+        surface.close()

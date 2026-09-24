@@ -1,4 +1,4 @@
-# What the Reviewer decided about the draft compiled from disc_438fdc9d.
+# What the Reviewer decided about the draft compiled from disc_5d0cdc53.
 # Applied mechanically by cua/review.py; nothing here is inferred.
 # NO_SAVINGS_ACCOUNT dropped: the demo app has no member without a savings account,
 # so no watcher can honestly recognise it. Promised-but-impossible is worse than absent.

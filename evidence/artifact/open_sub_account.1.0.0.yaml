@@ -223,9 +223,6 @@ targets:
     - kind: role_name
       role: button
       name: Sign in
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/03_target.png
-      threshold: 0.94
   t_member_number:
     rungs:
     - kind: label_anchor
@@ -238,17 +235,11 @@ targets:
       anchor: Member number
       role: button
       relation: right_of
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/05_target.png
-      threshold: 0.94
   t_ok:
     rungs:
     - kind: role_name
       role: button
       name: OK
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/06_target.png
-      threshold: 0.94
   t_savings_balance:
     frame:
       url_contains: /panel
@@ -261,9 +252,6 @@ targets:
     - kind: role_name
       role: button
       name: Open
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/08_target.png
-      threshold: 0.94
   t_account_type:
     rungs:
     - kind: role_name
@@ -288,9 +276,6 @@ targets:
     - kind: role_name
       role: button
       name: Review
-    - kind: picture
-      asset: artifacts/assets/member.open_sub_account/11_target.png
-      threshold: 0.94
   t_continue:
     rungs:
     - kind: role_name

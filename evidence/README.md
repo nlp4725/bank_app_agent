@@ -1,6 +1,6 @@
 # Evidence
 
-Seven runs, chosen to show the whole thread once: a real LLM discovery run, the draft it
+Eight runs, chosen to show the whole thread once: a real LLM discovery run, the draft it
 compiled, and five replays of the approved capability — one clean, one business outcome, one
 escalation a person resolves, one held-out condition, one refused before the browser opened.
 
@@ -27,6 +27,7 @@ its suggestions.
 | 5 | `05-replay-escalation-handoff` | a person takes the live session and the run finishes | `Succeeded` after handoff |
 | 6 | `06-replay-unknown-state` | a condition the artifact has never seen | `Failed unknown_state`, effect verified absent |
 | 7 | `07-replay-refused-by-policy` | the same artifact at a tenant that has not granted its role | `Refused`, nothing touched |
+| 8 | `08-discovery-read-balance` | a second capability, discovered from a goal typed in words, under the current masking and crop rules | `goal_reached`, 7 turns |
 
 ## 1 — discovery, goal reached
 
@@ -34,7 +35,7 @@ its suggestions.
 secrets it never saw, found the unlabelled search icon by its neighbouring caption, dismissed
 an interstitial itself, read a value out of an iframe, and stopped at the confirmation screen.
 
-Redaction was on throughout. One thing these two folders predate: the screenshots here paint only the two declared Sensitive Regions (member name, member since). Since then the image channel took the text channel's default-deny — every value cell not declared readable, and the member number in the heading, are painted too (see `03`–`06`, regenerated) — and target crops are taken before acting and only for clicks. These two runs are real model runs and stay as recorded rather than being re-bought; the values visible in them are the demo app's seed data.
+Redaction was on throughout, with one exception found afterwards and corrected in place: the *visible text* block of each `observed` event went through the pattern net only, so the member's name reached the model five times in this run. Page text now goes through origin masking like the cells do (`Redactor.page_text`), and the five occurrences in this trail were replaced with `(hidden)` on 23 Sep 2026 — the one edit ever made to a recorded run, made because a name in a public repository outranks "stays as recorded". Another thing these two folders predate: the screenshots here paint only the two declared Sensitive Regions (member name, member since). Since then the image channel took the text channel's default-deny — every value cell not declared readable, and the member number in the heading, are painted too (see `03`–`06`, regenerated) — and target crops are taken before acting and only for clicks. These two runs are real model runs and stay as recorded rather than being re-bought; the values visible in them are the demo app's seed data.
 
 In the `observed` events the model is reading things like
 `textbox (no accessible name) near text: "User ID" value: (hidden)` and a masked page text —
@@ -118,6 +119,17 @@ result  refused  "tenant 'bank_b' does not grant role 'account_opener'"
 
 One event long, because nothing else happened. No browser opened, and the refusal names the
 layer that refused.
+
+## 8 — discovery, a second capability
+
+`member.read_savings_balance`, from the goal "look up a member and read their savings
+balance" typed at `tools.start`; the model proposed the Contract and the `balance_reader`
+Role, a Reviewer approved both, and this run followed. Seven turns, no consequential action.
+It is the run recorded after every masking rule was in place: the page text the model read
+carries no name (`grep -c "Jane" trail.jsonl` → 0), the screenshots paint every undeclared
+value, and the two crops (`03_target.png`, `05_target.png`) are of the Sign in button and the
+search icon, taken before the click. The figure "one turn, three representations" in the
+REPORT is drawn from turn 5 of this folder.
 
 ## Reproducing these
 
