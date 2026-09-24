@@ -11,6 +11,7 @@ from functools import lru_cache
 import yaml
 
 from ..domain.artifact import AppProfile
+from ..redact import Redactor
 from ..paths import PROFILES_DIR
 
 
@@ -24,3 +25,12 @@ def load_profile(vendor_app: str) -> AppProfile:
     if not path.exists():
         raise UnknownProfile(f"no app profile for vendor app {vendor_app!r}")
     return AppProfile.model_validate(yaml.safe_load(path.read_text()))
+
+
+def redactor_for(vendor_app: str, **flags) -> Redactor:
+    """The Redactor for one vendor app. An app with no Profile still gets the text
+    and pattern layers, never nothing."""
+    try:
+        return Redactor(load_profile(vendor_app), **flags)
+    except UnknownProfile:
+        return Redactor(None, **flags)

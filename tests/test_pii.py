@@ -141,9 +141,9 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
     """The gap this closed: EvidenceWriter.snap used to capture unmasked, so a
     failure screenshot and an Operator's intervention bypassed layer 4."""
     from cua.evidence import EvidenceWriter
-    from cua.redact import for_app
+    from cua.governance.profile import redactor_for
 
-    redactor = for_app("demo-core-servicing")
+    redactor = redactor_for("demo-core-servicing")
     assert len(redactor.masked_targets()) == 2
 
     class Recorder:

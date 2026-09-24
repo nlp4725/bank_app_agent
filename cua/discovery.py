@@ -10,6 +10,7 @@ Six endings — four the model may choose, two the code decides:
     step_limit/timeout · stuck_detected
 """
 
+import base64
 import json
 import os
 import time
@@ -18,11 +19,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import anthropic
+import yaml
 
-from .domain.artifact import AppProfile
+from .domain.artifact import AppProfile, Contract
 from .evidence import EvidenceWriter
 from .governance.policy import policy_for_role, route_of
-from .redact import PROTECTED, Redactor, for_app
+from .governance.profile import redactor_for
+from .governance.roles import list_roles
+from .redact import PROTECTED, Redactor
+from .recorder import record
 from .secrets import EnvSecrets
 from .surface import RecordingSurface, Surface
 
@@ -189,7 +194,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
     redactor = (Redactor(request.app_profile, mask_values=request.mask_values,
                          mask_pixels=request.mask_pixels)
                 if request.app_profile is not None
-                else for_app(request.vendor_app, mask_values=request.mask_values,
+                else redactor_for(request.vendor_app, mask_values=request.mask_values,
                              mask_pixels=request.mask_pixels))
     trace.redactor = redactor
     secrets = request.secrets or _default_secrets(policy)
@@ -365,14 +370,12 @@ def _result(call, text, extras=()):
 
 def _compile_draft(request, trace_dir, run_id, actions, suggestions_out):
     """A successful run compiles to a draft Artifact immediately."""
-    from .recorder import record
     draft, suggestions = record(
         actions, request.contract, request.example_values,
         capability_id=request.capability_id or "capability",
         vendor_app=request.vendor_app, role=request.role_for_artifact or request.role,
         discovered_by=run_id)
     path = Path(trace_dir) / "draft.yaml"
-    import yaml
     path.write_text(yaml.safe_dump(draft, sort_keys=False, width=100))
     suggestions_out.extend(suggestions)
     return str(path)
@@ -395,7 +398,6 @@ def _end(trace, run_id, ending, turns, actions, outputs, outcome=None, detail=No
 
 
 def _b64(path):
-    import base64
     return base64.standard_b64encode(Path(path).read_bytes()).decode()
 
 
@@ -496,8 +498,6 @@ def propose_tool(role_names: list[str]) -> dict:
 def spec_from_proposal(proposal: dict, vendor_app: str) -> dict:
     """The model's answer as a Discovery Request, validated against the Contract
     schema the engine runs. A shape the engine does not know is refused here."""
-    from .domain.artifact import Contract
-    from .governance.roles import list_roles
 
     if proposal.get("role") not in list_roles(vendor_app):
         raise ProposalError(f"proposed role {proposal.get('role')!r} is not a Role of {vendor_app}")
@@ -547,7 +547,6 @@ def propose_contract(goal: str, vendor_app: str, client=None,
 
     `known_outcomes` are the codes other capabilities on this app already use, so the
     same answer gets the same name across the catalog."""
-    from .governance.roles import list_roles
     roles = list_roles(vendor_app)
     roles_text = "\n".join(
         f"- {name}: {r.get('intent', '')} (consequential: {r.get('consequential', 'forbidden')};"

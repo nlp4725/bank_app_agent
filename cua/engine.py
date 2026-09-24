@@ -18,7 +18,8 @@ from .narration import Silent
 from .governance.policy import PolicyError, policy_for, route_of
 from .domain.placeholders import render
 from .predicates import Predicates
-from .redact import for_app
+from .governance.profile import redactor_for
+from .overlay import apply_overlay, lint_overlay
 from .domain.result import RunResult
 from .secrets import EnvSecrets, MissingSecret
 from .surface import Surface
@@ -71,7 +72,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     # The Redactor comes from the vendor app, so a replay's evidence is masked by the
     # same declarations a Discovery Run's is — screenshots included.
     evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id,
-                              redactor=for_app(artifact.capability.vendor_app))
+                              redactor=redactor_for(artifact.capability.vendor_app))
 
     # ── the front door: nothing is touched if any of this fails ──────────────
     try:
@@ -98,7 +99,6 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
             return evidence.refused(run_id, f"secret {name!r} does not resolve")
 
     if ctx.overlay:
-        from .overlay import apply_overlay, lint_overlay
         problems = lint_overlay(artifact, ctx.overlay)
         if problems:
             return evidence.refused(run_id, f"overlay rejected: {problems[0]}")

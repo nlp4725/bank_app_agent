@@ -136,12 +136,3 @@ class Redactor:
             return ""
         return path
 
-
-def for_app(vendor_app: str, **flags) -> Redactor:
-    """The Redactor for one vendor app. An app with no Profile still gets the text
-    and pattern layers, never nothing."""
-    from .governance.profile import UnknownProfile, load_profile
-    try:
-        return Redactor(load_profile(vendor_app), **flags)
-    except UnknownProfile:
-        return Redactor(None, **flags)

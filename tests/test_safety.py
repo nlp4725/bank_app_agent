@@ -272,6 +272,18 @@ def test_discovery_is_not_reachable_from_replay():
     assert not crossed, f"replay reaches discovery: {sorted(map(rel, crossed))}"
 
 
+def test_no_import_hides_inside_a_function():
+    """Every dependency is visible at the top of the file. An import inside a function
+    is a cycle waiting to be found by the next move: it passes the rules above (they
+    walk the whole AST) and still surprises whoever relocates the module."""
+    for path in sources():
+        tree = ast.parse(path.read_text())
+        nested = [n.lineno for f in ast.walk(tree)
+                  if isinstance(f, (ast.FunctionDef, ast.AsyncFunctionDef))
+                  for n in ast.walk(f) if isinstance(n, (ast.Import, ast.ImportFrom))]
+        assert not nested, f"{rel(path)}:{nested} imports inside a function"
+
+
 def test_only_the_surface_module_touches_playwright():
     for path in sources() - under("surface"):
         assert "playwright" not in imports_of(path)[0], f"{rel(path)} imports playwright"
