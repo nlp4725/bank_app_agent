@@ -143,7 +143,8 @@ LAYOUT = {
     "domain": "domain",               # pure: no file, browser, model or clock
     "replay_entry": "replay/engine.py",       # a Production Replay starts here; it reaches only what this reaches
     "predicates": "replay/predicates.py",
-    "discovery": ["discovery"],        # the only files that may import a model SDK
+    "discovery": ["discovery"],        # a model is in the loop here and nowhere else
+    "model": ["discovery/model.py"],   # the only file that may import a model SDK
     "surface": ["surface"],            # the only files that may import playwright
 }
 
@@ -263,7 +264,7 @@ def test_replay_cannot_reach_a_model_sdk():
 def test_the_model_sdk_lives_only_in_discovery():
     users = {p for p in sources() if imports_of(p)[0] & MODEL_SDKS}
     assert users, "nothing imports a model SDK: the rule has nothing to check"
-    outside = users - under("discovery")
+    outside = users - under("model")
     assert not outside, f"unexpected model SDK users: {sorted(map(rel, outside))}"
 
 

@@ -21,6 +21,9 @@ class DiscoveryRequest:
     evidence_root: str = "runs"
     headless: bool = True
     secrets: object | None = None
+    # The model that answers each turn. None means the real one (discovery/model.py);
+    # a scripted stand-in is how the loop is tested without a key.
+    model: object | None = None
     # Masking is ON, in layers (see CONTEXT.md, "Redaction"):
     #   structural — a password is never read, whatever is declared
     #   origin     — a value is hidden unless its caption is a Readable Region
