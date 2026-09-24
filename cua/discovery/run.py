@@ -21,14 +21,14 @@ from pathlib import Path
 import anthropic
 import yaml
 
-from .domain.artifact import AppProfile, Contract
-from .evidence import PROTECTED, EvidenceWriter, Redactor
-from .governance.policy import policy_for_role, route_of
-from .governance.profile import redactor_for
-from .governance.roles import list_roles
-from .authoring.recorder import record
-from .secrets import EnvSecrets
-from .surface import RecordingSurface, Surface
+from ..domain.artifact import AppProfile, Contract
+from ..evidence import PROTECTED, EvidenceWriter, Redactor
+from ..governance.policy import policy_for_role, route_of
+from ..governance.profile import redactor_for
+from ..governance.roles import list_roles
+from ..authoring.recorder import record
+from ..secrets import EnvSecrets
+from ..surface import RecordingSurface, Surface
 
 MODEL = os.environ.get("DISCOVERY_MODEL", "claude-opus-5")
 MAX_TURNS = 24

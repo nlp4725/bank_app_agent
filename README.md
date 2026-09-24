@@ -452,7 +452,7 @@ cannot reach past the acting interface of the Surface.
 | `cua/artifact.py` | the Artifact schema: the closed vocabulary an Artifact may name |
 | `cua/replay/predicates.py` | the four Predicates, their rendering and evaluation |
 | `cua/surface.py` | the only module that touches a browser |
-| `cua/discovery.py` | the only module that touches a model |
+| `cua/discovery/run.py` | the only module that touches a model |
 | `cua/authoring/recorder.py` · `cua/authoring/review.py` | run → draft Artifact → approved Artifact |
 | `cua/policy.py` · `cua/roles.py` · `cua/profile.py` · `cua/store.py` | permissions, and which Artifact is live |
 | `cua/redact.py` | the Redaction Chokepoint — every channel passes through it |

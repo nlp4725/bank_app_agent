@@ -143,7 +143,7 @@ LAYOUT = {
     "domain": "domain",               # pure: no file, browser, model or clock
     "replay_entry": "replay/engine.py",       # a Production Replay starts here; it reaches only what this reaches
     "predicates": "replay/predicates.py",
-    "discovery": ["discovery.py"],     # the only files that may import a model SDK
+    "discovery": ["discovery"],        # the only files that may import a model SDK
     "surface": ["surface"],            # the only files that may import playwright
 }
 
