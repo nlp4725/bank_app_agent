@@ -306,7 +306,7 @@ def show_draft(draft: dict, suggestions: list[str]) -> str:
 
 def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=input,
            reviewer: str = "reviewer") -> dict:
-    """The Reviewer's answers, as a decisions file cua/review.py applies mechanically."""
+    """The Reviewer's answers, as a decisions file cua/authoring/review.py applies mechanically."""
     decisions = {"version": draft["capability"]["version"], "approvals": [],
                  "safe_targets": [], "interruptions": [], "watchers": [], "keep_outcomes": []}
 
@@ -449,8 +449,8 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     from cua.domain.artifact import Artifact, merged
     from cua.engine import RunContext, replay
     from cua.governance.profile import load_profile
-    from cua.recorder import record_from_run
-    from cua.review import apply_decisions, approve
+    from cua.authoring.recorder import record_from_run
+    from cua.authoring.review import apply_decisions, approve
     from cua.governance.store import origin_for
 
     reviewer = reviewer or f"reviewer:{os.environ.get('USER', 'reviewer')}"
@@ -472,7 +472,7 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     ARTIFACTS.mkdir(exist_ok=True)
     dpath = ARTIFACTS / f"{stem}.decisions.yaml"
     dpath.write_text(f"# What the Reviewer decided about the draft compiled from {run_id}.\n"
-                     f"# Applied mechanically by cua/review.py; nothing here is inferred.\n"
+                     f"# Applied mechanically by cua/authoring/review.py; nothing here is inferred.\n"
                      + yaml.safe_dump(decisions, sort_keys=False, width=100))
     candidate = apply_decisions(draft, decisions)
 

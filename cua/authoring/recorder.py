@@ -10,7 +10,7 @@ import re
 import shutil
 from pathlib import Path
 
-from .paths import ASSETS, ROOT
+from ..paths import ASSETS, ROOT
 
 SLUG = re.compile(r"[^a-z0-9]+")
 

@@ -11,34 +11,27 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
 
 ![system architecture](./docs/figures/architecture.svg)
 
-*Figure 1.1 — One capability's path. A Reviewer states a goal and confirms the Contract the
-LLM proposes. The Discovery Run drives a non-production app once, one policy-checked action
-per turn. The Recorder turns the trace into a draft; the Reviewer decides which clicks are
-safe and which screens are Watchers; the Verify Replay runs that candidate with no model on
-a member discovery never saw, and only a pass enters the store. In production a Calling
-Agent invokes the capability by name with typed inputs, the engine replays it with Policy
-checked before every action, and returns one Run Result. When it cannot safely continue it
-hands the live session to an Operator and resumes on a re-checked Checkpoint.*
+**Figure 1.1 — One capability's path.** *A Reviewer states a goal and confirms the
+Contract the LLM proposes. The Discovery Run drives a non-production app once, one
+policy-checked action per turn. The Recorder turns the trace into a draft; the Reviewer
+decides which clicks are safe and which screens are Watchers; the Verify Replay runs that
+candidate with no model on a member discovery never saw, and only a pass enters the store.
+In production a Calling Agent invokes the capability by name with typed inputs, the engine
+replays it with Policy checked before every action, and returns one Run Result. When it
+cannot safely continue it hands the live session to an Operator and resumes on a
+re-checked Checkpoint.*
+
+## 2. Artifact schema
 
 ![read_savings_balance as a state machine](./docs/figures/state_chain.svg)
 
-*Figure 1.2 — The approved "read savings balance" Artifact of Figure 2.2 drawn as a state
-machine (read top row left to right, then bottom row right to left). Each box is a State;
-the amber box beneath it is its Checkpoint, the question that must answer yes on the live
-screen for the engine to believe it is there. Each arrow is a Transition holding an Action.
-The Replay Engine executes this graph directly; it is not regenerated into a script. Drawn
-from [read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml).*
-
-- **The boundaries are code.** Only [`cua/surface/driver.py`](./cua/surface/driver.py) imports Playwright;
-  only [`cua/discovery.py`](./cua/discovery.py) imports a model SDK, and an import-graph test
-  asserts the engine cannot reach it.
-- **The Artifact is data interpreted by one engine, not generated code** (ADR 0001). The
-  engine holds four actions, four predicates, three ways to find a control, the policy check,
-  risk gate, retry budgets and redaction; an Artifact can only name them.
-- **The Contract is fixed before discovery** (ADR 0004): the goal says what, the Role bounds
-  what may be touched, discovery finds only how.
-
-## 2. Artifact schema
+**Figure 2.1 — The core of an Artifact is a state machine, adapted from the PreAct paper
+from Li et al.<sup>[1]</sup>.** *A box is a State, the amber box under it is the
+Checkpoint that must hold on the live screen before the engine believes it is there, and
+an arrow is a Transition holding one Action. Read the top row left to right, then the
+bottom row right to left. The engine executes this graph directly. Drawn from
+[read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml), listed in
+full as Figure S1 of [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
 
 ```jsonc
 {
@@ -73,99 +66,19 @@ from [read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.ya
 <predicate> ::= element_present | text_present | field_value | url_matches | all | any
 ```
 
-*Figure 2.1 — The schema ([`cua/domain/artifact.py`](./cua/domain/artifact.py)): PreAct's
-Listing 1 plus a **contract** the caller depends on, **targets** as ladders, **watchers** for
-screens that interrupt any state, and **needs** so policy can refuse before the run starts.*
-
-```json
-{
-  "capability": {"id": "member.read_savings_balance", "version": "1.0.0",
-                 "vendor_app": "demo-core-servicing", "role": "balance_reader",
-                 "status": "approved", "approvals": ["reviewer:nasi"]},
-
-  "contract": {
-    "inputs":  {"member_number": {"type": "string", "pattern": "^[0-9]{5}$", "max_length": 5,
-                                  "sensitive": true, "required": true}},
-    "outputs": {"savings_balance": {"type": "money", "sensitive": false}},
-    "outcomes": [
-      {"code": "MEMBER_NOT_FOUND", "meaning": "No member exists with that number.",
-       "resolver": "member", "retry_same_inputs": "never",
-       "caller_hint": "Confirm the 5-digit member number with the member and try again."},
-      {"code": "NOT_AUTHORIZED", "meaning": "This login may not view that member.",
-       "resolver": "institution_staff", "retry_same_inputs": "never",
-       "caller_hint": "Have staff grant this login access to the member's records."}]},
-
-  "needs": {"pages":   ["/login", "/members/*", "/search"],
-            "actions": ["click", "read", "type"],
-            "secrets": ["login_password", "login_username"]},
-
-  "states": [
-    {"id": "s1_login",                "checkpoint": {"type": "element_present", "target": "t_user_id"}},
-    {"id": "s2_user_id_entered",      "checkpoint": {"type": "field_value", "target": "t_user_id", "non_empty": true}},
-    {"id": "s3_password_entered",     "checkpoint": {"type": "field_value", "target": "t_password", "non_empty": true}},
-    {"id": "s4_search",               "checkpoint": {"type": "element_present", "target": "t_member_number"}},
-    {"id": "s5_member_number_entered","checkpoint": {"type": "field_value", "target": "t_member_number", "non_empty": true}},
-    {"id": "s6_members_id",           "checkpoint": {"type": "element_present", "target": "t_savings_balance"}},
-    {"id": "s7_savings_balance_read", "checkpoint": {"type": "element_present", "target": "t_savings_balance"},
-                                      "terminal": "succeeded"}],
-
-  "transitions": [
-    {"from_state": "s1_login",                 "to_state": "s2_user_id_entered",
-     "action": {"type": "type",  "target": "t_user_id",       "value_ref": "login_username"},  "risk": "safe"},
-    {"from_state": "s2_user_id_entered",       "to_state": "s3_password_entered",
-     "action": {"type": "type",  "target": "t_password",      "value_ref": "login_password"},  "risk": "safe"},
-    {"from_state": "s3_password_entered",      "to_state": "s4_search",
-     "action": {"type": "click", "target": "t_sign_in"},                                       "risk": "safe"},
-    {"from_state": "s4_search",                "to_state": "s5_member_number_entered",
-     "action": {"type": "type",  "target": "t_member_number", "value": "{{member_number}}"},   "risk": "safe"},
-    {"from_state": "s5_member_number_entered", "to_state": "s6_members_id",
-     "action": {"type": "click", "target": "t_member_number_button"},                          "risk": "safe"},
-    {"from_state": "s6_members_id",            "to_state": "s7_savings_balance_read",
-     "action": {"type": "read",  "target": "t_savings_balance", "into": "savings_balance"},    "risk": "safe"}],
-
-  "targets": {
-    "t_user_id":       {"rungs": [{"kind": "label_anchor", "anchor": "User ID",  "role": "textbox", "relation": "right_of"}]},
-    "t_password":      {"rungs": [{"kind": "label_anchor", "anchor": "Password", "role": "textbox", "relation": "right_of"}]},
-    "t_sign_in":       {"rungs": [{"kind": "role_name", "role": "button", "name": "Sign in"},
-                                  {"kind": "picture", "asset": "artifacts/assets/member.read_savings_balance/03_target.png", "threshold": 0.94}]},
-    "t_member_number": {"rungs": [{"kind": "label_anchor", "anchor": "Member number", "role": "textbox", "relation": "right_of"}]},
-    "t_member_number_button":
-                       {"rungs": [{"kind": "label_anchor", "anchor": "Member number", "role": "button", "relation": "right_of"},
-                                  {"kind": "picture", "asset": "artifacts/assets/member.read_savings_balance/05_target.png", "threshold": 0.94}]},
-    "t_savings_balance": {"frame": {"url_contains": "/panel"},
-                       "rungs": [{"kind": "label_anchor", "anchor": "Savings balance", "relation": "right_of"}]}},
-
-  "watchers": [
-    {"id": "w_not_found",      "trigger": {"type": "text_present", "value": "No records found"},
-     "condition": "business_outcome", "outcome": "MEMBER_NOT_FOUND", "provenance": "reuse:member.open_sub_account"},
-    {"id": "w_not_authorized", "trigger": {"type": "text_present", "value": "not authorized to view"},
-     "condition": "business_outcome", "outcome": "NOT_AUTHORIZED",   "provenance": "reuse:member.open_sub_account"}],
-
-  "provenance": {"discovered_by": "disc_5d0cdc53", "contract_by": "reviewer",
-                 "example_values": {"member_number": "12345"}}
-}
-```
-
-*Figure 2.2 — A whole approved Artifact, verbatim from
-[read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml). One
-approval, because nothing in it commits. Success is not an Outcome Code: it is the Run
-Result `Succeeded` carrying `outputs`, reached at the State marked `terminal: succeeded`;
-Outcome Codes are only the legitimate non-happy answers. The Watchers were borrowed from `open_sub_account`
-on the same app, which is what their provenance says. The balance is in an iframe, hence
-the `frame` on its Target.*
-
-- **One State per step** (ADR 0007): after a `type`, the field is non-empty; after a
-  `click`, the next control is there. A field that did not take its text is caught right there.
-- **A state machine, not a step list.** The engine can always ask "which State holds now?",
-  and recovery, Operator resume and re-login after a session expiry all reduce to that.
-- **Interruptions are Watchers, not steps.** A Watcher can fire from any State and is consulted
-  only when a Checkpoint misses; the ones shared by every
-  capability on the app live in the App Profile.
-- **Closed vocabulary, checked twice.** The schema rejects `download` by parsing; the lint
-  ([`cua/lint.py`](./cua/lint.py)) rejects a leftover discovery literal, an outcome no watcher
-  can produce, Needs outside the Role, a commit with no Verification Check. The Capability
-  Store ([`cua/governance/store.py`](./cua/governance/store.py)) is the one answer to "which
-  Artifact is live?"; nothing under `runs/` is ever replayed.
+**Figure 2.2 — The schema every Artifact conforms to, adapted from the PreAct paper from
+Li et al.<sup>[1]</sup>.** *Four blocks are additions the bank setting forces. The
+contract is all a Calling Agent depends on: typed inputs validated before a browser opens,
+outputs that a Succeeded result carries, and business outcomes, the legitimate non-happy
+answers such as MEMBER_NOT_FOUND, each with who can resolve it. Needs is the access the
+flow was seen to use during discovery, and Policy must grant every item or the run is
+Refused. Targets are ladders, so a control is found by its accessible name, then by the
+caption beside it, then by a picture, and replay records which rung matched. Watchers are
+the flow's own triggers, while app-wide ones such as session expiry arrive from the App
+Profile at load time. The last line is the grammar for every predicate in the file: the
+only four questions the engine can ask a screen, or a combination of them, and never free
+text. Models in [`cua/domain/artifact.py`](./cua/domain/artifact.py); an unknown key or
+action type is rejected by parsing.*
 
 ## 3. Determinism & error handling
 
@@ -178,42 +91,39 @@ the `frame` on its Target.*
   6 OBSERVE       to-state's checkpoint holds? else a Watcher? else Unknown State
 ```
 
-*Figure 3.1 — One Transition in [`cua/engine.py`](./cua/engine.py). Policy is asked before
-acting, Checkpoints and Watchers after. Determinism is: no model, a closed vocabulary, the
-matched rung recorded, a Checkpoint after every action, placeholders enforced by lint, waits
-through the browser, a loop guard.*
+**Figure 3.1 — One Transition in [`cua/engine.py`](./cua/engine.py).** *Policy is asked
+before acting, Checkpoints and Watchers after. Determinism is: no model, a closed
+vocabulary, the matched rung recorded, a Checkpoint after every action, placeholders
+enforced by lint, waits through the browser, a loop guard.*
 
-```
-          SCREEN AFTER AN ACTION
-                  │
-         ┌────────▼─────────┐
-         │ to-state's       │──yes──► next Transition
-         │ Checkpoint holds?│
-         └────────┬─────────┘
-                  │ no
-         ┌────────▼─────────┐              attended:   Escalate to an Operator
-         │ a Watcher fires? │──no───► UNKNOWN STATE   unattended: Failed
-         └────────┬─────────┘              after a commit: Verification Check looks,
-                  │ yes                                    never clicks again
-    ┌─────────────▼────────────────────────────────────────────────────┐
-    │ Business Outcome   nobody acts, it is the answer  → stop, code   │
-    │ Recoverable        the system, within a budget    → fix, re-check│
-    │ Escalate           an Operator, during the run    → pause, resume│
-    │ Hard Failure       nobody in time                → stop, evidence│
-    └──────────────────────────────────────────────────────────────────┘
-```
+| Example on screen | Condition | Who acts | Reaction | Run Result if unresolved |
+|---|---|---|---|---|
+| Input fails its Contract type/pattern/enum | — (caught before the run) | nobody needed | never started | **Refused** |
+| "No records found" | Business Outcome | nobody — it is the answer | stop | **Business Outcome** `MEMBER_NOT_FOUND` (resolver: Member) |
+| "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
+| "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
+| "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
+| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
+| Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
+| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential Action was already in flight |
+| "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
+| A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
+| Frozen screen after a Consequential Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
+| System died mid-Consequential Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
 
-*Figure 3.2 — Every surprise becomes one of four Conditions; the test is who can act.
-Budgets in [docs/error-taxonomy.md](./docs/error-taxonomy.md).*
+**Figure 3.2 — Every surprise becomes one of four Conditions, and the test is who can
+act.** *The system alone within a budget, a person during the run, or nobody in time. The
+table is the one in [CONTEXT.md](./CONTEXT.md); budgets are in
+[docs/error-taxonomy.md](./docs/error-taxonomy.md).*
 
 ![read_savings_balance under four runs](./docs/figures/read_savings_balance_paths.svg)
 
-*Figure 3.3 — Figure 1.2 under four real replays, drawn from their trails. The happy path
-never leaves the chain. The other three miss the same Checkpoint and get three answers:
-`99999` is a Business Outcome, stop with `MEMBER_NOT_FOUND`; `88888` is Recoverable, the
-engine finds the login State holds and runs the chain again from there; `44444` is an
-Escalate, a supervisor acts in the live browser and the run resumes at the State that now
-holds.*
+**Figure 3.3 — Figure 2.1 under four real replays, drawn from their trails.** *The happy
+path never leaves the chain. The other three miss the same Checkpoint and get three
+answers: `99999` is a Business Outcome, stop with `MEMBER_NOT_FOUND`; `88888` is
+Recoverable, the engine finds the login State holds and runs the chain again from there;
+`44444` is an Escalate, a supervisor acts in the live browser and the run resumes at the
+State that now holds.*
 
 - **One Run Result**: Succeeded, Business Outcome, Failed, Aborted, Refused (nothing
   touched), or Outcome Unknown: a commit happened and could not be confirmed, so do not
@@ -230,10 +140,10 @@ holds.*
 
 ![one turn, three representations](./docs/figures/three_representations.svg)
 
-*Figure 4.1 — One turn three ways, after AgentRR's Figure 3: the masked screenshot the model
-saw, the accessibility list it read, the recorded Target. This is the unlabelled search icon:
-an `<img>` in a `<button>` with no alt, so it has no accessible name and a text-only agent
-cannot see it.*
+**Figure 4.1 — One turn three ways, adapted from the AgentRR paper from Feng et
+al.<sup>[2]</sup>.** *The masked screenshot the model saw, the accessibility list it read,
+and the recorded Target. This is the unlabelled search icon: an `<img>` in a `<button>`
+with no alt, so it has no accessible name and a text-only agent cannot see it.*
 
 - **A Target is a ladder**: computed name, then caption plus layout, then a picture. Each
   breaks for a different reason, replay records which rung matched, and a Target stores a
@@ -254,12 +164,13 @@ cannot see it.*
    what replays at this Tenant
 ```
 
-*Figure 4.2 — Three-level composition ([`cua/overlay.py`](./cua/overlay.py)). The
-Artifact recorded at First Credit Union fails honestly at Lakeside Savings, `unknown_state`
-at the first Checkpoint because the field is called "Find member by #", and runs unchanged
-with a 20-line Overlay ([overlays/lakeside.yaml](./overlays/lakeside.yaml)). An Overlay that
-adds a transition, changes the contract or widens needs is refused. The Fallback Match
-rate, how often a ladder got past rung 1, is the per-tenant drift alarm.*
+**Figure 4.2 — Three-level composition
+([`cua/governance/overlay.py`](./cua/governance/overlay.py)).** *The Artifact recorded at
+First Credit Union fails honestly at Lakeside Savings, `unknown_state` at the first
+Checkpoint because the field is called "Find member by #", and runs unchanged with a
+20-line Overlay ([overlays/lakeside.yaml](./overlays/lakeside.yaml)). An Overlay that adds
+a transition, changes the contract or widens needs is refused. The Fallback Match rate,
+how often a ladder got past rung 1, is the per-tenant drift alarm.*
 
 ## 5. Escalation & handoff
 
@@ -269,8 +180,9 @@ rate, how often a ladder got past rung 1, is the per-tenant drift alarm.*
        └─────────────────┴─────────────────────┴───────────────────┴──────► done
 ```
 
-*Figure 5.1 — Control is a lease ([`cua/handoff.py`](./cua/handoff.py)): one holder
-at a time, illegal moves raise.*
+**Figure 5.1 — Control is a lease ([`cua/handoff.py`](./cua/handoff.py)): one holder at a
+time, illegal moves raise.** *Figure 5.1 — Control is a lease
+([`cua/handoff.py`](./cua/handoff.py)): one holder at a time, illegal moves raise.*
 
 - **Stuck is detected** by a Watcher whose Condition is `escalate`, an Unknown State in an
   attended run, or during discovery the model calling `ask_human`, and a stuck detector. An
@@ -296,11 +208,11 @@ at a time, illegal moves raise.*
    before a browser opens, naming the layer that refused
 ```
 
-*Figure 6.1 — Permissions ([`cua/governance/policy.py`](./cua/governance/policy.py),
-ADR 0005). `bank_b` does not grant `account_opener`, so the Artifact that works for `bank_a`
-is Refused there, no browser opened. Enforced on every request the browser makes: `/leaky`
-renders a 1×1 image pointing off-origin with member data in the query string, and the
-allowlist aborts it before it leaves.*
+**Figure 6.1 — Permissions ([`cua/governance/policy.py`](./cua/governance/policy.py), ADR
+0005).** *`bank_b` does not grant `account_opener`, so the Artifact that works for
+`bank_a` is Refused there, no browser opened. Enforced on every request the browser makes:
+`/leaky` renders a 1×1 image pointing off-origin with member data in the query string, and
+the allowlist aborts it before it leaves.*
 
 - **Every click arrives Consequential.** Only a Reviewer may downgrade one to Safe. An
   Artifact with one needs two named approvals; an unattended run whose commit has no
@@ -327,10 +239,10 @@ allowlist aborts it before it leaves.*
                                     Sensitive Regions and text patterns painted black
 ```
 
-*Figure 6.2 — Redaction ([`cua/evidence/redact.py`](./cua/evidence/redact.py)): structural, origin,
-pattern, pixels. Origin is the only layer that can hide a name, because no pattern finds one.
-Default-deny fails safe: a screen added next year hides its values until a Reviewer declares
-otherwise.*
+**Figure 6.2 — Redaction ([`cua/evidence/redact.py`](./cua/evidence/redact.py)):
+structural, origin, pattern, pixels.** *Origin is the only layer that can hide a name,
+because no pattern finds one. Default-deny fails safe: a screen added next year hides its
+values until a Reviewer declares otherwise.*
 
 - **The strongest control is not masking.** Evidence records only identifiers we generated,
   never page text. Outputs reach the caller in full and are masked in the record. NER is not
@@ -357,12 +269,16 @@ second `Surface`, so the seam is proven.
 
 ## References
 
-- **PreAct** (Li, [arXiv:2606.17929](https://arxiv.org/abs/2606.17929)): the Artifact's
-  shape, executing the state machine rather than regenerating a script, verify-before-store.
-  Departure: no model fallback at replay, so Watchers are global and an unrecognised screen stops.
-- **AgentRR** (Feng et al., [arXiv:2505.17716](https://arxiv.org/abs/2505.17716)): record →
-  summary → replay, check functions as the safety boundary, "untrusted record, trusted
-  replay", which is why discovery runs against non-production only (ADR 0003).
-- The ordered ladder and stop-rather-than-guess come from RPA practice: UiPath's ranked
-  selectors with a Computer Vision fallback, OpenAdapt's halt-instead-of-guessing
-  ([docs/targeting.md](./docs/targeting.md)).
+1. Bojie Li et al. *PreAct: Computer-Using Agents that Get Faster on Repeated Tasks.* Pine AI,
+   2026. [arXiv:2606.17929](https://arxiv.org/abs/2606.17929). Taken: the Artifact's shape,
+   executing the state machine rather than regenerating a script, verify-before-store.
+   Departure: no model fallback at replay, so Watchers are global and an unrecognised screen
+   stops the run.
+2. Feng et al. *Get Experience from Practice: LLM Agents with Record & Replay (AgentRR).*
+   IPADS, Shanghai Jiao Tong University, 2025.
+   [arXiv:2505.17716](https://arxiv.org/abs/2505.17716). Taken: record → summary → replay,
+   check functions as the safety boundary, "untrusted record, trusted replay", which is why
+   discovery runs against non-production only (ADR 0003).
+3. RPA practice: UiPath's ranked selectors with a Computer Vision fallback, and OpenAdapt's
+   halt-instead-of-guessing, for the ordered Target ladder and stop-rather-than-guess
+   ([docs/targeting.md](./docs/targeting.md)).

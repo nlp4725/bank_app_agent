@@ -7,7 +7,7 @@ caller that nothing can produce.
 
 from cua.governance.profile import load_profile
 from cua.domain.artifact import Artifact
-from cua.lint import lint
+from cua.authoring.lint import lint
 
 from .fixtures import artifact_dict, overlay_dict
 
@@ -131,12 +131,12 @@ def test_a_consequential_artifact_needs_two_approvals():
 # ── Tenant Overlays may change how things look, never how they behave ──────────
 
 def test_a_clean_overlay_is_accepted():
-    from cua.overlay import lint_overlay
+    from cua.governance.overlay import lint_overlay
     assert lint_overlay(Artifact.model_validate(artifact_dict()), overlay_dict()) == []
 
 
 def test_an_overlay_cannot_add_a_step():
-    from cua.overlay import lint_overlay
+    from cua.governance.overlay import lint_overlay
     o = overlay_dict()
     o["transitions"] = [{"from_state": "member_open", "to_state": "done", "action": {"type": "click", "target": "t_search"}}]
     issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
@@ -144,7 +144,7 @@ def test_an_overlay_cannot_add_a_step():
 
 
 def test_an_overlay_cannot_change_the_contract():
-    from cua.overlay import lint_overlay
+    from cua.governance.overlay import lint_overlay
     o = overlay_dict()
     o["contract"] = {"outputs": {"savings_balance": {"type": "money"}}}
     issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
@@ -152,7 +152,7 @@ def test_an_overlay_cannot_change_the_contract():
 
 
 def test_an_overlay_cannot_widen_needs():
-    from cua.overlay import lint_overlay
+    from cua.governance.overlay import lint_overlay
     o = overlay_dict()
     o["needs"] = {"pages": ["/transfers/*"]}
     issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
@@ -197,7 +197,7 @@ def test_a_profile_for_another_app_is_refused():
 def test_an_overlay_key_that_nothing_applies_is_refused_not_ignored():
     """`timeouts` and `watcher_triggers` used to lint clean and then do nothing, so a
     reviewer could approve a patch with no effect."""
-    from cua.overlay import lint_overlay
+    from cua.governance.overlay import lint_overlay
     art = Artifact.model_validate(artifact_dict())
     for key, value in (("timeouts", {"t_balance": 8000}),
                        ("watcher_triggers", {"w_system_notice": {"type": "text_present",

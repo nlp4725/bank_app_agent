@@ -11,8 +11,8 @@ import yaml
 from cua.domain.artifact import Artifact, merged
 from cua.engine import RunContext, replay
 from cua.governance.profile import load_profile
-from cua.recorder import record_from_run
-from cua.review import apply_decisions, approve
+from cua.authoring.recorder import record_from_run
+from cua.authoring.review import apply_decisions, approve
 from cua.governance.store import origin_for
 from tools.discover import CONTRACT
 

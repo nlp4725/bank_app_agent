@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from cua.lint import lint
+from cua.authoring.lint import lint
 from cua.governance.profile import UnknownProfile, load_profile
 from cua.governance.store import UnknownCapability, load_capability, origin_for, overlay_for
 
@@ -104,7 +104,7 @@ def test_a_run_compiled_after_it_moved_still_finds_its_crops(tmp_path):
     crops travelled with it in screens/."""
     import json
     import shutil
-    from cua.recorder import record_from_run
+    from cua.authoring.recorder import record_from_run
     from tools.discover import CONTRACT
 
     moved = tmp_path / "somewhere_else"
@@ -128,7 +128,7 @@ def test_a_run_compiled_after_it_moved_still_finds_its_crops(tmp_path):
 
 def test_a_missing_crop_drops_the_rung_rather_than_naming_a_dead_file(tmp_path):
     """A ladder that claims a fallback it does not have is worse than a short ladder."""
-    from cua.recorder import record
+    from cua.authoring.recorder import record
     actions = [{"turn": 1, "action": "click", "role": "button", "name": "Sign in",
                 "anchor": None, "target": {"rungs": [{"kind": "role_name",
                                                       "role": "button", "name": "Sign in"}]},

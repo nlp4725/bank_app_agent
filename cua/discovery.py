@@ -26,7 +26,7 @@ from .evidence import PROTECTED, EvidenceWriter, Redactor
 from .governance.policy import policy_for_role, route_of
 from .governance.profile import redactor_for
 from .governance.roles import list_roles
-from .recorder import record
+from .authoring.recorder import record
 from .secrets import EnvSecrets
 from .surface import RecordingSurface, Surface
 

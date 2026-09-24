@@ -19,7 +19,7 @@ from .governance.policy import PolicyError, policy_for, route_of
 from .domain.placeholders import render
 from .predicates import Predicates
 from .governance.profile import redactor_for
-from .overlay import apply_overlay, lint_overlay
+from .governance.overlay import apply_overlay, lint_overlay
 from .domain.result import RunResult
 from .secrets import EnvSecrets, MissingSecret
 from .surface import Surface
