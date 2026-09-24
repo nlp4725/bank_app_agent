@@ -21,8 +21,8 @@ import time
 import urllib.error
 import urllib.request
 
-from cua.engine import RunContext, replay
-from cua.narration import from_env
+from cua.replay.engine import RunContext, replay
+from cua.replay.narration import from_env
 from cua.governance.store import artifacts, load_capability, origin_for, overlay_for
 
 DEFAULT_CAPABILITY = os.environ.get("CAPABILITY")      # unset: choose from the catalog

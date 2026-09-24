@@ -91,7 +91,7 @@ action type is rejected by parsing.*
   6 OBSERVE       to-state's checkpoint holds? else a Watcher? else Unknown State
 ```
 
-**Figure 3.1 — One Transition in [`cua/engine.py`](./cua/engine.py).** *Policy is asked
+**Figure 3.1 — One Transition in [`cua/replay/engine.py`](./cua/replay/engine.py).** *Policy is asked
 before acting, Checkpoints and Watchers after. Determinism is: no model, a closed
 vocabulary, the matched rung recorded, a Checkpoint after every action, placeholders
 enforced by lint, waits through the browser, a loop guard.*
@@ -116,14 +116,16 @@ act.** *The system alone within a budget, a person during the run, or nobody in 
 table is the one in [CONTEXT.md](./CONTEXT.md); budgets are in
 [docs/error-taxonomy.md](./docs/error-taxonomy.md).*
 
-![read_savings_balance under four runs](./docs/figures/read_savings_balance_paths.svg)
+![the same checkpoint miss, three answers](./docs/figures/error_paths.svg)
 
-**Figure 3.3 — Figure 2.1 under four real replays, drawn from their trails.** *The happy
-path never leaves the chain. The other three miss the same Checkpoint and get three
-answers: `99999` is a Business Outcome, stop with `MEMBER_NOT_FOUND`; `88888` is
-Recoverable, the engine finds the login State holds and runs the chain again from there;
-`44444` is an Escalate, a supervisor acts in the live browser and the run resumes at the
-State that now holds.*
+**Figure 3.3 — The same Checkpoint miss, answered three ways.** *The chain of Figure 2.1
+under four replays: the chain is read from the artifact, each branch from the Watcher that
+fired. Member 12345 never leaves the chain. The other three all miss the same Checkpoint,
+and the Watcher that recognises the screen decides what happens next: a Business Outcome
+stops and tells the caller; a Recoverable asks which State holds now and runs the chain
+again from there; an Escalate hands the live session to an Operator and resumes once the
+Checkpoint holds. Each run in full, drawn from its trail: Figure S2 of
+[REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
 
 - **One Run Result**: Succeeded, Business Outcome, Failed, Aborted, Refused (nothing
   touched), or Outcome Unknown: a commit happened and could not be confirmed, so do not
@@ -180,9 +182,9 @@ how often a ladder got past rung 1, is the per-tenant drift alarm.*
        └─────────────────┴─────────────────────┴───────────────────┴──────► done
 ```
 
-**Figure 5.1 — Control is a lease ([`cua/handoff.py`](./cua/handoff.py)): one holder at a
+**Figure 5.1 — Control is a lease ([`cua/replay/handoff.py`](./cua/replay/handoff.py)): one holder at a
 time, illegal moves raise.** *Figure 5.1 — Control is a lease
-([`cua/handoff.py`](./cua/handoff.py)): one holder at a time, illegal moves raise.*
+([`cua/replay/handoff.py`](./cua/replay/handoff.py)): one holder at a time, illegal moves raise.*
 
 - **Stuck is detected** by a Watcher whose Condition is `escalate`, an Unknown State in an
   attended run, or during discovery the model calling `ask_human`, and a stuck detector. An

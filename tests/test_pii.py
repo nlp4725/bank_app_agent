@@ -95,7 +95,7 @@ def test_readable_regions_are_declared_on_the_app_profile():
 
 def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
     """Masking protects the record, never the answer."""
-    from cua.engine import RunContext, replay
+    from cua.replay.engine import RunContext, replay
     art = merged(Artifact.model_validate(artifact_dict()),
                  load_profile("demo-core-servicing"))
     r = replay(art, {"member_number": "12345", "account_type": "savings",
@@ -174,7 +174,7 @@ def test_an_intervention_request_leaves_through_the_redactor(tmp_path):
     evidence directory, so the one file an Operator reads never met the Redactor."""
     import json
     from cua.evidence import EvidenceWriter
-    from cua.handoff import Intervention
+    from cua.replay.handoff import Intervention
     writer = EvidenceWriter(tmp_path / "run_x")
     request = Intervention(run_id="run_x", capability="c", state="s", watcher=None,
                            reason="contact jane@example.com about card 4111 1111 1111 1111",

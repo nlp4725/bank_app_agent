@@ -5,7 +5,7 @@
 
 import urllib.request
 
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 from cua.governance.store import load_capability, origin_for
 from cua.surface import Surface
 

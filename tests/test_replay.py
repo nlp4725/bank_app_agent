@@ -8,7 +8,7 @@ import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
 from cua.governance.profile import load_profile
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 
 from .fixtures import artifact_dict
 

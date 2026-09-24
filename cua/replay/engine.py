@@ -10,19 +10,19 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .domain.artifact import Artifact
-from .evidence import EvidenceWriter
+from ..domain.artifact import Artifact
+from ..domain.placeholders import render
+from ..domain.result import RunResult
+from ..evidence import EvidenceWriter
+from ..governance.overlay import apply_overlay, lint_overlay
+from ..governance.policy import PolicyError, policy_for, route_of
+from ..governance.profile import redactor_for
+from ..secrets import EnvSecrets, MissingSecret
+from ..surface import Surface
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .narration import Silent
-from .governance.policy import PolicyError, policy_for, route_of
-from .domain.placeholders import render
 from .predicates import Predicates
-from .governance.profile import redactor_for
-from .governance.overlay import apply_overlay, lint_overlay
-from .domain.result import RunResult
-from .secrets import EnvSecrets, MissingSecret
-from .surface import Surface
 
 OBSERVE = object()      # "a recovery ran: look at where it left us, do not re-act"
 DEFAULT_TIMEOUT_MS = 6000

@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 
 from cua.domain.artifact import Artifact, merged
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 from cua.governance.profile import load_profile
 from cua.authoring.recorder import record_from_run
 from cua.authoring.review import apply_decisions, approve

@@ -7,8 +7,8 @@ import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
 from cua.governance.profile import load_profile
-from cua.engine import RunContext, replay
-from cua.handoff import (AUTOMATION, AWAITING_OPERATOR, OPERATOR_IN_CONTROL, Control,
+from cua.replay.engine import RunContext, replay
+from cua.replay.handoff import (AUTOMATION, AWAITING_OPERATOR, OPERATOR_IN_CONTROL, Control,
                          ControlError)
 
 from .fixtures import artifact_dict

@@ -8,7 +8,7 @@ import urllib.request
 
 import pytest
 
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 from cua.governance.store import load_capability, overlay_for
 from cua.surface import Surface
 

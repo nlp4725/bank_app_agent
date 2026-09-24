@@ -447,7 +447,7 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     import os
     import urllib.request
     from cua.domain.artifact import Artifact, merged
-    from cua.engine import RunContext, replay
+    from cua.replay.engine import RunContext, replay
     from cua.governance.profile import load_profile
     from cua.authoring.recorder import record_from_run
     from cua.authoring.review import apply_decisions, approve

@@ -12,7 +12,7 @@ import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
 from cua.governance.profile import load_profile
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 from cua.governance.policy import Policy, load_baseline, load_tenant_policy
 
 from .fixtures import artifact_dict
@@ -141,8 +141,8 @@ def test_every_policy_decision_is_recorded(artifact, bank_app, tmp_path):
 
 LAYOUT = {
     "domain": "domain",               # pure: no file, browser, model or clock
-    "replay_entry": "engine.py",       # a Production Replay starts here; it reaches only what this reaches
-    "predicates": "predicates.py",
+    "replay_entry": "replay/engine.py",       # a Production Replay starts here; it reaches only what this reaches
+    "predicates": "replay/predicates.py",
     "discovery": ["discovery.py"],     # the only files that may import a model SDK
     "surface": ["surface"],            # the only files that may import playwright
 }

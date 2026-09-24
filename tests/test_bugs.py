@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from cua.domain.artifact import Artifact, merged
-from cua.engine import RunContext, replay
+from cua.replay.engine import RunContext, replay
 from cua.evidence import unfinished
 from cua.governance.policy import Policy, load_baseline, policy_for, policy_for_role
 from cua.governance.profile import load_profile

@@ -448,9 +448,9 @@ cannot reach past the acting interface of the Surface.
 
 | Path | What |
 |---|---|
-| `cua/engine.py` | the Replay Engine and the `Run` module — the interpreter, and every guarantee |
+| `cua/replay/engine.py` | the Replay Engine and the `Run` module — the interpreter, and every guarantee |
 | `cua/artifact.py` | the Artifact schema: the closed vocabulary an Artifact may name |
-| `cua/predicates.py` | the four Predicates, their rendering and evaluation |
+| `cua/replay/predicates.py` | the four Predicates, their rendering and evaluation |
 | `cua/surface.py` | the only module that touches a browser |
 | `cua/discovery.py` | the only module that touches a model |
 | `cua/authoring/recorder.py` · `cua/authoring/review.py` | run → draft Artifact → approved Artifact |
