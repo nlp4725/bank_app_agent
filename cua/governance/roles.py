@@ -1,11 +1,12 @@
 """Roles: named permission bundles per vendor app, written ahead of discovery."""
 
+from ..domain.errors import CuaError
 from ..domain.rules import covers  # noqa: F401  (re-exported: callers ask roles for it)
 from ..settings import settings
 from .files import read_yaml
 
 
-class UnknownRole(Exception):
+class UnknownRole(CuaError):
     pass
 
 

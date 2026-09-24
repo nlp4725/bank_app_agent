@@ -7,21 +7,22 @@ the approved Artifact, merging its App Profile, and the per-Tenant address and
 Overlay. See CONTEXT.md, "Artifact" and "Tenant Overlay".
 """
 
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 from ..domain.artifact import Artifact, merged
+from ..domain.errors import CuaError
 from ..settings import settings
 from .files import read_yaml
 from .policy import PolicyError, load_tenant_policy
 from .profile import load_profile
 
 
-class UnknownCapability(Exception):
+class UnknownCapability(CuaError):
     pass
 
 
-@lru_cache(maxsize=None)
+@cache
 def _index(artifacts_dir: Path) -> dict:
     """Every Artifact on disk, by (capability id, version).
 

@@ -8,13 +8,14 @@ See ADR 0005.
 
 from dataclasses import dataclass
 
+from ..domain.errors import CuaError
+from ..domain.rules import covers, route_of  # noqa: F401  (route_of re-exported)
 from ..settings import settings
 from .files import read_yaml
-from ..domain.rules import covers, route_of  # noqa: F401  (route_of re-exported)
 from .roles import get_role
 
 
-class PolicyError(Exception):
+class PolicyError(CuaError):
     pass
 
 
@@ -64,7 +65,9 @@ class Policy:
     def consequential_allowed(self) -> bool:
         return self.role.get("consequential") != "forbidden"
 
-    def service_account(self) -> str:
+    def service_account(self) -> str | None:
+        """The login this Role uses here, or None when neither the Tenant's grant nor
+        the Role names one — which the caller must refuse, not guess around."""
         granted = self.tenant.get("roles_granted", {}).get(self.role_name, {})
         return granted.get("service_account") or self.role.get("service_account")
 

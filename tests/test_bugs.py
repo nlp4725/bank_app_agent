@@ -5,15 +5,12 @@ Each one was a guarantee the design documents state and the code did not keep.
 
 import json
 from copy import deepcopy
-from pathlib import Path
-
-import pytest
 
 from cua.domain.artifact import Artifact, merged
-from cua.replay.engine import RunContext, replay
 from cua.evidence import unfinished
 from cua.governance.policy import Policy, load_baseline, policy_for, policy_for_role
 from cua.governance.profile import load_profile
+from cua.replay.engine import RunContext, replay
 
 from .fixtures import artifact_dict
 

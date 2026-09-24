@@ -2,9 +2,7 @@
 read from the environment once, changeable for a process, and honoured by every loader
 at call time."""
 
-import os
 import shutil
-from pathlib import Path
 
 import pytest
 

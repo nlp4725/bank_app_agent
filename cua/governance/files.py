@@ -2,12 +2,12 @@
 `settings` at call time therefore sees a new root as a new file, with no cache to
 clear."""
 
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 import yaml
 
 
-@lru_cache(maxsize=None)
+@cache
 def read_yaml(path: Path):
     return yaml.safe_load(Path(path).read_text())

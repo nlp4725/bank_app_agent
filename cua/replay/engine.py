@@ -19,8 +19,17 @@ from ..governance.profile import redactor_for
 from ..secrets import MissingSecret, secrets_for
 from ..surface import Surface
 from .context import ActingSurface, Narrator, RunContext, SecretsProvider
-from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
-                      RESUMING, Control, Intervention, observe_operator, wait_for_decision)
+from .handoff import (
+    AUTOMATION,
+    AWAITING_OPERATOR,
+    DONE,
+    OPERATOR_IN_CONTROL,
+    RESUMING,
+    Control,
+    Intervention,
+    observe_operator,
+    wait_for_decision,
+)
 from .narration import Silent
 from .predicates import Predicates
 
@@ -45,7 +54,10 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     refusal = policy.refuse_reason(artifact, origin=ctx.origin)
     if refusal:
         return evidence.refused(run_id, refusal)
-    secrets = ctx.secrets or secrets_for(policy.service_account())
+    account = policy.service_account()
+    if account is None:
+        return evidence.refused(run_id, f"role {policy.role_name!r} has no service account here")
+    secrets = ctx.secrets or secrets_for(account)
 
     if artifact.capability.status != "approved":
         return evidence.refused(run_id, f"artifact is {artifact.capability.status!r}, not approved")
@@ -98,7 +110,9 @@ class Run:
                  surface: ActingSurface, evidence: EvidenceWriter, run_id: str, policy,
                  narrator: Narrator | None = None, secrets: SecretsProvider | None = None):
         self.artifact = artifact
-        self.secrets = secrets if secrets is not None else ctx.secrets
+        if secrets is None and ctx.secrets is None:
+            raise ValueError("a Run needs a secrets provider")
+        self.secrets: SecretsProvider = secrets if secrets is not None else ctx.secrets  # type: ignore[assignment]
         self.inputs = inputs
         self.ctx = ctx
         self.surface = surface
@@ -333,7 +347,7 @@ class Run:
 
     # ── handing the session to a person ──────────────────────────────────────
 
-    def _hand_over(self, transition, watcher_id, reason, stage) -> RunResult:
+    def _hand_over(self, transition, watcher_id, reason, stage) -> RunResult | str:
         """Pause, give the Operator this session, record what they did, resume or abort."""
         used = self.escalations.get(transition.from_state, 0)
         if used >= MAX_ESCALATIONS_PER_STATE:

@@ -13,10 +13,11 @@ demo app sits beside this package (see settings.py).
 
 import os
 
+from .domain.errors import CuaError
 from .settings import settings
 
 
-class MissingSecret(Exception):
+class MissingSecret(CuaError):
     pass
 
 

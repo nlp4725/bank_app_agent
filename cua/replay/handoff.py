@@ -17,6 +17,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..domain.errors import CuaError
+
 AUTOMATION = "automation"
 AWAITING_OPERATOR = "awaiting_operator"
 OPERATOR_IN_CONTROL = "operator_in_control"
@@ -31,7 +33,7 @@ TRANSITIONS = {
 }
 
 
-class ControlError(Exception):
+class ControlError(CuaError):
     pass
 
 

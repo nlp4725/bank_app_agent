@@ -17,6 +17,7 @@ The origin is never a flag: it comes from the Tenant's own Policy file.
 """
 
 import argparse
+import json
 import os
 from pathlib import Path
 

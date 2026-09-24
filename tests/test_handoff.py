@@ -5,13 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from cua.domain.artifact import AppProfile, Artifact, merged
-from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
-from cua.replay.handoff import (AUTOMATION, AWAITING_OPERATOR, OPERATOR_IN_CONTROL, Control,
-                         ControlError)
-
-from .fixtures import artifact_dict
+from cua.replay.handoff import (
+    AUTOMATION,
+    AWAITING_OPERATOR,
+    OPERATOR_IN_CONTROL,
+    Control,
+    ControlError,
+)
 
 # The flagged member: only a supervisor's own ID and PIN clears it, and no Role
 # holds those, so this is the one condition a person must resolve inside the run.

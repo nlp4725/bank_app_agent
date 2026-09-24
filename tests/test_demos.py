@@ -8,8 +8,8 @@ import urllib.request
 
 import pytest
 
-from cua.replay.engine import RunContext, replay
 from cua.governance.store import load_capability, overlay_for
+from cua.replay.engine import RunContext, replay
 from cua.surface import Surface
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Demo run"}

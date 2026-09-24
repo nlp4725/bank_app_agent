@@ -6,10 +6,12 @@ edits; only then does discovery start. One model call, no browser.
 """
 
 from ..domain.artifact import Contract
+from ..domain.errors import CuaError
 from ..governance.roles import list_roles
 from .model import Model
 
-class ProposalError(Exception):
+
+class ProposalError(CuaError):
     pass
 
 

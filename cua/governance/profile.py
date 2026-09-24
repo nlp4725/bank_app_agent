@@ -6,15 +6,16 @@ Artifact. They are governance data a Reviewer owns, so they live beside the Role
 `config/`, not inside any caller. See CONTEXT.md, "App Profile".
 """
 
-from functools import lru_cache
+from functools import cache
 
 from ..domain.artifact import AppProfile
+from ..domain.errors import CuaError
 from ..evidence.redact import Redactor
 from ..settings import settings
 from .files import read_yaml
 
 
-class UnknownProfile(Exception):
+class UnknownProfile(CuaError):
     pass
 
 
@@ -25,7 +26,7 @@ def load_profile(vendor_app: str) -> AppProfile:
     return _profile(path)
 
 
-@lru_cache(maxsize=None)
+@cache
 def _profile(path) -> AppProfile:
     return AppProfile.model_validate(read_yaml(path))
 

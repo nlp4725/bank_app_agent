@@ -8,12 +8,10 @@ import ast
 import json
 from pathlib import Path
 
-import pytest
-
-from cua.domain.artifact import AppProfile, Artifact, merged
+from cua.domain.artifact import Artifact, merged
+from cua.governance.policy import Policy, load_baseline, load_tenant_policy
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
-from cua.governance.policy import Policy, load_baseline, load_tenant_policy
 
 from .fixtures import artifact_dict
 

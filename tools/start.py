@@ -190,7 +190,6 @@ def main(argv=None):
 # one question each, and the answers are written to a decisions file before they are
 # applied — so the review is a file, and `tools.start --review runs/<id>` can redo it.
 
-import re as _re
 
 ARTIFACTS = Path("artifacts")
 VERIFY_MEMBERS = ["12345", "54321"]      # normal members; verify on one discovery never saw
@@ -281,7 +280,7 @@ def show_draft(draft: dict, suggestions: list[str]) -> str:
         if st.get("terminal") and n == len(draft["transitions"]):
             lines.append(f"           done   {t['to_state']} is terminal: SUCCEEDED")
         if t["risk"] == "consequential":
-            lines.append(f"           risk   CONSEQUENTIAL  <- you decide: does this click commit anything?")
+            lines.append("           risk   CONSEQUENTIAL  <- you decide: does this click commit anything?")
         if t.get("verify_effect"):
             lines.append(f"           verify open {t['verify_effect']['goto']}, "
                          f"expect the text {t['verify_effect']['predicate'].get('value')!r}")
@@ -318,7 +317,7 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
         if t["risk"] != "consequential":
             continue
         hint = t.get("risk_suggestion")
-        default = "n" if hint and _re.search(r"creat|commit|submit|open", hint, _re.I) else "y"
+        default = "n" if hint and re.search(r"creat|commit|submit|open", hint, re.I) else "y"
         target = t["action"]["target"]
         q = (f"  STEP {n}  {t['action']['type']} {_target_words(draft, target).split('   (')[0]}"
              f"   (target {target}, {t['from_state']} -> {t['to_state']})\n"
@@ -330,7 +329,7 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
 
     # 2. interruptions the Recorder noticed
     for s in suggestions:
-        m = _re.search(r"clicks '([^']+)' on (\S+), a page visited once", s)
+        m = re.search(r"clicks '([^']+)' on (\S+), a page visited once", s)
         if not m:
             continue
         label, page = m.group(1), m.group(2).rstrip(",")
@@ -339,7 +338,7 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
             continue
         if (ask(f"  the click on '{label}' ({page}) happened on a screen seen once: an "
                 f"interruption, not part of the flow? [y/N]  ").strip().lower() or "n").startswith("y"):
-            text = ask(f"    text on that screen that identifies it: ").strip() or label
+            text = ask("    text on that screen that identifies it: ").strip() or label
             decisions["interruptions"].append({
                 "target": t["action"]["target"], "watcher_id": f"w_{_slug(text)}",
                 "trigger": {"type": "text_present", "value": text}, "budget": 2,
@@ -388,7 +387,7 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
               f"doing it again:")
         goto = ask(f"    page to open afterwards [/members/{{{{{inputs[0] if inputs else 'id'}}}}}]: ").strip() \
                or (f"/members/{{{{{inputs[0]}}}}}" if inputs else "/")
-        text = ask(f"    text on that page that proves it happened (may use {{{{input}}}}): ").strip()
+        text = ask("    text on that page that proves it happened (may use {{input}}): ").strip()
         if text:
             decisions["verify_effects"].append({
                 "target": target,
@@ -406,7 +405,7 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
     return decisions
 
 
-APPROVER = _re.compile(r"^[a-z_]+:[A-Za-z0-9_.-]+$")     # role:name, e.g. reviewer:nasi
+APPROVER = re.compile(r"^[a-z_]+:[A-Za-z0-9_.-]+$")     # role:name, e.g. reviewer:nasi
 
 
 def _approver(ask, prompt: str, default: str | None) -> str | None:
@@ -430,7 +429,7 @@ def _transition_clicking(draft: dict, label: str):
 
 
 def _slug(text: str) -> str:
-    return _re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:32]
+    return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:32]
 
 
 WATCH_PACE_MS = 2000      # between steps when watching a replay after approval
@@ -445,13 +444,13 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
                     replay_fn=None, reviewer: str | None = None, watch_fn=None) -> int:
     """Show the draft, ask the decisions, apply, verify, save. Returns an exit code."""
     import os
-    import urllib.request
-    from cua.domain.artifact import Artifact, merged
-    from cua.replay.engine import RunContext, replay
-    from cua.governance.profile import load_profile
+
     from cua.authoring.recorder import record_from_run
     from cua.authoring.review import apply_decisions, approve
+    from cua.domain.artifact import Artifact, merged
+    from cua.governance.profile import load_profile
     from cua.governance.store import origin_for
+    from cua.replay.engine import RunContext, replay
 
     reviewer = reviewer or f"reviewer:{os.environ.get('USER', 'reviewer')}"
     run_id = Path(run_dir).name

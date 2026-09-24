@@ -12,8 +12,8 @@ Console when somebody is watching.
 class Silent:
     """The default. A run that nobody is watching says nothing and waits for nothing."""
 
-    slow_mo_ms = 0
-    hold_open_s = 0
+    slow_mo_ms: int = 0
+    hold_open_s: float = 0
 
     def transition(self, transition, found):
         pass

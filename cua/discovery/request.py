@@ -8,7 +8,7 @@ this way, so there is one rule for it.
 from dataclasses import dataclass, field
 
 from ..domain.artifact import AppProfile
-from ..governance.policy import Policy, policy_for_role
+from ..governance.policy import Policy, PolicyError, policy_for_role
 from ..governance.profile import load_profile
 from ..governance.store import origin_for
 from ..secrets import secrets_for
@@ -75,7 +75,10 @@ def policy_for_request(request: DiscoveryRequest) -> Policy:
 
 
 def default_secrets(policy: Policy):
-    return secrets_for(policy.service_account())
+    account = policy.service_account()
+    if account is None:
+        raise PolicyError(f"role {policy.role_name!r} has no service account here")
+    return secrets_for(account)
 
 
 class _Keep(dict):

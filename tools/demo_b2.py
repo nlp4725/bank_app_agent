@@ -8,8 +8,8 @@ renamed the controls and moved the search icon — first without an Overlay, the
 
 import urllib.request
 
-from cua.replay.engine import RunContext, replay
 from cua.governance.store import load_capability, origin_for, overlay_for
+from cua.replay.engine import RunContext, replay
 
 CAPABILITY = "member.open_sub_account"
 BANK1 = origin_for("bank_a", "demo-core-servicing")

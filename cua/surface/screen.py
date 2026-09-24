@@ -15,7 +15,7 @@ def controls(page) -> list[dict]:
     Controls with no accessible name are the interesting ones: we annotate them
     with the nearest text to their left, which is what a human reads instead.
     """
-    found = []
+    found: list[dict] = []
     for frame in page.frames:
         for role in INTERACTIVE:
             loc = frame.get_by_role(role)
@@ -49,7 +49,7 @@ def values(page, start_index: int) -> list[dict]:
     A balance or a confirmation number is a table cell, not a control. The model
     can see it in the screenshot, so it must be able to point at it too.
     """
-    found = []
+    found: list[dict] = []
     for frame in page.frames:
         cells = frame.locator("td, th")
         for i in range(min(cells.count(), 120)):
@@ -127,7 +127,7 @@ def describe(control: dict, page_url: str) -> dict:
     if control["anchor"]:
         rungs.append({"kind": "label_anchor", "anchor": control["anchor"],
                       "role": role, "relation": "right_of"})
-    target = {"rungs": rungs}
+    target: dict = {"rungs": rungs}
     if "/" in control["frame_url"] and control["frame_url"] != page_url:
         tail = control["frame_url"].rsplit("/", 1)[-1]
         target["frame"] = {"url_contains": f"/{tail}"}

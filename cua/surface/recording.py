@@ -70,11 +70,17 @@ class RecordingSurface:
         if kind == "click":
             self.surface.click(resolved)
         elif kind == "type":
-            self.surface.type(resolved, value)
+            self.surface.type(resolved, _required(value, kind))
         elif kind == "select":
-            self.surface.select(resolved, value)
+            self.surface.select(resolved, _required(value, kind))
         elif kind == "read":
             return self.surface.read(resolved)
         else:
             raise ValueError(f"not an action: {kind!r}")
         return None
+
+
+def _required(value: str | None, kind: str) -> str:
+    if value is None:
+        raise ValueError(f"{kind} needs a value")
+    return value

@@ -104,6 +104,7 @@ def test_a_run_compiled_after_it_moved_still_finds_its_crops(tmp_path):
     crops travelled with it in screens/."""
     import json
     import shutil
+
     from cua.authoring.recorder import record_from_run
     from tools.discover import CONTRACT
 

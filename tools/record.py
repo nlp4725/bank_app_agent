@@ -7,9 +7,9 @@ import sys
 
 import yaml
 
-from cua.domain.artifact import Artifact
 from cua.authoring.lint import lint
 from cua.authoring.recorder import record_from_run
+from cua.domain.artifact import Artifact
 from tools.discover import CONTRACT
 
 
@@ -22,7 +22,7 @@ def main():
         capability_id="member.open_sub_account", vendor_app="demo-core-servicing",
         role="account_opener")
 
-    out = f"artifacts/open_sub_account.draft.yaml"
+    out = "artifacts/open_sub_account.draft.yaml"
     import pathlib
     pathlib.Path("artifacts").mkdir(exist_ok=True)
     pathlib.Path(out).write_text(yaml.safe_dump(draft, sort_keys=False, width=100))

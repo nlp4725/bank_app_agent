@@ -5,7 +5,7 @@ implements exactly these actions, predicates and target rungs, so an Artifact
 cannot express an action the engine has no function for. See ADR 0001.
 """
 
-from typing import Annotated, Literal, Union
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -52,7 +52,7 @@ class AnyOf(Strict):
 
 
 Predicate = Annotated[
-    Union[ElementPresent, TextPresent, FieldValue, UrlMatches, AllOf, AnyOf],
+    ElementPresent | TextPresent | FieldValue | UrlMatches | AllOf | AnyOf,
     Field(discriminator="type"),
 ]
 
@@ -82,7 +82,7 @@ class PictureMatch(Strict):
     threshold: float = 0.94
 
 
-TargetRung = Annotated[Union[RoleName, LabelAnchor, PictureMatch], Field(discriminator="kind")]
+TargetRung = Annotated[RoleName | LabelAnchor | PictureMatch, Field(discriminator="kind")]
 
 
 class FrameRef(Strict):
@@ -129,7 +129,7 @@ class ReadValue(Strict):
 
 
 Action = Annotated[
-    Union[Click, TypeText, SelectOption, ReadValue], Field(discriminator="type")
+    Click | TypeText | SelectOption | ReadValue, Field(discriminator="type")
 ]
 
 

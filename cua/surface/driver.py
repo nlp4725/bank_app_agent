@@ -16,20 +16,22 @@ interface is what let a driver object leak upwards: the engine reached for
 `surface.page.frames`, and discovery built a `Resolved` around a raw locator.
 """
 
+import re
 import subprocess
 import sys
-import re
 import time
 from dataclasses import dataclass
+from typing import Any
 
 from playwright.sync_api import sync_playwright
 
 from ..domain.artifact import Target
 from . import locate, screen
 
+
 @dataclass
 class Resolved:
-    locator: object
+    locator: Any             # the driver's handle; nothing above this package touches it
     matched_by: str          # which rung found it
     rung_index: int
 
@@ -128,7 +130,7 @@ class Surface:
         `sensitive_text`, patterns for on-screen text that is not a value cell (a member
         number in a heading). Controls are never masked: the model must see what it acts on.
         """
-        masks = []
+        masks: list[Any] = []
         for target in (mask_targets or []):
             found = self.resolve(target, timeout_ms=0)
             if found is not None:
@@ -146,7 +148,8 @@ class Surface:
                         masks.append(hits.nth(i))
                 except Exception:
                     continue
-        self.page.screenshot(path=path, mask=masks, mask_color="#000000", scale=scale)
+        self.page.screenshot(path=path, mask=masks, mask_color="#000000",
+                             scale=scale)  # type: ignore[arg-type]  # "css" | "device", by contract
 
     # ── resolving a Target ───────────────────────────────────────────────────
 

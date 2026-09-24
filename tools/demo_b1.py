@@ -5,8 +5,8 @@
 
 import urllib.request
 
-from cua.replay.engine import RunContext, replay
 from cua.governance.store import load_capability, origin_for
+from cua.replay.engine import RunContext, replay
 from cua.surface import Surface
 
 CAPABILITY = "member.open_sub_account"
@@ -22,7 +22,8 @@ def main():
     try:
         surface.goto("/login")
         tb = surface.page.get_by_role("textbox")
-        tb.nth(0).fill("svc_officer"); tb.nth(1).fill("officer-pw")
+        tb.nth(0).fill("svc_officer")
+        tb.nth(1).fill("officer-pw")
         surface.page.get_by_role("button", name="Sign in").click()
         surface.page.wait_for_load_state()
         print(surface.page.locator("body").aria_snapshot())

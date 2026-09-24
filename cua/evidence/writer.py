@@ -5,7 +5,7 @@ and after each action means a run that dies mid-commit can be recognised later.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..domain.result import RunResult
@@ -20,13 +20,13 @@ class EvidenceWriter:
         # without one still masks text and patterns; it simply knows of no Sensitive
         # Regions, because nobody told it which app it is writing about.
         self.redactor = redactor or Redactor()
-        self.trail = []
+        self.trail: list[dict] = []
         self._fh = (self.dir / "trail.jsonl").open("a")
         self._shots = 0
 
     def event(self, run_id, event, **fields):
         record = {
-            "ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds"),
+            "ts": datetime.now(UTC).isoformat(timespec="milliseconds"),
             "run_id": run_id,
             "event": event,
             **self.redactor.fields(fields),

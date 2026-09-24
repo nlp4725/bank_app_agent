@@ -4,9 +4,8 @@ Each member number selects a scenario, so a test reads as "replay for 99999 and
 expect MEMBER_NOT_FOUND" with nothing mocked.
 """
 
-import pytest
 
-from cua.domain.artifact import AppProfile, Artifact, merged
+from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
 

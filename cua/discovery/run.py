@@ -18,10 +18,10 @@ from pathlib import Path
 
 import yaml
 
+from ..authoring.recorder import record
 from ..evidence import PROTECTED, EvidenceWriter, Redactor
 from ..governance.policy import route_of
 from ..governance.profile import redactor_for
-from ..authoring.recorder import record
 from ..surface import RecordingSurface, Surface
 from .model import Model
 from .request import DiscoveryRequest, DiscoveryResult, default_secrets, policy_for_request

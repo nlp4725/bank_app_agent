@@ -5,9 +5,9 @@ confirm; `discover` then drives the app one policy-checked action per turn and h
 successful run to the Recorder. Nothing in `cua.replay` can reach this package.
 """
 
+from .model import MODEL, Model, ToolCall, Turn
 from .propose import ProposalError, propose_contract, spec_from_proposal
 from .request import DiscoveryRequest, DiscoveryResult, render_goal, request_from_spec
-from .model import MODEL, Model, ToolCall, Turn
 from .run import discover, observation
 
 __all__ = ["MODEL", "DiscoveryRequest", "DiscoveryResult", "Model", "ProposalError", "ToolCall",

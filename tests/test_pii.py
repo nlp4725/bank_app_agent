@@ -7,12 +7,11 @@ work is knowing *which field* a value came from. See CONTEXT.md, "Redaction".
 import pytest
 from pydantic import ValidationError
 
-from cua.domain.artifact import AppProfile, Artifact, Watcher, merged
-from cua.governance.profile import load_profile
+from cua.domain.artifact import Artifact, Watcher, merged
 from cua.evidence import HIDDEN, PROTECTED, mask_value, redact_text
+from cua.governance.profile import load_profile
 
 from .fixtures import artifact_dict
-
 
 # ── by origin: what patterns cannot catch ────────────────────────────────────
 
@@ -173,6 +172,7 @@ def test_an_intervention_request_leaves_through_the_redactor(tmp_path):
     """The gap this closed: Intervention.write dumped its own __dict__ into the
     evidence directory, so the one file an Operator reads never met the Redactor."""
     import json
+
     from cua.evidence import EvidenceWriter
     from cua.replay.handoff import Intervention
     writer = EvidenceWriter(tmp_path / "run_x")
@@ -244,6 +244,7 @@ def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
     """Discovery crops a target before acting, and only for a click: a field after
     typing or a cell being read is a picture of a value."""
     import inspect
+
     from cua import discovery
     src = inspect.getsource(discovery.discover)
     assert 'if call.name == "click" else None' in src

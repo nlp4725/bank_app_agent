@@ -21,9 +21,9 @@ import time
 import urllib.error
 import urllib.request
 
+from cua.governance.store import artifacts, load_capability, origin_for, overlay_for
 from cua.replay.engine import RunContext, replay
 from cua.replay.narration import from_env
-from cua.governance.store import artifacts, load_capability, origin_for, overlay_for
 
 DEFAULT_CAPABILITY = os.environ.get("CAPABILITY")      # unset: choose from the catalog
 VENDOR_APP = "demo-core-servicing"
@@ -78,7 +78,7 @@ def choose_capability(ask=input) -> str:
         print(f"  {n}. {cid:30s} role {art.capability.role:16s} "
               f"inputs {', '.join(art.contract.inputs)}")
     while True:
-        answer = ask(f"\n  number or name [1]: ").strip() or "1"
+        answer = ask("\n  number or name [1]: ").strip() or "1"
         if answer in ids:
             return answer
         if answer.isdigit() and 1 <= int(answer) <= len(ids):
@@ -137,7 +137,8 @@ def reset_or_exit(origin: str) -> None:
             f"\nthe demo app is not answering at {origin} ({getattr(e, 'reason', e)}).\n"
             f"start it in another terminal, then run this again:\n"
             f"    python -m fake_bank.app                          # {origin}\n"
-            f"    SKIN=bank2 PORT=5002 python -m fake_bank.app     # the second institution\n")
+            f"    SKIN=bank2 PORT=5002 python -m fake_bank.app     # the second institution\n"
+        ) from None
 
 
 def parse_values(pairs):
