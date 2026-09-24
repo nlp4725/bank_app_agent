@@ -144,7 +144,7 @@ LAYOUT = {
     "replay_entry": "engine.py",       # a Production Replay starts here; it reaches only what this reaches
     "predicates": "predicates.py",
     "discovery": ["discovery.py"],     # the only files that may import a model SDK
-    "surface": ["surface.py"],         # the only files that may import playwright
+    "surface": ["surface"],            # the only files that may import playwright
 }
 
 MODEL_SDKS = {"anthropic", "openai", "google", "litellm"}

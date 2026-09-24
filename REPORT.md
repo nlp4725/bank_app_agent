@@ -29,7 +29,7 @@ screen for the engine to believe it is there. Each arrow is a Transition holding
 The Replay Engine executes this graph directly; it is not regenerated into a script. Drawn
 from [read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml).*
 
-- **The boundaries are code.** Only [`cua/surface.py`](./cua/surface.py) imports Playwright;
+- **The boundaries are code.** Only [`cua/surface/driver.py`](./cua/surface/driver.py) imports Playwright;
   only [`cua/discovery.py`](./cua/discovery.py) imports a model SDK, and an import-graph test
   asserts the engine cannot reach it.
 - **The Artifact is data interpreted by one engine, not generated code** (ADR 0001). The
@@ -51,18 +51,19 @@ from [read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.ya
     "outcomes": [{"code", "meaning", "resolver": "member|institution_staff|nobody",  // business outcomes
                   "caller_hint", "retry_same_inputs": "never", "data"}]},
 
-  "needs": {"pages": [], "actions": [], "secrets": []},   // checked against Policy
+  "needs": {"pages": [], "actions": [], "secrets": []},   // the access this flow needs, derived from discovery, checked against Policy
 
-  "states":      [{"id", "checkpoint": <predicate>, "terminal?": "succeeded"}],
-  "transitions": [{"from_state", "to_state",
+  "states":      [{"id", "checkpoint": <predicate>, "terminal?": "succeeded"}],   // a state between actions, checked against its checkpoint (what the screen must show)
+  "transitions": [{"from_state", "to_state",                                     // one action, from one state to the next
                    "action": {"type": "click|type|select|read", "target",
                               "value?|value_ref?|into?"},
                    "risk": "safe|consequential",
                    "verify_effect?": {"goto", "predicate": <predicate>},
                    "timeout_ms?"}],
 
-  "targets":  {"<name>": {"frame?", "rungs": [<role_name | label_anchor | picture>]}},
-  "watchers": [{"id", "trigger": <predicate>, "provenance",
+  "targets":  {"<name>": {"frame?", "rungs": [<role_name | label_anchor | picture>]}},   // where an action lands: the control, found by a ladder
+  "watchers": [{"id", "trigger": <predicate>, "provenance",                      // this flow's own triggers, mostly business outcomes;
+                                                                                   // app-level ones (session expiry, notices, errors) come from the App Profile
                 "condition": "business_outcome|recoverable|escalate|hard_failure",
                 "outcome?|recovery?|budget?|resume_at?|operator_instruction?"}],
 
