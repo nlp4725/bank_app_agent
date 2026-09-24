@@ -1,7 +1,7 @@
 """The hand-written Artifact for `open_sub_account`, and a test-only Tenant Overlay.
 
 The App Profile that used to live here now has a home of its own —
-`config/profiles/demo-core-servicing.yaml`, read through `cua.profile.load_profile` —
+`config/profiles/demo-core-servicing.yaml`, read through `cua.governance.profile.load_profile` —
 because it is governance data a Reviewer owns, not test scaffolding.
 
 Every Target here was checked against the running demo app with

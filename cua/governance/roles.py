@@ -5,7 +5,7 @@ from functools import lru_cache
 
 import yaml
 
-from .paths import ROLES_DIR
+from ..paths import ROLES_DIR
 
 
 class UnknownRole(Exception):

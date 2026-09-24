@@ -23,7 +23,7 @@ import urllib.request
 
 from cua.engine import RunContext, replay
 from cua.narration import from_env
-from cua.store import artifacts, load_capability, origin_for, overlay_for
+from cua.governance.store import artifacts, load_capability, origin_for, overlay_for
 
 DEFAULT_CAPABILITY = os.environ.get("CAPABILITY")      # unset: choose from the catalog
 VENDOR_APP = "demo-core-servicing"

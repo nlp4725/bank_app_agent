@@ -10,8 +10,8 @@ from functools import lru_cache
 
 import yaml
 
-from .domain.artifact import AppProfile
-from .paths import PROFILES_DIR
+from ..domain.artifact import AppProfile
+from ..paths import PROFILES_DIR
 
 
 class UnknownProfile(Exception):

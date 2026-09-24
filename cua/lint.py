@@ -9,7 +9,7 @@ that nothing can produce.
 from .domain.artifact import Artifact
 from .domain.issue import Issue
 from .domain.placeholders import PLACEHOLDER
-from .roles import UnknownRole, covers, get_role
+from .governance.roles import UnknownRole, covers, get_role
 
 
 MIN_TRIGGER_TEXT = 6      # a text trigger shorter than this cannot name a screen

@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.engine import RunContext, replay
-from cua.policy import Policy, load_baseline, load_tenant_policy
+from cua.governance.policy import Policy, load_baseline, load_tenant_policy
 
 from .fixtures import artifact_dict
 
@@ -79,7 +79,7 @@ def test_a_read_only_role_may_not_commit():
 def test_a_url_outside_the_origin_is_asked_about_whole_and_denied():
     """One rule for both workflows. Discovery used to slice the URL by the origin's
     length, so a foreign URL could yield a path that happened to match."""
-    from cua.policy import route_of
+    from cua.governance.policy import route_of
     assert route_of("http://127.0.0.1:5001/members/12345", "http://127.0.0.1:5001") == "/members/12345"
     assert route_of("http://127.0.0.1:5001", "http://127.0.0.1:5001/") == "/"
     foreign = route_of("http://attacker.example/members/12345", "http://127.0.0.1:5001")

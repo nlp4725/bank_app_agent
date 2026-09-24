@@ -34,7 +34,7 @@ from pathlib import Path
 import yaml
 
 from cua.discovery import ProposalError, discover, propose_contract
-from cua.roles import get_role
+from cua.governance.roles import get_role
 from tools.discover import load_dotenv, report, request_from_spec
 
 VENDOR_APP = "demo-core-servicing"
@@ -198,7 +198,7 @@ VERIFY_MEMBERS = ["12345", "54321"]      # normal members; verify on one discove
 
 def known_watchers(vendor_app: str) -> dict[str, tuple[str, dict]]:
     """Outcome code -> (capability that has it, its watcher), from the store."""
-    from cua.store import artifacts
+    from cua.governance.store import artifacts
     out = {}
     for art in artifacts():
         if art.capability.vendor_app != vendor_app:
@@ -448,10 +448,10 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
     import urllib.request
     from cua.domain.artifact import Artifact, merged
     from cua.engine import RunContext, replay
-    from cua.profile import load_profile
+    from cua.governance.profile import load_profile
     from cua.recorder import record_from_run
     from cua.review import apply_decisions, approve
-    from cua.store import origin_for
+    from cua.governance.store import origin_for
 
     reviewer = reviewer or f"reviewer:{os.environ.get('USER', 'reviewer')}"
     run_id = Path(run_dir).name

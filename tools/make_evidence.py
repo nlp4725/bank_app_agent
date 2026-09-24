@@ -21,7 +21,7 @@ from pathlib import Path
 
 from cua.engine import RunContext, replay
 from cua.narration import Console
-from cua.store import load_capability, origin_for, overlay_for
+from cua.governance.store import load_capability, origin_for, overlay_for
 from tools.replay import describe
 
 CAPABILITY = "member.open_sub_account"

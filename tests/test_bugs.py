@@ -12,8 +12,8 @@ import pytest
 from cua.domain.artifact import Artifact, merged
 from cua.engine import RunContext, replay
 from cua.evidence import unfinished
-from cua.policy import Policy, load_baseline, policy_for, policy_for_role
-from cua.profile import load_profile
+from cua.governance.policy import Policy, load_baseline, policy_for, policy_for_role
+from cua.governance.profile import load_profile
 
 from .fixtures import artifact_dict
 
@@ -83,7 +83,7 @@ def test_a_declared_origin_runs(artifact, bank_app):
 
 
 def test_the_origin_comes_from_the_tenant_not_from_whichever_tool_is_running():
-    from cua.store import origin_for
+    from cua.governance.store import origin_for
     policy_origin = origin_for("bank_a", VENDOR_APP)
     assert policy_origin in policy_for_role(VENDOR_APP, "balance_reader", "bank_a").origins()
 

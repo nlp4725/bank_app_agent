@@ -5,7 +5,7 @@ frozen into the recording, a placeholder nothing fills, an outcome promised to t
 caller that nothing can produce.
 """
 
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.domain.artifact import Artifact
 from cua.lint import lint
 

@@ -15,7 +15,7 @@ from .evidence import EvidenceWriter
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .narration import Silent
-from .policy import PolicyError, policy_for, route_of
+from .governance.policy import PolicyError, policy_for, route_of
 from .domain.placeholders import render
 from .predicates import Predicates
 from .redact import for_app

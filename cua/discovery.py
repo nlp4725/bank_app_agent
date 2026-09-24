@@ -21,7 +21,7 @@ import anthropic
 
 from .domain.artifact import AppProfile
 from .evidence import EvidenceWriter
-from .policy import policy_for_role, route_of
+from .governance.policy import policy_for_role, route_of
 from .redact import PROTECTED, Redactor, for_app
 from .secrets import EnvSecrets
 from .surface import RecordingSurface, Surface
@@ -497,7 +497,7 @@ def spec_from_proposal(proposal: dict, vendor_app: str) -> dict:
     """The model's answer as a Discovery Request, validated against the Contract
     schema the engine runs. A shape the engine does not know is refused here."""
     from .domain.artifact import Contract
-    from .roles import list_roles
+    from .governance.roles import list_roles
 
     if proposal.get("role") not in list_roles(vendor_app):
         raise ProposalError(f"proposed role {proposal.get('role')!r} is not a Role of {vendor_app}")
@@ -547,7 +547,7 @@ def propose_contract(goal: str, vendor_app: str, client=None,
 
     `known_outcomes` are the codes other capabilities on this app already use, so the
     same answer gets the same name across the catalog."""
-    from .roles import list_roles
+    from .governance.roles import list_roles
     roles = list_roles(vendor_app)
     roles_text = "\n".join(
         f"- {name}: {r.get('intent', '')} (consequential: {r.get('consequential', 'forbidden')};"

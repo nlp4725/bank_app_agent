@@ -6,7 +6,7 @@
 import urllib.request
 
 from cua.engine import RunContext, replay
-from cua.store import load_capability, origin_for
+from cua.governance.store import load_capability, origin_for
 from cua.surface import Surface
 
 CAPABILITY = "member.open_sub_account"

@@ -24,8 +24,8 @@ from pathlib import Path
 import yaml
 
 from cua.discovery import DiscoveryRequest, discover
-from cua.profile import load_profile
-from cua.store import origin_for
+from cua.governance.profile import load_profile
+from cua.governance.store import origin_for
 
 DEFAULT_CONTRACT = Path("contracts/open_sub_account.yaml")
 DOTENV = Path(".env")

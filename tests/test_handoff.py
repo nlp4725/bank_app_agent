@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.engine import RunContext, replay
 from cua.handoff import (AUTOMATION, AWAITING_OPERATOR, OPERATOR_IN_CONTROL, Control,
                          ControlError)

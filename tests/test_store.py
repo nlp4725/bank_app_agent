@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 from cua.lint import lint
-from cua.profile import UnknownProfile, load_profile
-from cua.store import UnknownCapability, load_capability, origin_for, overlay_for
+from cua.governance.profile import UnknownProfile, load_profile
+from cua.governance.store import UnknownCapability, load_capability, origin_for, overlay_for
 
 CAPABILITY = "member.open_sub_account"
 VENDOR_APP = "demo-core-servicing"

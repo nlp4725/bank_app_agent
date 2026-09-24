@@ -7,7 +7,7 @@ are rejected outright rather than merged. See CONTEXT.md, "Tenant Overlay".
 
 from .domain.artifact import Artifact
 from .domain.issue import Issue
-from .roles import covers
+from .governance.roles import covers
 
 # `targets` is the only key that is applied. The other three say who the overlay is
 # *for* — which Artifact, which Tenant, which instance — and are metadata a reviewer

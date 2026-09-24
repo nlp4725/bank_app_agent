@@ -11,7 +11,7 @@ from functools import lru_cache
 
 import yaml
 
-from .paths import CONFIG, POLICIES_DIR
+from ..paths import CONFIG, POLICIES_DIR
 from .roles import covers, get_role
 
 

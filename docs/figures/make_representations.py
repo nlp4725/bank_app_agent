@@ -66,7 +66,7 @@ crop = RUN / "screens" / f"{TURN:02d}_target.png"
 matched = None
 import urllib.request
 from cua.engine import RunContext, replay
-from cua.store import load_capability, origin_for
+from cua.governance.store import load_capability, origin_for
 _art = load_capability("member.read_savings_balance")
 _origin = origin_for("bank_a", _art.capability.vendor_app)
 urllib.request.urlopen(f"{_origin}/reset", timeout=5).read()

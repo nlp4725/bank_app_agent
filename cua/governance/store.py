@@ -11,8 +11,9 @@ from functools import lru_cache
 
 import yaml
 
-from .domain.artifact import Artifact, merged
-from .paths import ARTIFACTS_DIR, OVERLAYS_DIR, POLICIES_DIR
+from ..domain.artifact import Artifact, merged
+from ..paths import ARTIFACTS_DIR, OVERLAYS_DIR
+from .policy import PolicyError, load_tenant_policy
 from .profile import load_profile
 
 
@@ -82,7 +83,7 @@ def origin_for(tenant: str, vendor_app: str) -> str:
     The address belongs to the institution, so it is read from the file the
     institution owns rather than from a dict in whichever tool is running.
     """
-    path = POLICIES_DIR / f"{tenant}.{vendor_app}.yaml"
-    if not path.exists():
-        raise UnknownCapability(f"no policy for tenant {tenant!r} on {vendor_app!r}")
-    return yaml.safe_load(path.read_text())["origin"].rstrip("/")
+    try:
+        return load_tenant_policy(tenant, vendor_app)["origin"].rstrip("/")
+    except PolicyError as exc:
+        raise UnknownCapability(str(exc)) from exc

@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from cua.domain.artifact import AppProfile, Artifact, Watcher, merged
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.redact import HIDDEN, PROTECTED, mask_value, redact_text
 
 from .fixtures import artifact_dict

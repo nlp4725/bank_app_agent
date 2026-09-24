@@ -20,7 +20,7 @@ GREY, GREY_BG = "#7a7a7a", "#f2f1ee"
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
-W, H = 1240, 560
+W, H = 1240, 520
 out = []
 add = out.append
 
@@ -78,9 +78,9 @@ def edge(a, b, *, color=INK, dash=None, width=1.4, gap=5):
         f'fill="none" marker-end="url(#h{color[1:]})"{d}/>')
 
 
-def elabel(x, y, lines, *, color=INK, size=10.5, anchor="middle", style="italic"):
+def elabel(x, y, lines, *, color=INK, size=13, anchor="middle", style="italic"):
     for i, line in enumerate(lines):
-        text(x, y + i * 13, line, size=size, fill=color, anchor=anchor, style=style)
+        text(x, y + i * 15, line, size=size, fill=color, anchor=anchor, style=style)
 
 
 add(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" '
@@ -93,88 +93,67 @@ for c in (INK, RED, GREEN, AMBER, MUTED, BLUE):
 add("</defs>")
 add(f'<rect width="{W}" height="{H}" fill="#ffffff"/>')
 
+# a person, not a step: head, shoulders, a name underneath
+class Person:
+    def __init__(self, cx, y, label, *, color, w=110, h=78):
+        self.x, self.y, self.w, self.h = cx - w / 2, y, w, h
+        add(f'<circle cx="{cx}" cy="{y + 14}" r="11" fill="{color}"/>')
+        add(f'<path d="M {cx - 22} {y + 52} C {cx - 22} {y + 30}, {cx + 22} {y + 30}, {cx + 22} {y + 52} Z" '
+            f'fill="{color}"/>')
+        text(cx, y + h - 6, label, size=13, weight="600", anchor="middle", fill=INK)
+    left = Box.left; right = Box.right; top = Box.top; bottom = Box.bottom
+
 # ── discovery lane: happens once ────────────────────────────────────────────
-text(34, 42, "RECORDED ONCE", size=10.5, weight="700", fill=MUTED)
-goal = Box(30, 74, 168, 78, "Goal + Contract", "fixed by a Reviewer", fg=GREY, bg=GREY_BG,
-           mod="tools/start.py · contracts/")
-disc = Box(250, 74, 196, 78, "Discovery Run", "the only model in the system",
-           fg=AMBER, bg=AMBER_BG, mod="cua/discovery.py")
-rec = Box(498, 74, 150, 78, "Recorder", "decides nothing", fg=BLUE, bg=BLUE_BG,
-          mod="cua/recorder.py")
-gate = Box(700, 74, 196, 78, "Review Gate", "a person decides", fg=RED, bg=RED_BG,
-           mod="cua/review.py · cua/lint.py")
-store = Box(948, 74, 176, 78, "Artifact Store", "versioned capabilities",
-            fg=AMBER, bg=AMBER_BG, mod="cua/store.py · cua/artifact.py")
+text(34, 42, "NON-PRODUCTION: RECORD (LLM)", size=12, weight="700", fill=MUTED)
+goal = Box(30, 74, 130, 78, "Goal + Contract", fg=GREY, bg=GREY_BG)
+disc = Box(250, 74, 150, 78, "Discovery Run", fg=AMBER, bg=AMBER_BG)
+rec = Box(455, 74, 110, 78, "Recorder", fg=BLUE, bg=BLUE_BG)
+gate = Person(645, 74, "Review Gate", color=RED, w=70)
+verify = Box(745, 74, 130, 78, "Verify Replay", fg=BLUE, bg=BLUE_BG)
+store = Box(945, 74, 150, 78, "Artifact Store", fg=AMBER, bg=AMBER_BG)
 
 edge(goal.right, disc.left)
 edge(disc.right, rec.left)
-elabel(472, 96, ["trace"])
+elabel(427, 96, ["trace"])
 edge(rec.right, gate.left)
-elabel(674, 96, ["draft"])
-edge(gate.right, store.left)
-elabel(922, 96, ["approved"])
-
-elabel(348, 174, ["non-production only", "(ADR 0003)"], color=AMBER, size=10)
-elabel(798, 174, ["lint · verify-replay on unseen", "inputs · two approvals"],
-       color=RED, size=10)
-
-# the gate can refuse, and that is the interesting arrow
-add(f'<path d="M 760 74 C 760 34, 590 34, 573 70" stroke="{RED}" stroke-width="1.4" '
-    f'fill="none" marker-end="url(#h{RED[1:]})"/>')
-elabel(666, 30, ["refused — it was, three times"], color=RED, size=10)
+elabel(587, 96, ["draft"])
+edge(gate.right, verify.left)
+elabel(712, 96, ["candidate"])
+edge(verify.right, store.left)
+elabel(910, 96, ["passed"])
 
 # ── replay lane: happens every time ─────────────────────────────────────────
-text(34, 330, "REPLAYED EVERY TIME AFTER", size=10.5, weight="700", fill=MUTED)
-caller = Box(30, 352, 168, 78, "Calling Agent", "the AI the member talks to",
-             fg=GREY, bg=GREY_BG, mod="tools/replay.py")
-engine = Box(276, 346, 236, 90, "Replay Engine", "no model in the decision loop",
-             fg=BLUE, bg=BLUE_BG, mod="cua/engine.py · cua/predicates.py")
-app = Box(596, 352, 176, 78, "Legacy app", "one Surface module", fg=GREY, bg=GREY_BG,
-          mod="cua/surface.py · fake_bank/")
-operator = Box(858, 352, 190, 78, "Operator", "the tenant's own staff",
-               fg=GREEN, bg=GREEN_BG, mod="cua/handoff.py · tools/operator.py")
+text(34, 322, "PRODUCTION: REPLAY (DETERMINISTIC)", size=12, weight="700", fill=MUTED)
+caller = Box(30, 352, 130, 78, "Calling Agent", fg=GREY, bg=GREY_BG)
+engine = Box(250, 346, 236, 90, "Replay Engine", fg=BLUE, bg=BLUE_BG)
+operator = Person(660, 352, "Operator", color=GREEN, w=70)
 
-edge(caller.right, (engine.x, 372))
-elabel(237, 354, ["typed", "inputs"], size=10)
-add(f'<path d="M {engine.x} 406 L {caller.x + caller.w + 5} 406" stroke="{INK}" '
+edge((caller.x + caller.w, 372), (engine.x, 372))
+elabel(205, 346, ["typed", "inputs"], size=13)
+add(f'<path d="M {engine.x} 410 L {caller.x + caller.w + 5} 410" stroke="{INK}" '
     f'stroke-width="1.4" fill="none" marker-end="url(#h{INK[1:]})"/>')
-elabel(237, 428, ["one Run", "Result"], size=10)
+elabel(205, 432, ["one Run", "Result"], size=13)
 
-edge(engine.right, app.left)
-elabel(554, 346, ["click · type", "select · read"], size=10)
-add(f'<path d="M {app.x} 406 L {engine.x + engine.w + 5} 406" stroke="{MUTED}" '
-    f'stroke-width="1.4" fill="none" marker-end="url(#h{MUTED[1:]})"/>')
-elabel(554, 428, ["checkpoint after", "every action"], size=10, color=MUTED)
-
-edge(app.right, operator.left, color=GREEN)
-elabel(806, 344, ["escalate:", "the same live session"], size=10, color=GREEN)
-add(f'<path d="M {operator.x} 406 C 800 470, 560 482, {engine.x + engine.w / 2} {engine.y + engine.h + 4}" '
-    f'stroke="{GREEN}" stroke-width="1.4" fill="none" '
-    f'marker-end="url(#h{GREEN[1:]})"/>')
-elabel(690, 496, ["resume — the engine re-orients rather than assuming they finished"],
-       size=10, color=GREEN)
+edge((engine.x + engine.w, 372), (operator.x, 372), color=GREEN)
+elabel(555, 360, ["escalate"], size=13, color=GREEN)
+add(f'<path d="M {operator.x} 410 L {engine.x + engine.w + 5} 410" stroke="{GREEN}" '
+    f'stroke-width="1.4" fill="none" marker-end="url(#h{GREEN[1:]})"/>')
+elabel(555, 432, ["resume"], size=13, color=GREEN)
 
 # the store serves replay: PreAct's dashed "retrieve on next invocation"
-add(f'<path d="M {store.x + store.w / 2} {store.y + store.h} L {store.x + store.w / 2} 262 '
-    f'L {engine.x + engine.w / 2} 262 L {engine.x + engine.w / 2} {engine.y - 5}" '
+add(f'<path d="M {store.x + store.w / 2} {store.y + store.h} L {store.x + store.w / 2} 300 '
+    f'L {engine.x + engine.w - 40} 300 L {engine.x + engine.w - 40} {engine.y - 5}" '
     f'stroke="{AMBER}" stroke-width="1.5" fill="none" stroke-dasharray="6 4" '
     f'marker-end="url(#h{AMBER[1:]})"/>')
-elabel(700, 255, ["invoked by name, with typed arguments — no model, no re-reasoning"],
-       color=AMBER, size=10.5)
 
 # ── policy: one gate, both phases ───────────────────────────────────────────
-policy = Box(30, 206, 236, 78, "Policy", "Baseline ∩ Role ∩ Tenant ∩ Needs",
-             fg=RED, bg=RED_BG, mod="cua/policy.py · cua/roles.py")
-edge(policy.top, (306, disc.y + disc.h), color=RED, dash="5 3")
-edge(policy.bottom, (engine.x + 44, engine.y), color=RED, dash="5 3")
-elabel(280, 236, ["checked in code before every action,"], color=RED, size=10,
-       anchor="start")
-elabel(280, 249, ["in both phases — never by instructing the model"], color=RED,
-       size=10, anchor="start")
+# a check, not a step: a circle on the line between the two phases
+PX, PY, PR = disc.x + disc.w / 2, 250, 34
+add(f'<circle cx="{PX}" cy="{PY}" r="{PR}" fill="{RED_BG}" stroke="{RED}" stroke-width="1.5"/>')
+text(PX, PY + 5, "Policy", size=13, weight="600", anchor="middle", fill=INK)
+edge((PX, PY - PR), (PX, disc.y + disc.h), color=RED, dash="5 3")
+edge((PX, PY + PR), (PX, engine.y), color=RED, dash="5 3")
 
-text(34, 542, "Every run writes redacted evidence to runs/<run_id>/trail.jsonl — the only "
-              "record, and the one a Reviewer reads afterwards.   cua/evidence.py · cua/redact.py", size=10.5, fill=MUTED)
-text(W - 34, 542, "docs/figures/make_architecture.py", size=9.5, fill=MUTED, anchor="end")
 add("</svg>")
 
 OUT.write_text("\n".join(out))

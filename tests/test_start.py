@@ -265,7 +265,7 @@ def test_the_watch_step_replays_the_capability_just_approved(tmp_path, monkeypat
 
 
 def test_replay_inputs_are_filtered_to_the_contract():
-    from cua.store import load_capability
+    from cua.governance.store import load_capability
     from tools.replay import inputs_for, parse_args
     art = load_capability("member.open_sub_account")
     assert inputs_for(art, "12345") == {"member_number": "12345", "account_type": "savings",

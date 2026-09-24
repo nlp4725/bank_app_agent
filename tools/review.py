@@ -10,10 +10,10 @@ import yaml
 
 from cua.domain.artifact import Artifact, merged
 from cua.engine import RunContext, replay
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.recorder import record_from_run
 from cua.review import apply_decisions, approve
-from cua.store import origin_for
+from cua.governance.store import origin_for
 from tools.discover import CONTRACT
 
 ORIGIN = origin_for("bank_a", "demo-core-servicing")

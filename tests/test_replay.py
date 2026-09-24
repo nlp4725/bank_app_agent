@@ -7,7 +7,7 @@ expect MEMBER_NOT_FOUND" with nothing mocked.
 import pytest
 
 from cua.domain.artifact import AppProfile, Artifact, merged
-from cua.profile import load_profile
+from cua.governance.profile import load_profile
 from cua.engine import RunContext, replay
 
 from .fixtures import artifact_dict

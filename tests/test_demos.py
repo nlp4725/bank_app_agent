@@ -9,7 +9,7 @@ import urllib.request
 import pytest
 
 from cua.engine import RunContext, replay
-from cua.store import load_capability, overlay_for
+from cua.governance.store import load_capability, overlay_for
 from cua.surface import Surface
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Demo run"}
