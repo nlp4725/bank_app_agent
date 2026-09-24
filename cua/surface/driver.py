@@ -16,7 +16,6 @@ interface is what let a driver object leak upwards: the engine reached for
 `surface.page.frames`, and discovery built a `Resolved` around a raw locator.
 """
 
-import fnmatch
 import subprocess
 import sys
 import re
@@ -26,9 +25,7 @@ from dataclasses import dataclass
 from playwright.sync_api import sync_playwright
 
 from ..domain.artifact import Target
-
-INTERACTIVE_FALLBACK = "td, span, div, p, strong, b"
-
+from . import locate, screen
 
 @dataclass
 class Resolved:
@@ -168,204 +165,30 @@ class Surface:
             scope = self.scope(target)
             if scope is not None:
                 for index, rung in enumerate(target.rungs):
-                    found = self._try_rung(scope, rung)
+                    found = locate.try_rung(scope, rung)
                     if found is not None:
                         return Resolved(found, rung.kind, index)
             if time.time() >= deadline:
                 return None
             self.wait()
 
-    def _try_rung(self, scope, rung):
-        try:
-            if rung.kind == "role_name":
-                loc = scope.get_by_role(rung.role, name=rung.name, exact=True)
-                return loc.first if loc.count() else None
-            if rung.kind == "label_anchor":
-                return self._by_anchor(scope, rung)
-            if rung.kind == "picture":
-                return None      # template matching: not implemented; falls through
-        except Exception:
-            return None
-        return None
-
-    def _by_anchor(self, scope, rung):
-        """Find the words, then the nearest control in the given relation.
-
-        Geometry, not DOM structure — the same idea works on a desktop accessibility
-        tree or on OCR over a screenshot. See docs/targeting.md.
-        """
-        anchor = scope.get_by_text(rung.anchor, exact=True)
-        if not anchor.count():
-            return None
-        a = anchor.first.bounding_box()
-        if not a:
-            return None
-
-        candidates = scope.get_by_role(rung.role) if rung.role else scope.locator(INTERACTIVE_FALLBACK)
-        best, best_score = None, float("inf")
-        for i in range(min(candidates.count(), 200)):
-            c = candidates.nth(i)
-            try:
-                b = c.bounding_box()
-            except Exception:
-                continue
-            if not b or b["width"] == 0:
-                continue
-            if rung.role is None:
-                try:
-                    if not c.inner_text().strip() or c.inner_text().strip() == rung.anchor:
-                        continue
-                    if c.locator(INTERACTIVE_FALLBACK).count():
-                        continue        # prefer the innermost element holding the text
-                except Exception:
-                    continue
-
-            same_line = abs((b["y"] + b["height"] / 2) - (a["y"] + a["height"] / 2)) < max(a["height"], 14)
-            dx = b["x"] - (a["x"] + a["width"])
-            dy = b["y"] - (a["y"] + a["height"])
-            if rung.relation == "right_of":
-                score = dx if (same_line and dx >= -2) else float("inf")
-            elif rung.relation == "below":
-                overlap = not (b["x"] + b["width"] < a["x"] or b["x"] > a["x"] + a["width"])
-                score = dy if (overlap and dy >= -2) else float("inf")
-            else:  # nearest
-                score = abs(dx) + abs(dy)
-            if score < best_score:
-                best, best_score = c, score
-        return best
-
     # ── enumerating, for discovery ───────────────────────────────────────────
 
-    INTERACTIVE = ("button", "textbox", "link", "combobox", "checkbox", "radio")
+    # ── enumerating, for discovery ───────────────────────────────────────────
+    #
+    # The logic is in screen.py, over a page; these are the driver's handles to it.
 
     def controls(self) -> list[dict]:
-        """Every control a person could act on, main document and frames.
-
-        Controls with no accessible name are the interesting ones: we annotate them
-        with the nearest text to their left, which is what a human reads instead.
-        """
-        found = []
-        for frame in self.page.frames:
-            for role in self.INTERACTIVE:
-                loc = frame.get_by_role(role)
-                for i in range(min(loc.count(), 40)):
-                    el = loc.nth(i)
-                    try:
-                        box = el.bounding_box()
-                        if not box or box["width"] == 0:
-                            continue
-                        name = (el.get_attribute("aria-label")
-                                or el.inner_text().strip()
-                                or el.get_attribute("value") or "")
-                        found.append({
-                            "index": len(found) + 1,
-                            "role": role,
-                            "name": name,
-                            "anchor": self.nearest_text(frame, box),
-                            "is_password": (el.get_attribute("type") == "password"),
-                            "frame_url": frame.url,
-                            "box": box,
-                            "locator": el,
-                        })
-                    except Exception:
-                        continue
-        return found
+        return screen.controls(self.page)
 
     def values(self, start_index: int) -> list[dict]:
-        """Label/value pairs on the page: the things a `read` action needs.
-
-        A balance or a confirmation number is a table cell, not a control. The model
-        can see it in the screenshot, so it must be able to point at it too.
-        """
-        found = []
-        for frame in self.page.frames:
-            cells = frame.locator("td, th")
-            for i in range(min(cells.count(), 120)):
-                label = cells.nth(i)
-                try:
-                    text = label.inner_text().strip()
-                    if (not text or len(text) > 40 or "\n" in text
-                            or label.locator("td, input, button, a").count()):
-                        continue
-                    value = label.locator("xpath=following-sibling::*[1]")
-                    if not value.count():
-                        continue
-                    shown = value.first.inner_text().strip()
-                    if (not shown or len(shown) > 60 or "\n" in shown
-                            or value.first.locator("input, button, a, td").count()):
-                        continue
-                    box = value.first.bounding_box()
-                    if not box:
-                        continue
-                except Exception:
-                    continue
-                found.append({
-                    "index": start_index + len(found),
-                    "role": "text",
-                    "name": "",
-                    "anchor": text,
-                    "text": shown,
-                    "is_password": False,
-                    "frame_url": frame.url,
-                    "box": box,
-                    "locator": value.first,
-                })
-        return found
-
-    def nearest_text(self, frame, box) -> str | None:
-        """The visible words closest to the left of a box, then above it.
-
-        This is label_anchor in reverse: at record time we work out which caption a
-        human would read for this control, so replay can find it the same way.
-        """
-        best, best_score = None, float("inf")
-        cells = frame.locator("td, th, label, span, div, p, strong, b")
-        for i in range(min(cells.count(), 250)):
-            cell = cells.nth(i)
-            try:
-                if cell.locator("input, button, select, textarea, td, span, div").count():
-                    continue          # innermost text holders only
-                text = cell.inner_text().strip()
-                if not text or len(text) > 40:
-                    continue
-                b = cell.bounding_box()
-                if not b:
-                    continue
-            except Exception:
-                continue
-            same_line = abs((b["y"] + b["height"] / 2) - (box["y"] + box["height"] / 2)) < max(b["height"], 14)
-            dx = box["x"] - (b["x"] + b["width"])
-            if same_line and dx >= -2 and dx < best_score:
-                best, best_score = text, dx
-        return best
+        return screen.values(self.page, start_index)
 
     def describe(self, control: dict) -> dict:
-        """Turn the control that was just acted on into durable Target descriptors.
-
-        A value read from a table cell has no ARIA role — "text" is our own label for
-        it — so its rung carries no role and is resolved as "the nearest thing to the
-        right of these words".
-        """
-        role = None if control["role"] == "text" else control["role"]
-        rungs = []
-        if control["name"] and role:
-            rungs.append({"kind": "role_name", "role": role, "name": control["name"]})
-        if control["anchor"]:
-            rungs.append({"kind": "label_anchor", "anchor": control["anchor"],
-                          "role": role, "relation": "right_of"})
-        target = {"rungs": rungs}
-        if "/" in control["frame_url"] and control["frame_url"] != self.page.url:
-            tail = control["frame_url"].rsplit("/", 1)[-1]
-            target["frame"] = {"url_contains": f"/{tail}"}
-        return target
+        return screen.describe(control, self.page.url)
 
     def crop(self, control: dict, path: str):
-        """A small picture of one control: the last rung of a ladder."""
-        try:
-            control["locator"].screenshot(path=path)
-            return path
-        except Exception:
-            return None
+        return screen.crop(control, path)
 
     # ── acting ───────────────────────────────────────────────────────────────
 
