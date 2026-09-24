@@ -7,11 +7,9 @@ See ADR 0005.
 """
 
 from dataclasses import dataclass
-from functools import lru_cache
 
-import yaml
-
-from ..paths import CONFIG, POLICIES_DIR
+from ..settings import settings
+from .files import read_yaml
 from ..domain.rules import covers, route_of  # noqa: F401  (route_of re-exported)
 from .roles import get_role
 
@@ -21,17 +19,15 @@ class PolicyError(Exception):
 
 
 
-@lru_cache(maxsize=None)
 def load_baseline() -> dict:
-    return yaml.safe_load((CONFIG / "baseline.yaml").read_text())
+    return read_yaml(settings.config / "baseline.yaml")
 
 
-@lru_cache(maxsize=None)
 def load_tenant_policy(tenant: str, vendor_app: str) -> dict:
-    path = POLICIES_DIR / f"{tenant}.{vendor_app}.yaml"
+    path = settings.policies_dir / f"{tenant}.{vendor_app}.yaml"
     if not path.exists():
         raise PolicyError(f"no policy for tenant {tenant!r} on {vendor_app!r}")
-    return yaml.safe_load(path.read_text())
+    return read_yaml(path)
 
 
 @dataclass

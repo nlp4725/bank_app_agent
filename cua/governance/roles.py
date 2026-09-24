@@ -1,23 +1,19 @@
 """Roles: named permission bundles per vendor app, written ahead of discovery."""
 
-from functools import lru_cache
-
-import yaml
-
 from ..domain.rules import covers  # noqa: F401  (re-exported: callers ask roles for it)
-from ..paths import ROLES_DIR
+from ..settings import settings
+from .files import read_yaml
 
 
 class UnknownRole(Exception):
     pass
 
 
-@lru_cache(maxsize=None)
 def _load(vendor_app: str) -> dict:
-    path = ROLES_DIR / f"{vendor_app}.yaml"
+    path = settings.roles_dir / f"{vendor_app}.yaml"
     if not path.exists():
         raise UnknownRole(f"no role file for vendor app {vendor_app!r}")
-    return yaml.safe_load(path.read_text())
+    return read_yaml(path)
 
 
 def list_roles(vendor_app: str) -> dict[str, dict]:

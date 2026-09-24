@@ -10,7 +10,7 @@ import re
 import shutil
 from pathlib import Path
 
-from ..paths import ASSETS, ROOT
+from ..settings import settings
 
 SLUG = re.compile(r"[^a-z0-9]+")
 
@@ -45,7 +45,7 @@ def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str | 
     None when the crop cannot be found: a rung naming a file that is not there is
     worse than no rung, because the ladder then claims a fallback it does not have.
     """
-    root = Path(assets_dir) if assets_dir is not None else ASSETS / capability_id
+    root = Path(assets_dir) if assets_dir is not None else settings.assets / capability_id
     root.mkdir(parents=True, exist_ok=True)
     kept = root / Path(crop).name
     try:
@@ -53,7 +53,7 @@ def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str | 
     except OSError:
         return None
     try:
-        return str(kept.resolve().relative_to(ROOT))   # portable: an Artifact travels
+        return str(kept.resolve().relative_to(settings.root))   # portable: an Artifact travels
     except ValueError:
         return str(kept)
 

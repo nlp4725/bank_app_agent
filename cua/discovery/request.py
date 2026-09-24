@@ -11,7 +11,7 @@ from ..domain.artifact import AppProfile
 from ..governance.policy import Policy, policy_for_role
 from ..governance.profile import load_profile
 from ..governance.store import origin_for
-from ..secrets import EnvSecrets
+from ..secrets import secrets_for
 
 
 @dataclass
@@ -74,8 +74,8 @@ def policy_for_request(request: DiscoveryRequest) -> Policy:
     return policy_for_role(request.vendor_app, request.role, request.tenant)
 
 
-def default_secrets(policy: Policy) -> EnvSecrets:
-    return EnvSecrets(policy.service_account())
+def default_secrets(policy: Policy):
+    return secrets_for(policy.service_account())
 
 
 class _Keep(dict):

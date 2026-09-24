@@ -8,23 +8,26 @@ Artifact. They are governance data a Reviewer owns, so they live beside the Role
 
 from functools import lru_cache
 
-import yaml
-
 from ..domain.artifact import AppProfile
 from ..evidence.redact import Redactor
-from ..paths import PROFILES_DIR
+from ..settings import settings
+from .files import read_yaml
 
 
 class UnknownProfile(Exception):
     pass
 
 
-@lru_cache(maxsize=None)
 def load_profile(vendor_app: str) -> AppProfile:
-    path = PROFILES_DIR / f"{vendor_app}.yaml"
+    path = settings.profiles_dir / f"{vendor_app}.yaml"
     if not path.exists():
         raise UnknownProfile(f"no app profile for vendor app {vendor_app!r}")
-    return AppProfile.model_validate(yaml.safe_load(path.read_text()))
+    return _profile(path)
+
+
+@lru_cache(maxsize=None)
+def _profile(path) -> AppProfile:
+    return AppProfile.model_validate(read_yaml(path))
 
 
 def redactor_for(vendor_app: str, **flags) -> Redactor:

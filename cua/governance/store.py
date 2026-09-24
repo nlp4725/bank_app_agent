@@ -8,11 +8,11 @@ Overlay. See CONTEXT.md, "Artifact" and "Tenant Overlay".
 """
 
 from functools import lru_cache
-
-import yaml
+from pathlib import Path
 
 from ..domain.artifact import Artifact, merged
-from ..paths import ARTIFACTS_DIR, OVERLAYS_DIR
+from ..settings import settings
+from .files import read_yaml
 from .policy import PolicyError, load_tenant_policy
 from .profile import load_profile
 
@@ -22,7 +22,7 @@ class UnknownCapability(Exception):
 
 
 @lru_cache(maxsize=None)
-def _index() -> dict:
+def _index(artifacts_dir: Path) -> dict:
     """Every Artifact on disk, by (capability id, version).
 
     A file that is not an Artifact — a decisions file — simply does not appear,
@@ -31,9 +31,9 @@ def _index() -> dict:
     version in place cannot quietly change what replays.
     """
     found = {}
-    for path in sorted(ARTIFACTS_DIR.glob("*.yaml")):
+    for path in sorted(artifacts_dir.glob("*.yaml")):
         try:
-            artifact = Artifact.model_validate(yaml.safe_load(path.read_text()))
+            artifact = Artifact.model_validate(read_yaml(path))
         except Exception:
             continue
         key = (artifact.capability.id, artifact.capability.version)
@@ -47,7 +47,7 @@ def _index() -> dict:
 
 def artifacts() -> list[Artifact]:
     """Every Artifact on disk, approved or not — what a Reviewer may borrow from."""
-    return list(_index().values())
+    return list(_index(settings.artifacts_dir).values())
 
 
 def load_capability(capability_id: str, version: str | None = None) -> Artifact:
@@ -56,7 +56,7 @@ def load_capability(capability_id: str, version: str | None = None) -> Artifact:
     Omit the version to take the highest approved one, which is what a caller that
     just wants "the live capability" means.
     """
-    index = _index()
+    index = _index(settings.artifacts_dir)
     if version is not None:
         artifact = index.get((capability_id, version))
         if artifact is None:
@@ -73,8 +73,8 @@ def load_capability(capability_id: str, version: str | None = None) -> Artifact:
 def overlay_for(tenant: str) -> dict | None:
     """The Tenant Overlay, if this Tenant has one. Appearance only; the engine lints
     it before applying it, so nothing here needs to judge what it contains."""
-    path = OVERLAYS_DIR / f"{tenant}.yaml"
-    return yaml.safe_load(path.read_text()) if path.exists() else None
+    path = settings.overlays_dir / f"{tenant}.yaml"
+    return read_yaml(path) if path.exists() else None
 
 
 def origin_for(tenant: str, vendor_app: str) -> str:

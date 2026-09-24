@@ -16,7 +16,7 @@ from ..evidence import EvidenceWriter
 from ..governance.overlay import apply_overlay, lint_overlay
 from ..governance.policy import PolicyError, policy_for, route_of
 from ..governance.profile import redactor_for
-from ..secrets import EnvSecrets, MissingSecret
+from ..secrets import MissingSecret, secrets_for
 from ..surface import Surface
 from .context import ActingSurface, Narrator, RunContext, SecretsProvider
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
@@ -45,7 +45,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     refusal = policy.refuse_reason(artifact, origin=ctx.origin)
     if refusal:
         return evidence.refused(run_id, refusal)
-    secrets = ctx.secrets or EnvSecrets(policy.service_account())
+    secrets = ctx.secrets or secrets_for(policy.service_account())
 
     if artifact.capability.status != "approved":
         return evidence.refused(run_id, f"artifact is {artifact.capability.status!r}, not approved")

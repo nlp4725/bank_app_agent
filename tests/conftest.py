@@ -11,10 +11,14 @@ import pytest
 
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
+from cua.settings import configure
 
 from .fixtures import artifact_dict
 
 VENDOR_APP = "demo-core-servicing"
+
+# The suite runs against the demo app with its service accounts, whatever the shell says.
+configure(secrets_provider="demo")
 
 PORT = 5099
 ORIGIN = f"http://127.0.0.1:{PORT}"
