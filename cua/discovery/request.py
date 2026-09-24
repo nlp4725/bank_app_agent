@@ -1,0 +1,68 @@
+"""What a Reviewer hands to discovery, and what comes back."""
+
+from dataclasses import dataclass, field
+
+from ..domain.artifact import AppProfile
+from ..governance.policy import Policy, policy_for_role
+from ..secrets import EnvSecrets
+
+
+@dataclass
+class DiscoveryRequest:
+    """What the Reviewer hands to discovery: a goal in words, plus the Contract."""
+    goal: str
+    vendor_app: str
+    role: str
+    contract: dict
+    example_values: dict
+    tenant: str = "bank_a"
+    origin: str = "http://127.0.0.1:5001"
+    app_profile: AppProfile | None = None
+    evidence_root: str = "runs"
+    headless: bool = True
+    secrets: object | None = None
+    # Masking is ON, in layers (see CONTEXT.md, "Redaction"):
+    #   structural — a password is never read, whatever is declared
+    #   origin     — a value is hidden unless its caption is a Readable Region
+    #   pattern    — what does flow through still passes the net
+    #   pixels     — declared Sensitive Regions are painted black at capture
+    # Pixels stay a deny-list: blacking out an undeclared control would blind the model.
+    mask_values: bool = True
+    mask_pixels: bool = True
+    verbose: bool = False      # narrate each turn to the console
+    slow_mo_ms: int = 0        # pace actions so a person can follow along
+    # The Recorder is code and decides nothing, so it runs as soon as a successful run
+    # finishes: a draft Artifact lands beside the trace. Approval stays with a person.
+    compile_draft: bool = True
+    capability_id: str = ""
+    role_for_artifact: str = ""
+
+
+@dataclass
+class DiscoveryResult:
+    ending: str
+    run_id: str
+    trace_dir: str
+    turns: int
+    outputs: dict = field(default_factory=dict)
+    outcome: str | None = None
+    detail: str | None = None
+    actions: list = field(default_factory=list)
+    draft: str | None = None                 # written when the run reached the goal
+    suggestions: list = field(default_factory=list)
+
+    def __str__(self):
+        bits = [self.ending, f"{self.turns} turns"]
+        if self.outcome:
+            bits.append(self.outcome)
+        if self.detail:
+            bits.append(self.detail)
+        return " · ".join(bits)
+
+
+def policy_for_request(request: DiscoveryRequest) -> Policy:
+    return policy_for_role(request.vendor_app, request.role, request.tenant)
+
+
+def default_secrets(policy: Policy) -> EnvSecrets:
+    return EnvSecrets(policy.service_account())
