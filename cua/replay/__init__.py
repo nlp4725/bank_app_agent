@@ -6,8 +6,9 @@ import graph from engine.py to say so.
 """
 
 from ..domain.result import RunResult
-from .engine import RunContext, replay, validate_inputs
+from .context import ActingSurface, Narrator, Operator, RunContext, SecretsProvider
+from .engine import replay, validate_inputs
 from .narration import Console, Silent, from_env
 
-__all__ = ["Console", "RunContext", "RunResult", "Silent", "from_env", "replay",
-           "validate_inputs"]
+__all__ = ["ActingSurface", "Console", "Narrator", "Operator", "RunContext", "RunResult",
+           "SecretsProvider", "Silent", "from_env", "replay", "validate_inputs"]

@@ -303,9 +303,9 @@ def test_a_locator_never_leaves_the_surface():
 
 # ── the Surface seam: two interfaces, and nothing reaching past them ──────────
 
-ACTING = {"origin", "allowed_origins", "blocked_requests", "url", "goto", "text",
-          "wait", "close", "screenshot", "resolve", "click", "type", "select",
-          "read", "value_of", "frame_urls"}
+from cua.replay.context import ActingSurface, members  # noqa: E402
+
+ACTING = members(ActingSurface)
 
 
 def _attributes_used_on(paths, variable):

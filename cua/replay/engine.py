@@ -7,7 +7,6 @@ engine knows about surprises is in the four Conditions; everything it knows abou
 
 import re
 import uuid
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..domain.artifact import Artifact
@@ -19,6 +18,7 @@ from ..governance.policy import PolicyError, policy_for, route_of
 from ..governance.profile import redactor_for
 from ..secrets import EnvSecrets, MissingSecret
 from ..surface import Surface
+from .context import ActingSurface, Narrator, RunContext, SecretsProvider
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .narration import Silent
@@ -27,28 +27,6 @@ from .predicates import Predicates
 OBSERVE = object()      # "a recovery ran: look at where it left us, do not re-act"
 DEFAULT_TIMEOUT_MS = 6000
 DEFAULT_RECOVERY_BUDGET = 2
-
-
-@dataclass
-class RunContext:
-    origin: str
-    attended: bool = False
-    tenant: str = "bank_a"
-    secrets: object | None = None      # defaults to the Role's Service Account
-    evidence_root: str = "runs"
-    headless: bool = True
-    # An Operator: called when the run escalates and a person is on shift. Given the
-    # intervention and the live session, it returns "resume" or "abort". Absent, the
-    # run waits for a decision file, which is what an operator console would write.
-    operator: object | None = None
-    operator_timeout_s: float = 120.0
-    # A Tenant Overlay: appearance only. Linted before it is applied, so a patch that
-    # tried to add a transition, change the contract or widen needs is refused here
-    # rather than quietly taking effect.
-    overlay: dict | None = None
-    # How the run looks to a person watching it — pacing, narration, whether the
-    # browser is left open. Demo ergonomics, behind their own seam: see cua/narration.
-    narrator: object | None = None
 
 
 def validate_inputs(artifact: Artifact, inputs: dict) -> str | None:
@@ -131,8 +109,9 @@ class Run:
     one interface: `execute()`.
     """
 
-    def __init__(self, artifact, inputs, ctx, surface, evidence, run_id, policy,
-                 narrator=None, secrets=None):
+    def __init__(self, artifact: Artifact, inputs: dict, ctx: RunContext,
+                 surface: ActingSurface, evidence: EvidenceWriter, run_id: str, policy,
+                 narrator: Narrator | None = None, secrets: SecretsProvider | None = None):
         self.artifact = artifact
         self.secrets = secrets if secrets is not None else ctx.secrets
         self.inputs = inputs
