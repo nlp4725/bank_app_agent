@@ -6,6 +6,7 @@ the Replay Engine needs), `RecordingSurface` enumerates and describes (what a
 Discovery Run needs). See driver.py for why they are split.
 """
 
-from .driver import RecordingSurface, Resolved, Surface
+from .driver import Resolved, Surface
+from .recording import RecordingSurface
 
 __all__ = ["RecordingSurface", "Resolved", "Surface"]
