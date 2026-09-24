@@ -22,11 +22,10 @@ import anthropic
 import yaml
 
 from .domain.artifact import AppProfile, Contract
-from .evidence import EvidenceWriter
+from .evidence import PROTECTED, EvidenceWriter, Redactor
 from .governance.policy import policy_for_role, route_of
 from .governance.profile import redactor_for
 from .governance.roles import list_roles
-from .redact import PROTECTED, Redactor
 from .recorder import record
 from .secrets import EnvSecrets
 from .surface import RecordingSurface, Surface

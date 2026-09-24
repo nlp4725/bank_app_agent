@@ -16,7 +16,7 @@ Terms in [CONTEXT.md](../CONTEXT.md). The principle: arrange things so the dange
 | 7 | **Tamper-evident Evidence.** Append-only JSONL with a hash chain; a run's history cannot be quietly rewritten. This is what makes an `Outcome Unknown` verdict trustworthy. | evidence sink | Design only, not built |
 | 8 | **BUILT** — **Policy layering.** Baseline ∩ Tenant ∩ Needs, checked before every action. | `cua/policy.py`, `config/baseline.yaml`, `config/policies/*` |
 | 9 | **BUILT** — **Secrets by reference.** Substituted at the moment of typing, below the model, below the log, below the Artifact. | `cua/engine.py` |
-| 10 | **BUILT** — **Redaction Chokepoint**, both inbound (logs, evidence, artifacts, returned outputs) and outbound (observation text before it reaches a model, and the screenshot: declared Sensitive Regions, every value cell not declared readable, and declared text patterns painted black at capture). | `cua/redact.py`, `Surface.screenshot` |
+| 10 | **BUILT** — **Redaction Chokepoint**, both inbound (logs, evidence, artifacts, returned outputs) and outbound (observation text before it reaches a model, and the screenshot: declared Sensitive Regions, every value cell not declared readable, and declared text patterns painted black at capture). | `cua/evidence/redact.py`, `Surface.screenshot` |
 
 Rows marked BUILT are implemented and covered by a test in `tests/test_safety.py`. The rest are decisions, not claims about the code.
 

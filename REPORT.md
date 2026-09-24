@@ -22,12 +22,12 @@ hands the live session to an Operator and resumes on a re-checked Checkpoint.*
 
 ![read_savings_balance as a state machine](./docs/figures/state_chain.svg)
 
-*Figure 1.2 — What an Artifact is: the smaller capability, `member.read_savings_balance`,
-as its state machine. A State is believed only when its Checkpoint holds, asked after every
-Action; the two Watchers can fire from any State, and are consulted only when a Checkpoint
-misses. Every id is read from
-[read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml) by
-`docs/figures/make_state_chain.py`, so the figure cannot drift.*
+*Figure 1.2 — The approved "read savings balance" Artifact of Figure 2.2 drawn as a state
+machine (read top row left to right, then bottom row right to left). Each box is a State;
+the amber box beneath it is its Checkpoint, the question that must answer yes on the live
+screen for the engine to believe it is there. Each arrow is a Transition holding an Action.
+The Replay Engine executes this graph directly; it is not regenerated into a script. Drawn
+from [read_savings_balance.1.0.0.yaml](./artifacts/read_savings_balance.1.0.0.yaml).*
 
 - **The boundaries are code.** Only [`cua/surface.py`](./cua/surface.py) imports Playwright;
   only [`cua/discovery.py`](./cua/discovery.py) imports a model SDK, and an import-graph test
@@ -326,7 +326,7 @@ allowlist aborts it before it leaves.*
                                     Sensitive Regions and text patterns painted black
 ```
 
-*Figure 6.2 — Redaction ([`cua/redact.py`](./cua/redact.py)): structural, origin,
+*Figure 6.2 — Redaction ([`cua/evidence/redact.py`](./cua/evidence/redact.py)): structural, origin,
 pattern, pixels. Origin is the only layer that can hide a name, because no pattern finds one.
 Default-deny fails safe: a screen added next year hides its values until a Reviewer declares
 otherwise.*

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from cua.domain.artifact import AppProfile, Artifact, Watcher, merged
 from cua.governance.profile import load_profile
-from cua.redact import HIDDEN, PROTECTED, mask_value, redact_text
+from cua.evidence import HIDDEN, PROTECTED, mask_value, redact_text
 
 from .fixtures import artifact_dict
 
@@ -224,7 +224,7 @@ def test_a_value_cell_not_declared_readable_is_painted_black(bank_app, tmp_path)
     """The Checking balance is a value nobody declared readable: hidden in text, so hidden
     in pixels. The Savings balance is a Readable Anchor: visible in both. The member
     number in the heading is not a cell at all; the profile names it by pattern."""
-    from cua.redact import Redactor
+    from cua.evidence import Redactor
     from cua.surface import Surface
     surface = Surface(bank_app)
     try:
@@ -254,7 +254,7 @@ def test_the_page_text_the_model_reads_hides_a_value_no_pattern_can_find(bank_ap
     """The gap this closed: the 'visible text' block went through the pattern net only,
     so a name — which no pattern can find — reached the model and, repeated in its
     reason, the trail. Page text now goes through origin masking like the cells do."""
-    from cua.redact import Redactor
+    from cua.evidence import Redactor
     from cua.surface import Surface
     surface = Surface(bank_app)
     try:

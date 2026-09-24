@@ -11,7 +11,7 @@ from functools import lru_cache
 import yaml
 
 from ..domain.artifact import AppProfile
-from ..redact import Redactor
+from ..evidence.redact import Redactor
 from ..paths import PROFILES_DIR
 
 
