@@ -245,3 +245,25 @@ engine applies it at run time, so it belongs below `replay`, not beside `review`
 
 Stop after any step and the tree is still coherent. Steps 2–6a can be done in one
 sitting; each is ten minutes of moving and a test run.
+
+## 5. Status (2026-09-24)
+
+Every step below was done as one or more commits on `main`, each after a green full run.
+The suite went from 186 tests to 205; ruff and mypy (over `cua.domain` and `cua.replay`)
+are clean.
+
+| step | commits | notes |
+|---|---|---|
+| 0 | `76045e9` | governance move committed as found; the five click crops 8f9c92e dropped restored |
+| 1 | `b7620ab` | `redactor_for` in governance.profile; no imports inside functions, and a test that says so |
+| 2 | `80c4563` | `evidence/` |
+| 3 | `5e6eebb` `71924d3` `56ecbbc` | `surface/`; `locate.score` over boxes, with the first browser-free tests of it |
+| 4 | `c3602f6` | `authoring/`, overlay into `governance/` |
+| 5 | `81b3815` `008f8be` `07c89b9` | `replay/`; Protocols in `replay/context.py`; `domain/rules.py` |
+| 6 | `9ed5a0a` `af8341c` `1c4cf78` `2d43baf` | `discovery/`; the SDK behind `discovery/model.py`; four scripted-model tests of the loop; `request_from_spec` out of the CLI |
+| 7 | `e86ba3a` | `settings.py` with `CUA_ROOT` / `CUA_SECRETS`; loaders read it at call time; `EnvSecrets` strict, `DemoSecrets` separate |
+| 8 | `ea501a9` | `CuaError`; `pyproject.toml` with entry points, ruff and mypy |
+
+Left as is, on purpose: the two `print` calls (`narration.Console` and discovery's
+`verbose`) are the "someone is watching" channel, not logging; and `docs/modules.md`
+was updated row by row rather than regrouped.
