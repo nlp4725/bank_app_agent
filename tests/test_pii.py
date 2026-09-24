@@ -159,7 +159,7 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
         Path(path).write_bytes(b"png")
 
     surface = Recorder()
-    writer = EvidenceWriter(tmp(), None, redactor=redactor)
+    writer = EvidenceWriter(tmp(), redactor=redactor)
     writer.snap(surface)
     writer.close()
     assert surface.asked and len(surface.asked) == 2, \
@@ -171,7 +171,7 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
 
 def test_a_writer_with_no_profile_still_masks_text_and_patterns():
     from cua.evidence import EvidenceWriter
-    writer = EvidenceWriter(tmp(), None)
+    writer = EvidenceWriter(tmp())
     record = writer.event("run_x", "observed", note="card 4111 1111 1111 1111")
     writer.close()
     assert "[card]" in record["note"]

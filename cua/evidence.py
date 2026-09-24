@@ -13,10 +13,9 @@ from .result import RunResult
 
 
 class EvidenceWriter:
-    def __init__(self, directory: Path, artifact, redactor: Redactor | None = None):
+    def __init__(self, directory: Path, redactor: Redactor | None = None):
         self.dir = Path(directory)
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.artifact = artifact
         # Every line and every image leaves through this one object. A writer built
         # without one still masks text and patterns; it simply knows of no Sensitive
         # Regions, because nobody told it which app it is writing about.

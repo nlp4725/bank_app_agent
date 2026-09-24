@@ -10,6 +10,8 @@ import re
 import shutil
 from pathlib import Path
 
+from .paths import ASSETS, ROOT
+
 SLUG = re.compile(r"[^a-z0-9]+")
 
 
@@ -32,10 +34,6 @@ def page_pattern(path: str) -> str:
     if len(parts) > 1:
         return "/" + parts[0] + "/*"
     return path or "/"
-
-
-ROOT = Path(__file__).resolve().parent.parent
-ASSETS = ROOT / "artifacts" / "assets"
 
 
 def keep_asset(crop: str, capability_id: str, assets_dir: Path | None) -> str | None:

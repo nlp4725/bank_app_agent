@@ -21,7 +21,7 @@ import anthropic
 
 from .artifact import AppProfile
 from .evidence import EvidenceWriter
-from .policy import policy_for
+from .policy import policy_for_role
 from .redact import PROTECTED, Redactor, for_app
 from .surface import RecordingSurface, Surface
 
@@ -174,7 +174,7 @@ def observation(surface: RecordingSurface, redactor: Redactor) -> tuple[str, lis
 
 def discover(request: DiscoveryRequest) -> DiscoveryResult:
     run_id = f"disc_{uuid.uuid4().hex[:8]}"
-    trace = EvidenceWriter(Path(request.evidence_root) / run_id, None)
+    trace = EvidenceWriter(Path(request.evidence_root) / run_id)
     shots = Path(trace.dir) / "screens"
     shots.mkdir(exist_ok=True)
 
@@ -407,9 +407,7 @@ def _default_secrets(policy):
 
 
 def policy_for_request(request):
-    class _Shim:
-        capability = type("c", (), {"vendor_app": request.vendor_app, "role": request.role})()
-    return policy_for(_Shim(), request.tenant)
+    return policy_for_role(request.vendor_app, request.role, request.tenant)
 
 
 # ── before discovery: a Contract and a Role proposed from the goal ─────────────

@@ -6,13 +6,11 @@ into a checkpoint, a placeholder nothing fills, an outcome promised to the calle
 that nothing can produce.
 """
 
-import re
 from dataclasses import dataclass
 
 from .artifact import Artifact
+from .predicates import PLACEHOLDER
 from .roles import UnknownRole, covers, get_role
-
-PLACEHOLDER = re.compile(r"\{\{\s*([a-zA-Z0-9_]+)\s*\}\}")
 
 
 MIN_TRIGGER_TEXT = 6      # a text trigger shorter than this cannot name a screen

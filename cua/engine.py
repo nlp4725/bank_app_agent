@@ -99,7 +99,7 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     run_id = f"run_{uuid.uuid4().hex[:8]}"
     # The Redactor comes from the vendor app, so a replay's evidence is masked by the
     # same declarations a Discovery Run's is — screenshots included.
-    evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id, artifact,
+    evidence = EvidenceWriter(Path(ctx.evidence_root) / run_id,
                               redactor=for_app(artifact.capability.vendor_app))
 
     # ── the front door: nothing is touched if any of this fails ──────────────

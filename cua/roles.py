@@ -2,11 +2,10 @@
 
 import fnmatch
 from functools import lru_cache
-from pathlib import Path
 
 import yaml
 
-ROLES_DIR = Path(__file__).resolve().parent.parent / "config" / "roles"
+from .paths import ROLES_DIR
 
 
 class UnknownRole(Exception):

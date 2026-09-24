@@ -8,17 +8,12 @@ Overlay. See CONTEXT.md, "Artifact" and "Tenant Overlay".
 """
 
 from functools import lru_cache
-from pathlib import Path
 
 import yaml
 
 from .artifact import Artifact, merged
+from .paths import ARTIFACTS_DIR, OVERLAYS_DIR, POLICIES_DIR
 from .profile import load_profile
-
-ROOT = Path(__file__).resolve().parent.parent
-ARTIFACTS_DIR = ROOT / "artifacts"
-OVERLAYS_DIR = ROOT / "overlays"
-POLICIES_DIR = ROOT / "config" / "policies"
 
 
 class UnknownCapability(Exception):

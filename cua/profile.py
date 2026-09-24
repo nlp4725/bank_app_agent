@@ -7,13 +7,11 @@ Artifact. They are governance data a Reviewer owns, so they live beside the Role
 """
 
 from functools import lru_cache
-from pathlib import Path
 
 import yaml
 
 from .artifact import AppProfile
-
-PROFILES_DIR = Path(__file__).resolve().parent.parent / "config" / "profiles"
+from .paths import PROFILES_DIR
 
 
 class UnknownProfile(Exception):

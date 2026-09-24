@@ -6,16 +6,13 @@ roles on its own systems, and Needs are what a Discovery Run actually used.
 See ADR 0005.
 """
 
-import fnmatch
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 
 import yaml
 
-from .roles import get_role
-
-CONFIG = Path(__file__).resolve().parent.parent / "config"
+from .paths import CONFIG, POLICIES_DIR
+from .roles import covers, get_role
 
 
 class PolicyError(Exception):
@@ -29,14 +26,10 @@ def load_baseline() -> dict:
 
 @lru_cache(maxsize=None)
 def load_tenant_policy(tenant: str, vendor_app: str) -> dict:
-    path = CONFIG / "policies" / f"{tenant}.{vendor_app}.yaml"
+    path = POLICIES_DIR / f"{tenant}.{vendor_app}.yaml"
     if not path.exists():
         raise PolicyError(f"no policy for tenant {tenant!r} on {vendor_app!r}")
     return yaml.safe_load(path.read_text())
-
-
-def _covers(patterns, value) -> bool:
-    return any(fnmatch.fnmatch(value, p) or value == p for p in patterns)
 
 
 @dataclass
@@ -65,10 +58,10 @@ class Policy:
         """
         if any(word in path.lower() for word in self.baseline["route_keywords_denied"]):
             return False
-        if not _covers(self.role.get("pages", []), path):
+        if not covers(self.role.get("pages", []), path):
             return False
         narrowed = self.tenant.get("pages")
-        return narrowed is None or _covers(narrowed, path)
+        return narrowed is None or covers(narrowed, path)
 
     def consequential_allowed(self) -> bool:
         return self.role.get("consequential") != "forbidden"
@@ -119,10 +112,16 @@ class Policy:
         return None
 
 
-def policy_for(artifact, tenant: str) -> Policy:
+def policy_for_role(vendor_app: str, role: str, tenant: str) -> Policy:
+    """The Policy for one Role on one vendor app, as one Tenant grants it. A Discovery
+    Run has no Artifact yet, so this is the form it asks in."""
     return Policy(
         baseline=load_baseline(),
-        tenant=load_tenant_policy(tenant, artifact.capability.vendor_app),
-        role_name=artifact.capability.role,
-        vendor_app=artifact.capability.vendor_app,
+        tenant=load_tenant_policy(tenant, vendor_app),
+        role_name=role,
+        vendor_app=vendor_app,
     )
+
+
+def policy_for(artifact, tenant: str) -> Policy:
+    return policy_for_role(artifact.capability.vendor_app, artifact.capability.role, tenant)
