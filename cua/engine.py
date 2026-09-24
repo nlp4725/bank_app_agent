@@ -17,7 +17,7 @@ from .evidence import EvidenceWriter
 from .handoff import (AUTOMATION, AWAITING_OPERATOR, DONE, OPERATOR_IN_CONTROL,
                       RESUMING, Control, Intervention, observe_operator, wait_for_decision)
 from .narration import Silent
-from .policy import PolicyError, policy_for
+from .policy import PolicyError, policy_for, route_of
 from .predicates import Predicates, render
 from .redact import for_app
 from .result import RunResult
@@ -505,14 +505,7 @@ class Run:
     # ── policy, evidence, narration ──────────────────────────────────────────
 
     def path(self) -> str:
-        """The route the Policy is asked about.
-
-        A URL that is not under the run's origin cannot be made origin-relative, so
-        it is asked about whole and fails the allowlist — fail closed, rather than
-        slicing a string into something that happens to match.
-        """
-        url = self.surface.url
-        return (url[len(self.origin):] if url.startswith(self.origin) else url) or "/"
+        return route_of(self.surface.url, self.origin)
 
     def _refuse_if_not_permitted(self, step, action_type, watcher=None):
         path = self.path()

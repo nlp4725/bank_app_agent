@@ -76,6 +76,19 @@ def test_a_read_only_role_may_not_commit():
 
 # ── mid-run enforcement ───────────────────────────────────────────────────────
 
+def test_a_url_outside_the_origin_is_asked_about_whole_and_denied():
+    """One rule for both workflows. Discovery used to slice the URL by the origin's
+    length, so a foreign URL could yield a path that happened to match."""
+    from cua.policy import route_of
+    assert route_of("http://127.0.0.1:5001/members/12345", "http://127.0.0.1:5001") == "/members/12345"
+    assert route_of("http://127.0.0.1:5001", "http://127.0.0.1:5001/") == "/"
+    foreign = route_of("http://attacker.example/members/12345", "http://127.0.0.1:5001")
+    assert foreign == "http://attacker.example/members/12345"
+    policy = Policy(baseline=load_baseline(), tenant=load_tenant_policy("bank_a", "demo-core-servicing"),
+                    role_name="account_opener", vendor_app="demo-core-servicing")
+    assert not policy.allows_page(foreign)
+
+
 def test_a_request_to_another_origin_is_aborted_in_the_browser(bank_app):
     """The page, not us, starts this one: an <img> pointing off-site.
 

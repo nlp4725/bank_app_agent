@@ -21,7 +21,7 @@ import anthropic
 
 from .artifact import AppProfile
 from .evidence import EvidenceWriter
-from .policy import policy_for_role
+from .policy import policy_for_role, route_of
 from .redact import PROTECTED, Redactor, for_app
 from .surface import RecordingSurface, Surface
 
@@ -275,7 +275,7 @@ def discover(request: DiscoveryRequest) -> DiscoveryResult:
                             detail=call.input["reason"])
 
             # ── an action: policy first, then perform it ────────────────────
-            path = surface.url[len(request.origin):] or "/"
+            path = route_of(surface.url, request.origin)
             if not (policy.allows_page(path) and policy.allows_action(call.name)):
                 trace.event(run_id, "policy_deny", turn=turn, path=path, action=call.name)
                 messages.append(_result(call, f"Blocked by policy: {call.name} on {path} "
