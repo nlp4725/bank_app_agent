@@ -115,3 +115,32 @@ of 3; the touched files for each split).
 
 The marker is registered from `conftest.py` rather than `pyproject.toml` because another
 session held uncommitted changes to that file at the time.
+
+## 6. Mirror the package, so an outsider can test a module by path
+
+Requested after step 4: a test file must be findable from the module it tests without
+a table. The rule, enforced by a test in `unit/test_boundaries.py`:
+
+    tests/<tier>/<package>/test_<module>.py          the tests of cua/<package>/<module>.py
+    tests/<tier>/<package>/test_<module>_<story>.py  a second file about the same module
+    tests/<tier>/test_<module>.py                    a top-level module (settings, secrets)
+    tests/unit/test_boundaries.py                    the one file about the package as a whole
+    tests/<tier>/tools/...                           the same rule, over tools/
+
+So `pytest tests/unit/authoring/test_lint.py` is the lint module, `pytest tests/unit/replay`
+is the replay package, and `pytest tests/unit/replay tests/app/replay` is everything
+about it. Names that said what a file was about rather than what it tested go away:
+`test_schema` → `domain/test_artifact`, `test_lease` → `replay/test_handoff`,
+`test_redaction` → `evidence/test_redact`, `test_pixels` → `evidence/test_redact` (app),
+`test_safety` → `governance/test_policy` (app), `test_demos` → `surface/test_locate` (B1)
+and `governance/test_overlay` (B2), `test_outcome_unknown` → `replay/test_engine_outcome_unknown`.
+
+Tests that sat in the wrong file because of a story move to the module they exercise:
+the three `merged()` tests from lint to `domain/test_artifact`; the overlay lint tests
+to `governance/test_overlay`; the profile-data tests to `governance/test_profile`; the
+two writer tests to `evidence/test_writer`; the narration test to `replay/test_narration`;
+the four `spec_from_proposal` tests to `discovery/test_propose`; the source-inspection
+test of the crop rule to `discovery/test_run`; the secrets tests to `test_secrets`.
+
+Three commits: the unit tier (verified by `pytest tests/unit`, seconds), the app tier
+(verified by the full run), then the guard test and the doc citations.

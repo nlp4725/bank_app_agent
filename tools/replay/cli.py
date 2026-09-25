@@ -7,6 +7,7 @@
     python -m tools.replay 12345 --headed --slowmo 2000  # slower, to follow along
     python -m tools.replay 99999                         # a business outcome
     python -m tools.replay 12345 lakeside --headed       # the second institution + overlay
+    python -m tools.replay 12345 --headed --attended     # approve the commit at this terminal
     python -m tools.replay 44444 --headed --attended     # pauses for a human to take over
 
 HEADED=1, ATTENDED=1 and CAPABILITY=… still work as environment variables.
@@ -80,7 +81,11 @@ def parse_args(argv=None):
     p.add_argument("--headed", action="store_true", default=os.environ.get("HEADED") == "1",
                    help="watch the browser (or HEADED=1)")
     p.add_argument("--attended", action="store_true", default=os.environ.get("ATTENDED") == "1",
-                   help="an Operator is on shift: pause on escalation (or ATTENDED=1)")
+                   help="an Operator is on shift: approve each Consequential Action, take "
+                        "over on escalation (or ATTENDED=1)")
+    p.add_argument("--console", action="store_true",
+                   help="attended, but answer in the Operator console (tools.operator) "
+                        "rather than at this terminal")
     p.add_argument("--values", nargs="*", metavar="NAME=VALUE", help="other typed inputs")
     p.add_argument("--wait", type=float, default=float(os.environ.get("WAIT", "240")),
                    help="seconds to wait for an Operator when attended")
@@ -98,6 +103,6 @@ def main(argv=None):
         return 0
     capability = args.capability or choose_capability()
     r = run_replay(capability, args.member, args.tenant, headed=args.headed,
-                   attended=args.attended, values=parse_values(args.values), wait_s=args.wait,
-                   slowmo_ms=args.slowmo)
+                   attended=args.attended or args.console, values=parse_values(args.values),
+                   wait_s=args.wait, slowmo_ms=args.slowmo, console=args.console)
     return 0 if r.status in ("succeeded", "business_outcome") else 1

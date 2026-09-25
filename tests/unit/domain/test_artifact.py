@@ -109,3 +109,39 @@ def test_a_target_may_declare_the_frame_it_lives_in():
 def test_a_target_ladder_is_ordered_strongest_first():
     art = Artifact.model_validate(artifact_dict())
     assert [r.kind for r in art.targets["t_search"].rungs] == ["role_name", "label_anchor", "picture"]
+
+
+# ── App Profile: what every capability on one vendor app shares ───────────────
+
+def test_app_wide_watchers_reach_every_artifact():
+    from cua.domain.artifact import merged
+    art = Artifact.model_validate(artifact_dict())
+    profile = load_profile("demo-core-servicing")
+    assert [w.id for w in art.watchers] == ["w_not_found", "w_not_authorized", "w_validation"]
+    full = merged(art, profile)
+    assert "w_session_expired" in [w.id for w in full.watchers]
+    assert "t_ok" in full.targets              # the profile's targets come too
+    assert lint(full) == []
+
+
+def test_an_artifacts_own_watcher_wins_over_the_profiles():
+    from cua.domain.artifact import merged
+    d = artifact_dict()
+    d["watchers"].append({
+        "id": "w_system_notice",
+        "trigger": {"type": "text_present", "value": "System notice for this capability"},
+        "condition": "hard_failure", "provenance": "reviewer:nasi"})
+    full = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
+    notice = [w for w in full.watchers if w.id == "w_system_notice"]
+    assert len(notice) == 1
+    assert notice[0].condition == "hard_failure"      # the artifact's, not the profile's
+
+
+def test_a_profile_for_another_app_is_refused():
+    import pytest
+
+    from cua.domain.artifact import AppProfile, merged
+    p = load_profile("demo-core-servicing").model_dump(mode="python")
+    p["app_profile"] = "some-other-product"
+    with pytest.raises(ValueError):
+        merged(Artifact.model_validate(artifact_dict()), AppProfile.model_validate(p))

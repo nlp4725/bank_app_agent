@@ -38,7 +38,7 @@ CARD = """<div class="card">
   <div class="k">the live session</div><div class="v">{url}</div>
   <form method="post" action="/decide">
     <input type="hidden" name="run" value="{run}">
-    <button class="go" name="decision" value="resume">Resume now</button>
+    <button class="go" name="decision" value="{go_value}">{go_label}</button>
     <button class="no" name="decision" value="abort">Abort this run</button>
   </form>
   <img src="/shot/{run}">
@@ -51,8 +51,8 @@ STALE_AFTER_S = 30 * 60
 def open_requests():
     """Unanswered, and recent. A request nobody is waiting on any more is noise."""
     import time
-    for path in sorted(RUNS.glob("*/intervention.json"), key=lambda p: p.stat().st_mtime,
-                       reverse=True):
+    for path in sorted([*RUNS.glob("*/intervention.json"), *RUNS.glob("*/approval.json")],
+                       key=lambda p: p.stat().st_mtime, reverse=True):
         if (path.parent / "decision.json").exists():
             continue
         if time.time() - path.stat().st_mtime > STALE_AFTER_S:
@@ -63,11 +63,16 @@ def open_requests():
 @app.route("/")
 def index():
     cards = [CARD.format(run=run, capability=r["capability"], state=r["state"],
-                         watcher=r.get("watcher") or "unrecognised screen",
+                         watcher=(f"about to act on {r.get('target')} (found by {r.get('matched_by')})"
+                                  if r.get("kind") == "approval"
+                                  else r.get("watcher") or "unrecognised screen"),
                          reason=r["reason"], url=r["url"],
                          instruction=r.get("instruction") or
                          "Finish this in the browser window that is already open — "
-                         "the run continues by itself once the blocking screen is gone.")
+                         "the run continues by itself once the blocking screen is gone.",
+                         go_value="approve" if r.get("kind") == "approval" else "resume",
+                         go_label=("Approve this action" if r.get("kind") == "approval"
+                                   else "Resume now"))
              for run, r in open_requests()]
     body = "".join(cards) or '<div class="card none">No interventions waiting.</div>'
     return PAGE.format(body=body)
@@ -75,7 +80,8 @@ def index():
 
 @app.route("/shot/<run>")
 def shot(run):
-    request_file = RUNS / run / "intervention.json"
+    request_file = next(p for p in (RUNS / run / "approval.json", RUNS / run / "intervention.json")
+                        if p.exists())
     path = json.loads(request_file.read_text())["screenshot"]
     return send_file(Path(path).resolve())
 

@@ -11,6 +11,7 @@ import pytest
 from cua.governance.store import load_capability, overlay_for
 from cua.replay.engine import RunContext, replay
 from cua.surface import Surface
+from tests.support.doubles import attended
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Demo run"}
 
@@ -23,7 +24,8 @@ def approved():
 
 def run(art, origin, tenant, overlay=None):
     urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
-    return replay(art, INPUTS, RunContext(origin=origin, tenant=tenant, overlay=overlay))
+    return replay(art, INPUTS, RunContext(origin=origin, tenant=tenant, overlay=overlay,
+                                          **attended()))
 
 
 # ── B1: the unlabelled control ───────────────────────────────────────────────

@@ -9,6 +9,7 @@ tests/unit/test_redaction.py.
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from tests.support.artifact import artifact_dict
+from tests.support.doubles import attended
 
 
 def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
@@ -17,7 +18,7 @@ def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
     art = merged(Artifact.model_validate(artifact_dict()),
                  load_profile("demo-core-servicing"))
     r = replay(art, {"member_number": "12345", "account_type": "savings",
-                     "nickname": "Holiday fund"}, RunContext(origin=bank_app))
+                     "nickname": "Holiday fund"}, RunContext(origin=bank_app, **attended()))
     assert r.outputs["savings_balance"] == "$4210.00"
 def test_a_declared_sensitive_region_is_painted_black(bank_app):
     from cua.surface import Surface

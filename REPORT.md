@@ -24,19 +24,21 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
   and every Tenant draws from.
 - **RBAC for the agent.** When the Contract is proposed from the goal, the narrowest
   Role that can do it is chosen with it ([config/roles/](./config/roles/)):
-  `balance_reader` may not perform a Consequential Action at all and signs in as a
-  read-only Service Account, so it has no transfer form to click.
+  `balance_reader` may "click" only to navigate, never to cause an irreversible
+  consequence (open a sub-account, move money).
 - **Policy is four files, four owners.**
   - **Baseline**, owned by the agent vendor: not a grant but the floor the product never
     crosses for any Tenant, which a Tenant's file can narrow and never widen. For
-    example, the engine can only click, type, select and read, so no run on any Tenant
+    example, the engine can only "click", "type", "select" and "read", so no run on any Tenant
     can download a file or run a script; no secret is ever sent to a model; discovery
-    never runs against production; no commit runs unattended without a Verification
-    Check; a run stops after 60 actions; and a route with `wire`, `transfer` or
+    never runs against production; no Consequential/risky Action (one whose effect cannot
+    be undone or safely repeated, defined under Review Gate below) runs without an
+    Operator's approval, so a capability that commits is Refused unattended; a run stops after 60
+    actions; and a route with `wire`, `transfer` or
     `payment` in it is refused, because this version of the product does not move money.
   - **Role**, written by a Reviewer (agent vendor) once per app, before any discovery:
     the pages, actions, secrets and Service Account one job needs. For example,
-    `balance_reader` may type, click and read on `/login`, `/search` and `/members/*`,
+    `balance_reader` may "type", "click" and "read" on `/login`, `/search` and `/members/*`,
     signed in as `svc_read`; a click that lands on `/admin` is refused at that action,
     whatever any Tenant says.
   - **Tenant Policy**, owned by the institution, the access authority: which Roles it
@@ -52,15 +54,18 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
     login, search and member pages, three actions and the two login secrets, all inside
     `balance_reader`.
 - **Review Gate.** The Reviewer is presented with the drafted Artifact and has two
-  responsibilities: declare each click Safe or Consequential, and add the Watchers the
+  responsibilities: declare each click Safe or Consequential/risky, and add the Watchers the
   capability needs.
-  - *Risk.* Every click arrives Consequential; typing, selecting and reading arrive
+  - *Risk.* An Action is Consequential/risky when its effect cannot be undone or safely
+    repeated: the click that opens the sub-account, or one that would move money. It is
+    Safe when it only moves between screens or reads them, so doing it twice changes
+    nothing. Every "click" arrives Consequential/risky; "type", "select" and "read" arrive
     Safe. The Reviewer marks the clicks that only navigate as Safe and leaves the one
-    that commits Consequential. That label decides how the capability may run: a
-    Consequential click needs an Operator in the loop, who approves it on the live
+    that commits Consequential/risky. That label decides how the capability may run: a
+    Consequential/risky click needs an Operator in the loop, who approves it on the live
     session before the engine performs it, so the capability only runs attended, and an
     unattended request is Refused before a browser opens. The engine never retries a
-    Consequential click.
+    Consequential/risky click.
   - *Watchers.* A Watcher is two things decided ahead of time: what a screen means (its
     trigger) and what to do about it (its Condition and reaction). For this app we formed
     them by deliberately running each edge case against the non-production copy, one
@@ -76,26 +81,13 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
 - **Verify Replay before finalizing.** After the Reviewer's decisions, a Verify
   Replay runs the candidate with no model on a member discovery never saw; only a pass is
   saved, as a new version.
-- **Human-in-the-loop in discovery: at two gates, never mid-run.** Before the run, the
-  Reviewer approves the Contract the model proposes: the capability id, its Role, the
-  typed inputs and outputs, and the outcome codes. After the run, the Reviewer walks the
-  draft, makes the decisions above, and the Verify Replay follows. During the run nobody
-  steers: the model proposes, code checks Policy and acts, and a run that is stuck ends,
-  by `ask_human`, `give_up` or the stuck detector, with its evidence for the Reviewer,
-  who fixes the goal or the Contract and runs again. The live handoff to a person exists
-  on the replay path only (§5).
 - **How each runtime condition is recognised and handled** is §3.
 
-**Left out.** A failed Verify Replay goes back to the Reviewer, not to the model.
-PreAct<sup>[1]</sup> routes the other way: replay "hands control back to the agent the
-moment something is off", and the agent explores afresh when no program fits, so the
-program repairs itself and the error handling it lacked is added. Instead of autonomous
-error handling, we built a review loop: a failed verify returns the candidate, the
-problems and the replay's trail to the Reviewer, who adds a Watcher, marks a click Safe
-or changes a Target and verifies again. The bounded form the brief calls "assisted
-fallback" is the next step we would consider: on a failed verify in non-production only,
-one policy-checked model turn proposes a Watcher or a Target, recorded as a proposal in
-the trail, and the Reviewer still approves before anything is saved.
+**Left out.** A failed Verify Replay goes back to the Reviewer.
+PreAct<sup>[1]</sup> routes the other way: a failed replay goes back to the LLM, which
+adds the failed run as error handling automatically. We chose instead to ask the
+Reviewer to check the run and prompt the LLM with the failed input, to produce the error
+handling, which we named Watchers: what an error looks like, and what to do about it.
 
 ## 2. Artifact schema
 
@@ -182,17 +174,19 @@ quietly granted thirty retries looks suspicious. Engine:
 | Example on screen | Condition | Who acts | Reaction | Run Result if unresolved |
 |---|---|---|---|---|
 | Input fails its Contract type/pattern/enum | — (caught before the run) | nobody needed | never started | **Refused** |
+| A capability that commits, with nobody on shift | — (caught before the run) | an Operator, next time | never started | **Refused** |
+| The click that commits | Consequential/risky Action | Operator, live | pause, show the control and its rung, click only on approval | **Aborted**, **Failed** on timeout; nothing committed |
 | "No records found" | Business Outcome | nobody — it is the answer | stop | **Business Outcome** `MEMBER_NOT_FOUND` (resolver: Member) |
 | "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
 | "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
 | "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
 | Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
 | Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
-| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential Action was already in flight |
+| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential/risky Action was already in flight |
 | "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
 | A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
-| Frozen screen after a Consequential Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
-| System died mid-Consequential Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
+| Frozen screen after a Consequential/risky Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
+| System died mid-Consequential/risky Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
 
 **Figure 3.2 — Every surprise becomes one of four Conditions, and the test is who can
 act.** *The system alone within a budget, a person during the run, or nobody in time. The
@@ -308,9 +302,12 @@ designed, not built (§7).
 *One holder at a time, illegal moves raise, and `done` is reachable from any state. The
 Operator gets the same browser the automation was using, mid-flow.*
 
-- **Stuck is detected** by a Watcher whose Condition is `escalate`, or by an Unknown State
-  in an attended run. An `Intervention` file carries the capability, the State, the reason,
-  the live URL, a screenshot and the instruction a Reviewer wrote once on the Watcher. The
+- **Two requests reach an Operator.** An approval, before every Consequential/risky Action:
+  the run pauses, names the control and the rung that found it, and acts only on
+  approve. And an escalation, when stuck: a Watcher whose Condition is `escalate`, or an
+  Unknown State in an attended run. Either way an `Intervention` file carries the
+  capability, the State, the reason, the live URL, a screenshot and, for an escalation,
+  the instruction a Reviewer wrote once on the Watcher. The
   handoff exists on the replay path only. A stuck Discovery Run ends instead, by the model
   calling `ask_human` or by the stuck detector in code, and its evidence is what the
   Reviewer reads before running it again; letting an Operator take over a discovery
@@ -345,7 +342,7 @@ configuration or the Tenant's own system.
    replay imports no model SDK. That a non-production copy holds only synthetic Members
    is the Tenant's promise, carried by its tag; nothing inspects the data.
 2. **Execution integrity.** An Artifact is data and the engine its only interpreter
-   (ADR 0001): four Actions, four Predicates, anything else rejected at parse; an Overlay
+   (ADR 0001): four Actions ("click", "type", "select", "read"), four Predicates, anything else rejected at parse; an Overlay
    that touches behaviour refused; an Unknown State stops, never a guess.
 3. **Network.** Allowlisted origins on every request the browser makes, page-initiated
    included; downloads off, popups closed, permissions denied, a fresh context per run.
@@ -354,10 +351,11 @@ configuration or the Tenant's own system.
    each layer may narrow, none may widen.
 5. **Identity.** The Role's Service Account, least privilege inside the app itself:
    `balance_reader` signs in as a user with no sub-account form.
-6. **Change control.** Consequential by default; only a Reviewer may mark a click Safe;
+6. **Change control.** Consequential/risky by default; only a Reviewer may mark a click Safe;
    two approvals for an Artifact that commits; a Verify Replay on inputs discovery never
-   saw. Attended, the Operator approves each Consequential click and is shown which rung
-   matched; unattended, a commit without a Verification Check is Refused.
+   saw. Every Consequential/risky click waits for an Operator's approval and shows which rung
+   matched; with nobody on shift, a capability that commits is Refused before a browser
+   opens.
 7. **Data.** Default-deny at one chokepoint (Figure 6.2), on the way to a model and on
    the way to evidence; Secrets by name, substituted at the keystroke.
 8. **Audit.** One append-only writer, a line flushed before every action; on restart an
@@ -402,7 +400,7 @@ black at capture, but a control is never painted, or the model could not click i
 observation passes Figure 6.2 twice, as text and as pixels. Measured on a real run, the
 model saw the member's name and join date as `(hidden)` and the balance as `$*,***.**`,
 and still reached the goal, because it needs the label to know which cell to read, not the
-value. In production there is no model: replay reads the balance with a `read` action and
+value. In production there is no model: replay reads the balance with a "read" action and
 returns it to the caller in full, and a screenshot is taken only on failure or escalation,
 through the same chokepoint. Every run in this repository, the production-side replays in
 [evidence/](./evidence/) included, is against the fake bank with synthetic members.

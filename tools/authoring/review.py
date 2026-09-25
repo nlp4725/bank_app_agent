@@ -15,7 +15,7 @@ from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from cua.governance.store import origin_for
 from cua.replay.engine import RunContext, replay
-from tools._cli import reset_or_exit
+from tools._cli import reset_or_exit, terminal_operator
 from tools.authoring.interview import decide
 from tools.authoring.walkthrough import show_draft
 from tools.replay import run_replay
@@ -26,7 +26,7 @@ WATCH_PACE_MS = 2000                     # between steps when watching a replay 
 
 
 def _watch(capability: str, member: str, tenant: str) -> None:
-    run_replay(capability, member, tenant, headed=True, slowmo_ms=WATCH_PACE_MS)
+    run_replay(capability, member, tenant, headed=True, slowmo_ms=WATCH_PACE_MS, attended=True)
 
 
 def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=input,
@@ -67,10 +67,13 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
         reset_or_exit(origin)
         ready = Artifact.model_validate({**art.model_dump(), "capability":
                                          {**art.model_dump()["capability"], "status": "approved"}})
-        return replay(merged(ready, profile), inputs, RunContext(origin=origin, tenant=tenant))
+        # Attended: the Reviewer is the person present, and approves the commit here.
+        return replay(merged(ready, profile), inputs,
+                      RunContext(origin=origin, tenant=tenant, attended=True,
+                                 operator=terminal_operator(ask)))
 
     print(f"\n  decisions saved to {dpath}\n  lint, then verify-replay on member {unseen} "
-          f"(discovery never saw it) with no model…")
+          f"(discovery never saw it) with no model; you approve its commit…")
     approved, problems = approve(candidate, verify=verify)
     if approved is None:
         print("\n  NOT APPROVED:")

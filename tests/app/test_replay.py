@@ -9,15 +9,19 @@ from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
+from tests.support.doubles import approves
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 
 
-def run(artifact, bank_app, member=None, attended=False, **overrides):
+def run(artifact, bank_app, member=None, attended=True, operator=approves, **overrides):
+    """A run with an Operator on shift who approves the commit. The capability
+    commits, so unattended it never starts (see the front-door tests)."""
     inputs = dict(INPUTS, **overrides)
     if member:
         inputs["member_number"] = member
-    return replay(artifact, inputs, RunContext(origin=bank_app, attended=attended))
+    return replay(artifact, inputs, RunContext(origin=bank_app, attended=attended,
+                                               operator=operator, operator_timeout_s=1.5))
 
 
 # ── the happy path ────────────────────────────────────────────────────────────
@@ -90,18 +94,19 @@ def test_an_expired_session_is_signed_into_again_by_the_system(artifact, bank_ap
     Nothing re-types the password by hand — the run re-observes, finds itself on the
     sign-in screen, and walks the Artifact's own login transitions again.
     """
-    r = run(artifact, bank_app, "88888", attended=False)
+    r = run(artifact, bank_app, "88888")
     assert r.status == "succeeded", r
     events = [e["event"] for e in r.trail]
     assert "watcher_matched" in events
     assert "recovered" in events
 
 
-def test_a_flagged_member_escalates_and_fails_when_no_operator_is_available(artifact, bank_app):
-    """A supervisor ID and PIN belong to a person; no Role holds them."""
-    r = run(artifact, bank_app, "44444", attended=False)
+def test_a_flagged_member_escalates_and_fails_when_nobody_answers(artifact, bank_app):
+    """A supervisor ID and PIN belong to a person; no Role holds them. The Operator
+    on shift approves commits but never answers this, so it times out."""
+    r = run(artifact, bank_app, "44444")
     assert r.status == "failed"
-    assert r.reason == "escalation_required"
+    assert r.reason == "escalation_timeout"
     assert r.watcher == "w_approval_required"
 
 
@@ -126,6 +131,14 @@ def test_an_input_failing_its_pattern_is_refused_before_the_browser_opens(artifa
     r = run(artifact, bank_app, "abc")
     assert r.status == "refused"
     assert "member_number" in r.reason
+
+
+def test_a_capability_that_commits_is_refused_with_nobody_on_shift(artifact, bank_app):
+    """No person, no Consequential Action: Refused before a browser opens."""
+    r = run(artifact, bank_app, "12345", attended=False, operator=None)
+    assert r.status == "refused"
+    assert "Operator" in r.reason
+    assert not any(e["event"] == "about_to" for e in r.trail), "nothing was touched"
 
 
 def test_a_draft_artifact_is_refused_for_an_unattended_run(artifact, bank_app):

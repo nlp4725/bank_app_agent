@@ -132,7 +132,8 @@ def lint(artifact: Artifact, unattended: bool = False) -> list[Issue]:
                 issues.append(
                     Issue("consequential_without_verification",
                           f"transition {t.from_state}->{t.to_state}",
-                          "an unattended run cannot confirm whether this took effect")
+                          "without one, an unclear screen after this commit can only be "
+                          "Outcome Unknown")
                 )
 
     # 9. Needs must fit inside the declared Role.

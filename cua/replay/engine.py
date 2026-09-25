@@ -64,9 +64,9 @@ def replay(artifact: Artifact, inputs: dict, ctx: RunContext) -> RunResult:
     problem = validate_inputs(artifact, inputs)
     if problem:
         return evidence.refused(run_id, problem)
-    consequential = [t for t in artifact.transitions if t.risk == "consequential"]
-    if not ctx.attended and any(t.verify_effect is None for t in consequential):
-        return evidence.refused(run_id, "a consequential action has no verification check")
+    if not ctx.attended and any(t.risk == "consequential" for t in artifact.transitions):
+        return evidence.refused(run_id, "a consequential action needs an Operator present: "
+                                        "this capability only runs attended")
     for name in artifact.needs.secrets:
         try:
             secrets.get(name)
@@ -191,10 +191,17 @@ class Run:
         if denied is not None:
             return denied
 
-        # 3. risk gate
-        if transition.risk == "consequential" and self.ctx.attended:
-            self.event("operator_approval_required",
-                       step=transition.from_state, matched_by=found.matched_by)
+        # 3. risk gate: a Consequential Action waits for a person, every time
+        if transition.risk == "consequential":
+            stopped = self._approve(transition, found)
+            if stopped is not None:
+                return stopped
+            found = self.surface.resolve(target, timeout_ms=timeout)   # they may have moved
+            if found is None:
+                return self.failed("target_not_found_after_approval",
+                                   step=transition.from_state,
+                                   expected=f"a control for {transition.action.target}",
+                                   observed=self.surface.url, snap=True)
 
         # 4. act
         self.narrator.transition(transition, found)
@@ -347,6 +354,48 @@ class Run:
 
     # ── handing the session to a person ──────────────────────────────────────
 
+    def _approve(self, transition, found) -> RunResult | None:
+        """Pause before a Consequential Action: a person decides, the engine acts.
+
+        The front door already refused this run if nobody is on shift, so here an
+        Operator exists. They see the step, the control and the rung that found it,
+        and the live session is theirs while they decide. Approve and the engine
+        performs the action itself, so the trail stays deterministic; Abort or a
+        timeout and nothing is committed.
+        """
+        shot = self.evidence.snap(self.surface)
+        self.control.move(AWAITING_OPERATOR, "operator")
+        request = Intervention(
+            run_id=self.run_id, capability=self.artifact.capability.id,
+            state=transition.from_state,
+            reason=(f"the {transition.action.type} on {transition.action.target} is "
+                    f"Consequential: it commits something a person must approve"),
+            watcher=None, url=self.surface.url, screenshot=shot,
+            instruction="Approve to let the run perform this action itself, or Abort.",
+            kind="approval", target=transition.action.target, matched_by=found.matched_by)
+        path = self.evidence.intervention(request)
+        self.event("approval_requested", step=transition.from_state,
+                   target=transition.action.target, matched_by=found.matched_by,
+                   request=str(path))
+
+        before_url = self.surface.url
+        self.control.move(OPERATOR_IN_CONTROL, "operator")
+        decision, who = self._await_operator(request, None, auto_resume=False)
+        self.event("operator_acted", by=who, decision=decision,
+                   **observe_operator(self.surface, before_url))
+
+        if decision == "timeout":
+            self.control.move(DONE, "automation")
+            return self.failed("approval_timeout", step=transition.from_state,
+                               expected="an Operator's approval", observed="no answer")
+        if decision not in ("approve", "resume"):
+            self.control.move(DONE, "operator")
+            return self.evidence.aborted(self.run_id, by=who, at_step=transition.from_state)
+        self.control.move(RESUMING, "automation")
+        self.control.move(AUTOMATION, "automation")
+        self.event("approved", step=transition.from_state, by=who)
+        return None
+
     def _hand_over(self, transition, watcher_id, reason, stage) -> RunResult | str:
         """Pause, give the Operator this session, record what they did, resume or abort."""
         used = self.escalations.get(transition.from_state, 0)
@@ -391,7 +440,7 @@ class Run:
         self.event("resumed", step=self.artifact.transitions[here].from_state)
         return self.artifact.transitions[here].from_state
 
-    def _await_operator(self, request, watcher) -> tuple[str, str]:
+    def _await_operator(self, request, watcher, auto_resume: bool = True) -> tuple[str, str]:
         def blocker_cleared() -> bool:
             """The blocking screen is gone and we recognise where we are."""
             if watcher is not None and self.predicates.holds(watcher.trigger, timeout_ms=0):
@@ -404,7 +453,8 @@ class Run:
                 return decision, "operator:callback"
             # They acted without answering; let the screen decide.
         return wait_for_decision(self.evidence.dir, self.ctx.operator_timeout_s,
-                                 self.surface.wait, blocker_cleared)
+                                 self.surface.wait,
+                                 blocker_cleared if auto_resume else None)
 
     # ── where are we ─────────────────────────────────────────────────────────
 

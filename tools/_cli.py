@@ -60,3 +60,16 @@ def reset_or_exit(origin: str) -> None:
             f"    python -m fake_bank.app                          # {origin}\n"
             f"    SKIN=bank2 PORT=5002 python -m fake_bank.app     # the second institution\n"
         ) from None
+
+
+def terminal_operator(ask=input):
+    """An Operator answering at this terminal: approvals are asked here, one question
+    per Consequential Action; an escalation is left to the console (returns None, so
+    the run waits on the decision file or on the blocking screen clearing)."""
+    def operator(request, surface):
+        if request.kind != "approval":
+            return None
+        answer = ask(f"\n  APPROVAL  {request.state}: the action on {request.target} commits "
+                     f"(control found by {request.matched_by}). Approve? [Y/n]  ")
+        return "abort" if answer.strip().lower().startswith("n") else "approve"
+    return operator

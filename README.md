@@ -65,10 +65,16 @@ The member number selects the scenario:
 
 ```bash
 python -m tools.replay --list                 # the catalog: every capability, and whether it is approved
-python -m tools.replay 12345 --headed         # asks which capability when more than one is approved
-python -m tools.replay 12345 --headed --slowmo 2000    # slower, to follow along
-python -m tools.replay 12345 --headed --capability member.open_sub_account
+python -m tools.replay 12345 --headed --attended     # asks which capability when more than one is approved
+python -m tools.replay 12345 --headed --attended --slowmo 2000    # slower, to follow along
+python -m tools.replay 12345 --headed --attended --capability member.open_sub_account
+python -m tools.replay 12345 --headed --capability member.read_savings_balance   # reads only: needs nobody
 ```
+
+`--attended` means an Operator is on shift: you. A capability that commits something pauses
+before the click that commits and asks you at this terminal (`--console` sends the question
+to the Operator console instead). Without `--attended` such a capability is **Refused** before a
+browser opens: no person, no commit. A read-only capability needs nobody.
 
 Which artifact runs is the Capability Store's answer: the highest **approved** version of the
 capability id — a draft never replays. A browser opens and drives itself. Drop `HEADED=1` to run it headless in about 3 seconds.
@@ -104,11 +110,12 @@ beside it, and the log records which rung won. And exactly one Transition is
 Every one of these is the *same approved Artifact* meeting a different screen.
 
 ```bash
-python -m tools.replay 99999    # Business Outcome — the app's legitimate answer
-python -m tools.replay 54321    # Recoverable — dismisses an interstitial, carries on
-python -m tools.replay 88888    # Recoverable — session expires, the system signs in again
-python -m tools.replay 44444    # Escalate — nobody on shift, so it stops
-python -m tools.replay 33333    # the held-out condition, on purpose
+python -m tools.replay 99999 --attended   # Business Outcome — the app's legitimate answer
+python -m tools.replay 54321 --attended   # Recoverable — dismisses an interstitial, carries on
+python -m tools.replay 88888 --attended   # Recoverable — session expires, the system signs in again
+python -m tools.replay 44444 --attended --wait 5   # Escalate — nobody answers in 5 s, so it stops
+python -m tools.replay 33333 --attended   # the held-out condition, on purpose
+python -m tools.replay 12345              # unattended: Refused, a person is required to commit
 ```
 
 What you should see:
@@ -174,8 +181,8 @@ RESULT  refused · tenant 'bank_b' does not grant role 'account_opener'
 
 Nothing was touched. Permissions are **Baseline ∩ Role ∩ Tenant grant ∩ Needs**, a true
 intersection — each layer may narrow what the one above allows, none may widen it. The same
-front door refuses an undeclared origin, an unapproved Artifact, a consequential action in an
-unattended run with no Verification Check, and an input that fails its Contract:
+front door refuses an undeclared origin, an unapproved Artifact, a capability that commits
+when nobody is on shift, and an input that fails its Contract:
 
 ```bash
 python - <<'PY'

@@ -11,29 +11,10 @@ from pathlib import Path
 import pytest
 
 from cua.authoring.lint import lint
-from cua.governance.profile import UnknownProfile, load_profile
 from cua.governance.store import UnknownCapability, load_capability, origin_for, overlay_for
 
 CAPABILITY = "member.open_sub_account"
 VENDOR_APP = "demo-core-servicing"
-
-
-# ── the App Profile has one home ─────────────────────────────────────────────
-
-def test_the_app_profile_is_read_from_config_not_from_a_fixture():
-    profile = load_profile(VENDOR_APP)
-    assert profile.app_profile == VENDOR_APP
-    assert {w.id for w in profile.watchers} >= {"w_session_expired", "w_approval_required"}
-
-
-def test_an_unknown_vendor_app_has_no_profile():
-    with pytest.raises(UnknownProfile):
-        load_profile("no-such-app")
-
-
-def test_the_test_package_no_longer_holds_an_app_profile():
-    from tests.support import artifact as fixtures
-    assert not hasattr(fixtures, "app_profile_dict")
 
 
 # ── the Store ────────────────────────────────────────────────────────────────

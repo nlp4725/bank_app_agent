@@ -91,3 +91,35 @@ class VerifyBad:
 def scripted_answers(answers):
     answers = iter(answers)
     return lambda prompt: next(answers)
+
+
+# ── Operators on shift ───────────────────────────────────────────────────────
+# A capability that commits only runs attended, so most app tests need a person who
+# approves the commit and otherwise stays out of the way.
+
+def approves(request, surface):
+    """Approves every Consequential Action; leaves an escalation unanswered."""
+    return "approve" if request.kind == "approval" else None
+
+
+def approves_then_aborts(request, surface):
+    """Approves the commit; aborts if the run escalates afterwards."""
+    return "approve" if request.kind == "approval" else "abort"
+
+
+def clears_the_flag(request, surface):
+    """Approves the commit, and on the flagged member signs off by hand as a
+    supervisor — on the session the automation was already using."""
+    if request.kind == "approval":
+        return "approve"
+    tb = surface.page.get_by_role("textbox")
+    tb.nth(0).fill("sup_ramirez")
+    tb.nth(1).fill("4821")
+    surface.page.get_by_role("button", name="Acknowledge").click()
+    surface.page.wait_for_load_state()
+    return "resume"
+
+
+def attended(**overrides):
+    """RunContext fields for a run with an approving Operator on shift."""
+    return {"attended": True, "operator": approves, **overrides}

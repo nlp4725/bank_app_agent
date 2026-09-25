@@ -311,7 +311,7 @@ An engineer on the automation provider's side who reads redacted evidence, turns
 _Avoid_: Admin, maintainer, operator
 
 **Attended / Unattended**:
-Whether an Operator is available to answer escalations during a run.
+Whether an Operator is on shift to approve each Consequential Action and answer escalations during a run. A capability that commits never runs Unattended: it is Refused before a browser opens.
 _Avoid_: Supervised, interactive, batch
 
 ### Environment

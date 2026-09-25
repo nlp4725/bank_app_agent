@@ -17,6 +17,7 @@ from cua.governance.policy import policy_for
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
+from tests.support.doubles import attended
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 
@@ -74,14 +75,16 @@ def test_a_request_to_another_origin_is_aborted_in_the_browser(bank_app):
 # ── redaction ─────────────────────────────────────────────────────────────────
 
 def test_the_balance_reaches_the_caller_in_full_and_the_record_masked(artifact, bank_app, tmp_path):
-    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path)))
+    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path),
+                                            **attended()))
     assert r.outputs["savings_balance"] == "$4210.00"        # the answer is the product
     written = (Path(r.evidence_id) / "trail.jsonl").read_text()
     assert "$4210.00" not in written                          # the record of it is not
 
 
 def test_no_secret_value_appears_anywhere_in_the_evidence(artifact, bank_app, tmp_path):
-    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path)))
+    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path),
+                                            **attended()))
     for path in Path(r.evidence_id).rglob("*"):
         if path.is_file() and path.suffix in (".jsonl", ".json", ".txt"):
             body = path.read_text()
@@ -90,7 +93,8 @@ def test_no_secret_value_appears_anywhere_in_the_evidence(artifact, bank_app, tm
 
 
 def test_every_policy_decision_is_recorded(artifact, bank_app, tmp_path):
-    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path)))
+    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path),
+                                            **attended()))
     decisions = [json.loads(line) for line in
                  (Path(r.evidence_id) / "trail.jsonl").read_text().splitlines()]
     assert any(d["event"] == "policy_allow" for d in decisions)
@@ -115,5 +119,5 @@ def test_a_declared_origin_runs(artifact, bank_app):
     policy = policy_for(artifact, "bank_a")
     assert policy.allows_origin(bank_app)
     r = replay(artifact, {"member_number": "12345", "account_type": "savings",
-                          "nickname": "Declared"}, RunContext(origin=bank_app))
+                          "nickname": "Declared"}, RunContext(origin=bank_app, **attended()))
     assert r.status == "succeeded", r

@@ -12,7 +12,6 @@ from pydantic import ValidationError
 
 from cua.domain.artifact import Watcher
 from cua.evidence import HIDDEN, PROTECTED, mask_value, redact_text
-from cua.governance.profile import load_profile
 
 # ── by origin: what patterns cannot catch ────────────────────────────────────
 
@@ -85,25 +84,6 @@ def test_an_extract_pattern_without_a_capture_group_is_rejected():
         })
 
 
-# ── declared regions live in the App Profile, reviewable as data ─────────────
-
-def test_readable_regions_are_declared_on_the_app_profile():
-    profile = load_profile("demo-core-servicing")
-    assert "t_balance" in profile.readable_regions
-    assert "t_member_name" not in profile.readable_regions
-
-
-# ── the two channels take opposite defaults, on purpose ──────────────────────
-
-def test_values_are_allowlisted_but_pixels_are_deny_listed():
-    profile = load_profile("demo-core-servicing")
-    assert profile.readable_regions == ["t_balance", "t_new_number"]
-    assert profile.sensitive_regions == ["t_member_name", "t_member_since"]
-    # a control the model must use is readable in pixels though its value is hidden
-    assert "t_ok" not in profile.sensitive_regions
-    assert "t_ok" not in profile.readable_regions
-
-
 # ── the chokepoint is one module, and replay goes through it too ─────────────
 
 def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
@@ -138,44 +118,7 @@ def test_the_redactor_masks_pixels_on_the_replay_path_not_only_in_discovery():
     assert "Member [0-9]{5}" in surface.patterns
 
 
-def test_an_intervention_request_leaves_through_the_redactor(tmp_path):
-    """The gap this closed: Intervention.write dumped its own __dict__ into the
-    evidence directory, so the one file an Operator reads never met the Redactor."""
-    import json
-
-    from cua.evidence import EvidenceWriter
-    from cua.replay.handoff import Intervention
-    writer = EvidenceWriter(tmp_path / "run_x")
-    request = Intervention(run_id="run_x", capability="c", state="s", watcher=None,
-                           reason="contact jane@example.com about card 4111 1111 1111 1111",
-                           url="http://127.0.0.1:5001/members/12345", screenshot="")
-    path = writer.intervention(request)
-    writer.close()
-    body = json.loads(path.read_text())
-    assert "[email]" in body["reason"] and "[card]" in body["reason"]
-    assert body["url"] == request.url            # what the Operator needs, still there
-
-
-def test_a_writer_with_no_profile_still_masks_text_and_patterns():
-    from cua.evidence import EvidenceWriter
-    writer = EvidenceWriter(tmp())
-    record = writer.event("run_x", "observed", note="card 4111 1111 1111 1111")
-    writer.close()
-    assert "[card]" in record["note"]
-
-
 def tmp():
     import tempfile
     from pathlib import Path
     return Path(tempfile.mkdtemp())
-
-
-def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
-    """Discovery crops a target before acting, and only for a click: a field after
-    typing or a cell being read is a picture of a value."""
-    import inspect
-
-    from cua import discovery
-    src = inspect.getsource(discovery.discover)
-    assert 'if call.name == "click" else None' in src
-    assert src.index("surface.crop(") < src.index("record = _perform(")

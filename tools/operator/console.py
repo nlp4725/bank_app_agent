@@ -1,7 +1,8 @@
 """The Operator's side of a handoff: a deliberately minimal console.
 
     python -m tools.operator                 # show the open intervention
-    python -m tools.operator resume          # hand control back
+    python -m tools.operator approve         # let the run perform the Consequential Action
+    python -m tools.operator resume          # hand control back after an escalation
     python -m tools.operator abort           # stop the run
 
 The run holds the browser open and polls for the decision file this writes. The
@@ -16,7 +17,8 @@ from pathlib import Path
 
 
 def open_intervention() -> Path | None:
-    candidates = sorted(Path("runs").glob("run_*/intervention.json"),
+    candidates = sorted([*Path("runs").glob("run_*/intervention.json"),
+                         *Path("runs").glob("run_*/approval.json")],
                         key=lambda p: p.stat().st_mtime, reverse=True)
     for path in candidates:
         if not (path.parent / "decision.json").exists():
@@ -31,7 +33,21 @@ def main(argv=None):
         print("no open intervention")
         return 0
     request = json.loads(path.read_text())
-    print(f"""
+    if request.get("kind") == "approval":
+        print(f"""
+  APPROVAL      {request['run_id']}
+  capability    {request['capability']}
+  paused at     {request['state']}
+  about to      act on {request['target']}  (found by {request['matched_by']})
+  because       {request['reason']}
+  the session   {request['url']}
+  screenshot    {request['screenshot']}
+
+  Nothing has been committed. Look at the browser if you want to, then:
+      python -m tools.operator approve    |     python -m tools.operator abort
+""")
+    else:
+        print(f"""
   INTERVENTION  {request['run_id']}
   capability    {request['capability']}
   stopped at    {request['state']}  ({request.get('watcher') or 'unknown state'})
@@ -42,7 +58,7 @@ def main(argv=None):
   The browser is open and waiting. Do what is needed in it, then:
       python -m tools.operator resume     |     python -m tools.operator abort
 """)
-    if argv and argv[0] in ("resume", "abort"):
+    if argv and argv[0] in ("approve", "resume", "abort"):
         decision = argv[0]
         (path.parent / "decision.json").write_text(json.dumps(
             {"decision": decision, "operator": f"operator:{getpass.getuser()}"}))

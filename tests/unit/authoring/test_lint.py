@@ -7,8 +7,7 @@ caller that nothing can produce.
 
 from cua.authoring.lint import lint
 from cua.domain.artifact import Artifact
-from cua.governance.profile import load_profile
-from tests.support.artifact import artifact_dict, overlay_dict
+from tests.support.artifact import artifact_dict
 
 
 def transition_to(d, target):
@@ -125,86 +124,6 @@ def test_a_consequential_artifact_needs_two_approvals():
     d = artifact_dict()
     d["capability"]["approvals"] = ["reviewer:nasi"]
     assert "needs_two_person_approval" in codes(lint(Artifact.model_validate(d)))
-
-
-# ── Tenant Overlays may change how things look, never how they behave ──────────
-
-def test_a_clean_overlay_is_accepted():
-    from cua.governance.overlay import lint_overlay
-    assert lint_overlay(Artifact.model_validate(artifact_dict()), overlay_dict()) == []
-
-
-def test_an_overlay_cannot_add_a_step():
-    from cua.governance.overlay import lint_overlay
-    o = overlay_dict()
-    o["transitions"] = [{"from_state": "member_open", "to_state": "done", "action": {"type": "click", "target": "t_search"}}]
-    issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
-    assert "overlay_changes_behaviour" in sorted(i.code for i in issues)
-
-
-def test_an_overlay_cannot_change_the_contract():
-    from cua.governance.overlay import lint_overlay
-    o = overlay_dict()
-    o["contract"] = {"outputs": {"savings_balance": {"type": "money"}}}
-    issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
-    assert "overlay_changes_behaviour" in sorted(i.code for i in issues)
-
-
-def test_an_overlay_cannot_widen_needs():
-    from cua.governance.overlay import lint_overlay
-    o = overlay_dict()
-    o["needs"] = {"pages": ["/transfers/*"]}
-    issues = lint_overlay(Artifact.model_validate(artifact_dict()), o)
-    assert "overlay_widens_needs" in sorted(i.code for i in issues)
-
-
-# ── App Profile: what every capability on one vendor app shares ───────────────
-
-def test_app_wide_watchers_reach_every_artifact():
-    from cua.domain.artifact import merged
-    art = Artifact.model_validate(artifact_dict())
-    profile = load_profile("demo-core-servicing")
-    assert [w.id for w in art.watchers] == ["w_not_found", "w_not_authorized", "w_validation"]
-    full = merged(art, profile)
-    assert "w_session_expired" in [w.id for w in full.watchers]
-    assert "t_ok" in full.targets              # the profile's targets come too
-    assert lint(full) == []
-
-
-def test_an_artifacts_own_watcher_wins_over_the_profiles():
-    from cua.domain.artifact import merged
-    d = artifact_dict()
-    d["watchers"].append({
-        "id": "w_system_notice",
-        "trigger": {"type": "text_present", "value": "System notice for this capability"},
-        "condition": "hard_failure", "provenance": "reviewer:nasi"})
-    full = merged(Artifact.model_validate(d), load_profile("demo-core-servicing"))
-    notice = [w for w in full.watchers if w.id == "w_system_notice"]
-    assert len(notice) == 1
-    assert notice[0].condition == "hard_failure"      # the artifact's, not the profile's
-
-
-def test_a_profile_for_another_app_is_refused():
-    import pytest
-
-    from cua.domain.artifact import AppProfile, merged
-    p = load_profile("demo-core-servicing").model_dump(mode="python")
-    p["app_profile"] = "some-other-product"
-    with pytest.raises(ValueError):
-        merged(Artifact.model_validate(artifact_dict()), AppProfile.model_validate(p))
-
-
-def test_an_overlay_key_that_nothing_applies_is_refused_not_ignored():
-    """`timeouts` and `watcher_triggers` used to lint clean and then do nothing, so a
-    reviewer could approve a patch with no effect."""
-    from cua.governance.overlay import lint_overlay
-    art = Artifact.model_validate(artifact_dict())
-    for key, value in (("timeouts", {"t_balance": 8000}),
-                       ("watcher_triggers", {"w_system_notice": {"type": "text_present",
-                                                                 "value": "Notice"}})):
-        issues = lint_overlay(art, dict(overlay_dict(), **{key: value}))
-        assert any(i.code == "overlay_unknown_key" and i.where == key for i in issues), \
-            f"an overlay declaring {key!r} was accepted although nothing applies it"
 
 
 def test_a_text_trigger_too_short_to_name_a_screen_is_refused():

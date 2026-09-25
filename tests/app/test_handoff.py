@@ -3,10 +3,10 @@
 The lease itself — one holder at a time, moves only along declared transitions — is
 tests/unit/test_lease.py."""
 
-import json
 from pathlib import Path
 
 from cua.replay.engine import RunContext, replay
+from tests.support.doubles import approves
 
 # The flagged member: only a supervisor's own ID and PIN clears it, and no Role
 # holds those, so this is the one condition a person must resolve inside the run.
@@ -21,6 +21,8 @@ def operator_clears_the_flag(request, surface):
     page — which is the point of the seam. The supervisor PIN belongs to them, not
     to any Service Account, so no Role could have typed it.
     """
+    if request.kind == "approval":
+        return "approve"
     tb = surface.page.get_by_role("textbox")
     tb.nth(0).fill("sup_ramirez")
     tb.nth(1).fill("4821")
@@ -52,8 +54,12 @@ def test_an_operator_takes_the_live_session_and_the_run_completes(artifact, bank
 
 
 def test_the_intervention_carries_enough_context_to_act_on(artifact, bank_app, tmp_path):
-    escalating_run(artifact, bank_app, tmp_path, operator_clears_the_flag)
-    request = json.loads(next(tmp_path.rglob("intervention.json")).read_text())
+    seen = []
+    def remembers(request, surface):
+        seen.append(dict(request.__dict__))
+        return operator_clears_the_flag(request, surface)
+    escalating_run(artifact, bank_app, tmp_path, remembers)
+    request = next(r for r in seen if r["kind"] == "escalation")
     assert request["capability"] == "member.open_sub_account"
     assert request["watcher"] == "w_approval_required"
     assert request["reason"]
@@ -94,3 +100,41 @@ def test_resume_re_checks_where_it_is_rather_than_assuming(artifact, bank_app, t
     r = escalating_run(artifact, bank_app, tmp_path, wanders_off)
     assert r.status == "failed"
     assert r.reason in ("resume_checkpoint_missed", "escalation_budget_exhausted")
+
+
+# ── approval before every Consequential Action ──────────────────────────────
+# The other reason a person is in a run: not because it is stuck, but because it is
+# about to commit something. Unattended it never starts; attended it pauses and asks.
+
+NORMAL = dict(INPUTS, member_number="12345")
+
+
+def test_the_run_pauses_before_the_commit_and_records_the_approval(artifact, bank_app, tmp_path):
+    r = replay(artifact, NORMAL, RunContext(origin=bank_app, attended=True, operator=approves,
+                                            evidence_root=str(tmp_path)))
+    assert r.status == "succeeded", r
+    events = [e["event"] for e in r.trail]
+    asked, approved, clicked = (events.index("approval_requested"), events.index("approved"),
+                                next(i for i, e in enumerate(r.trail)
+                                     if e["event"] == "about_to" and e.get("risk") == "consequential"))
+    assert asked < approved < clicked, "the person answers before the engine acts"
+    request = next(e for e in r.trail if e["event"] == "approval_requested")
+    assert request["target"] == "t_commit" and request["matched_by"]
+
+
+def test_an_operator_who_refuses_the_commit_aborts_the_run_with_nothing_committed(
+        artifact, bank_app, tmp_path):
+    def refuses(request, surface):
+        return "abort" if request.kind == "approval" else None
+    r = replay(artifact, NORMAL, RunContext(origin=bank_app, attended=True, operator=refuses,
+                                            evidence_root=str(tmp_path)))
+    assert r.status == "aborted"
+    assert not any(e["event"] == "about_to" and e.get("risk") == "consequential" for e in r.trail)
+
+
+def test_an_unanswered_approval_times_out_with_nothing_committed(artifact, bank_app, tmp_path):
+    r = replay(artifact, NORMAL, RunContext(origin=bank_app, attended=True, operator=None,
+                                            operator_timeout_s=1.5, evidence_root=str(tmp_path)))
+    assert r.status == "failed"
+    assert r.reason == "approval_timeout"
+    assert not any(e["event"] == "about_to" and e.get("risk") == "consequential" for e in r.trail)

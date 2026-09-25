@@ -40,7 +40,8 @@ class EvidenceWriter:
         """What the Operator is given, written through the same gate as everything
         else in this directory. It used to be dumped by the request itself, so the one
         file an Operator reads was the one file the Redactor never saw."""
-        path = self.dir / "intervention.json"
+        name = "approval.json" if getattr(request, "kind", "") == "approval" else "intervention.json"
+        path = self.dir / name
         path.write_text(json.dumps(self.redactor.fields(dict(request.__dict__)), indent=2))
         return path
 

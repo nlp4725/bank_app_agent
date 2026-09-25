@@ -10,7 +10,7 @@ import time
 from cua.governance.store import load_capability, origin_for, overlay_for
 from cua.replay.engine import RunContext, replay
 from cua.replay.narration import from_env
-from tools._cli import reset_or_exit
+from tools._cli import reset_or_exit, terminal_operator
 
 VENDOR_APP = "demo-core-servicing"
 DEMO_VALUES = {"account_type": "savings", "nickname": "Live demo"}   # for inputs the caller did not give
@@ -42,8 +42,12 @@ def inputs_for(art, member: str, given: dict | None = None) -> dict:
 
 def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: bool = False,
                attended: bool = False, values: dict | None = None, wait_s: float = 240.0,
-               slowmo_ms: int | None = None):
-    """One replay, narrated to the console. Returns the RunResult."""
+               slowmo_ms: int | None = None, operator=None, console: bool = False):
+    """One replay, narrated to the console. Returns the RunResult.
+
+    Attended, a Consequential Action waits for a person. By default that person is
+    asked at this terminal; with `console=True` every request goes to the Operator
+    console instead (tools.operator), and this process only waits."""
     # One question to the Capability Store: which Artifact is live, where this Tenant
     # runs it, and what it looks like there.
     art = load_capability(capability)
@@ -51,11 +55,18 @@ def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: 
     overlay = overlay_for(tenant)
 
     describe(art)
+    if attended and operator is None and not console:
+        operator = terminal_operator()
     if attended:
-        print("\nATTENDED: if this run escalates, it will pause and wait for an Operator.")
-        print("  1. do what is needed in the browser it leaves open")
+        print("\nATTENDED: a Consequential Action waits for your approval"
+              + (" in the Operator console." if console else " at this terminal.")
+              + "\n  If the run escalates, it pauses and hands over the browser it leaves open:")
+        print("  1. do what is needed in that browser")
         print("  2. python -m tools.operator            (see the request)")
-        print("  3. python -m tools.operator resume     (or: abort)")
+        print("  3. python -m tools.operator resume     (or: approve / abort)")
+    elif any(t.risk == "consequential" for t in art.transitions):
+        print("\nUNATTENDED: this capability commits something, so with nobody on shift it "
+              "is Refused before a browser opens. Add --attended to run it.")
     print(f"\nreplaying for member {member} at {tenant} ({origin}) — no model in the loop\n")
 
     reset_or_exit(origin)
@@ -65,7 +76,8 @@ def run_replay(capability: str, member: str, tenant: str = "bank_a", *, headed: 
         env["SLOWMO"] = str(slowmo_ms)          # ms between steps, so a person can follow
     r = replay(art, inputs_for(art, member, values),
                RunContext(origin=origin, tenant=tenant, overlay=overlay, headless=not headed,
-                          narrator=from_env(env), attended=attended, operator_timeout_s=wait_s))
+                          narrator=from_env(env), attended=attended, operator=operator,
+                          operator_timeout_s=wait_s))
     print(f"\nRESULT  {r}")
     if r.outputs:
         print(f"OUTPUTS {r.outputs}")

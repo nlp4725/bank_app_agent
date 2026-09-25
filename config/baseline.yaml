@@ -21,5 +21,6 @@ route_keywords_denied: [admin, users, roles, permissions, settings, config,
 hard_rules:
   - discovery_runs_non_production_only
   - secrets_never_sent_to_a_model
-  - no_unattended_consequential_action_without_a_verification_check
+  - no_consequential_action_without_an_operator_present     # unattended: Refused before a browser opens
+  - every_consequential_action_carries_a_verification_check  # so an unclear screen after it is settled by looking
   - max_actions_per_run: 60

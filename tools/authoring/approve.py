@@ -49,9 +49,13 @@ def main():
         reset_or_exit(ORIGIN)
         ready = Artifact.model_validate({**art.model_dump(), "capability":
                                          {**art.model_dump()["capability"], "status": "approved"}})
-        return replay(merged(ready, profile), VERIFY_INPUTS, RunContext(origin=ORIGIN))
+        def scripted(request, surface):
+            print(f"  approving the {request.target} action (scripted review)")
+            return "approve" if request.kind == "approval" else None
+        return replay(merged(ready, profile), VERIFY_INPUTS,
+                      RunContext(origin=ORIGIN, attended=True, operator=scripted))
 
-    print("\nverify-replay on member 12345 (discovery never saw it)...")
+    print("\nverify-replay on member 12345 (discovery never saw it), attended...")
     approved, problems = approve(candidate, verify=verify)
     if approved is None:
         print("REFUSED:")

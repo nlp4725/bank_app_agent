@@ -58,7 +58,14 @@ class Control:
 
 @dataclass
 class Intervention:
-    """What the Operator is given. Enough to act without asking what happened."""
+    """What the Operator is given. Enough to act without asking what happened.
+
+    Two kinds reach an Operator. An *escalation*: the run is stuck on a screen only
+    a person can clear, and they take the live session. An *approval*: the run is
+    about to perform a Consequential Action and will not without a person saying
+    so; the request names the control and which rung found it, so a wrong Fallback
+    Match is visible before the click.
+    """
     run_id: str
     capability: str
     state: str
@@ -67,6 +74,9 @@ class Intervention:
     url: str
     screenshot: str
     instruction: str | None = None
+    kind: str = "escalation"          # escalation | approval
+    target: str | None = None         # approval: the control about to be acted on
+    matched_by: str | None = None     # approval: which rung of its ladder found it
     raised_at: float = field(default_factory=time.time)
 
 
@@ -84,6 +94,7 @@ def wait_for_decision(directory: Path, timeout_s: float, poll,
     while time.time() < deadline:
         if path.exists():
             data = json.loads(path.read_text())
+            path.unlink()      # consumed: a run may ask more than once, each answered once
             return data.get("decision", "abort"), data.get("operator", "unknown")
         if cleared is not None and cleared():
             return "resume", "auto:blocker cleared"

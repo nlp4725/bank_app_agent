@@ -53,9 +53,13 @@ watcher's provenance comes from.
 
 ## 3 — replay, succeeded
 
-The production path. `console.txt` shows every transition and its rung: `t_sign_in` by
-`role_name`, every text field by `label_anchor` (rung 1 finds nothing on this app's inputs),
-the consequential `t_continue` flagged as such.
+The production path, attended: a capability that commits never runs with nobody on shift.
+`console.txt` shows every transition and its rung: `t_sign_in` by `role_name`, every text
+field by `label_anchor` (rung 1 finds nothing on this app's inputs). Before the consequential
+`t_continue` the trail shows `approval_requested` naming the control and its rung, the
+Operator's `operator_acted decision=approve`, then `approved`, and only then the click.
+`approval.json` is that request as the Operator saw it, with the screenshot taken before
+anything was committed.
 
 **Outputs returned to the caller:** `savings_balance $4210.00`, `new_account_number SA-2001`.
 **What the trail records about them:** nothing. Grep it — the figure does not appear. Evidence
@@ -80,8 +84,16 @@ Read `trail.jsonl` in order:
 watcher_matched      w_approval_required   condition=escalate
 intervention_raised  s5_member_number_entered   + intervention.json + screen_1.png
 operator_acted       by=operator:callback  decision=resume  navigated=true
+resumed              s7_members_id
+approval_requested   s12_members_id   t_continue (role_name)   + approval.json + screen_2.png
+operator_acted       by=operator:callback  decision=approve
+approved             s12_members_id
 result               succeeded
 ```
+
+Two requests reached the same Operator in this run: the escalation, because a screen only
+a person could clear; and the approval, because the click that opens the account is
+Consequential and never happens without a person saying so.
 
 `intervention.json` is what reaches the Operator: the capability, the state, the reason, the
 live URL, a screenshot, and the `operator_instruction` a Reviewer wrote once on the watcher.
@@ -135,10 +147,11 @@ REPORT is drawn from turn 5 of this folder.
 
 ```bash
 python -m fake_bank.app                       # http://127.0.0.1:5001
-python -m tools.replay 12345                  # 3 — succeeded
-python -m tools.replay 99999                  # 4 — business outcome
-python -m tools.replay 33333                  # 6 — unknown state
-HEADED=1 ATTENDED=1 python -m tools.replay 44444   # 5 — watch it pause for a person
+python -m tools.replay 12345 --attended       # 3 — succeeded; you approve the commit
+python -m tools.replay 99999 --attended       # 4 — business outcome
+python -m tools.replay 33333 --attended       # 6 — unknown state
+HEADED=1 python -m tools.replay 44444 --attended   # 5 — watch it pause for a person
+python -m tools.replay.make_evidence          # all of 3–7 with a scripted Operator
 ```
 
 Discovery needs `ANTHROPIC_API_KEY` and costs a few cents:

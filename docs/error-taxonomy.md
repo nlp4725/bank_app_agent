@@ -40,9 +40,9 @@ Division of labour: the **engine** owns the Conditions, the order of checks, bud
 
 1. Never retried automatically, in any Condition.
 2. Never reloaded after submit (a browser resubmit is the duplicate we are avoiding); verification navigates somewhere read-only instead.
-3. Unattended: Refused before the run starts, unless the Action has a Verification Check.
-4. Attended: the Operator approves it, and the approval request shows which Target matched and highlights it on the screenshot, so a wrong Fallback Match is visible before the click.
-5. On an unclear outcome, the Verification Check decides: done -> Succeeded; not done -> safe to act again; can't tell -> Escalate, or Outcome Unknown when Unattended.
+3. Unattended: an Artifact containing one is Refused before the run starts. No person, no commit.
+4. Attended: the engine pauses before it and raises an approval request naming the Target and which rung matched, with a screenshot, so a wrong Fallback Match is visible before the click. The Operator approves (the engine then performs the action itself) or aborts; an unanswered request times out to Failed with nothing committed.
+5. On an unclear outcome afterwards, the Verification Check decides: done -> Succeeded; not done -> safe to act again; can't tell -> Escalate, or Outcome Unknown when nobody answers.
 
 ## Crash safety
 

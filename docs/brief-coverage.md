@@ -132,6 +132,8 @@ evidence trail the Operator must approve the click and is shown which rung match
 (`operator_approval_required`).
 **Partial.** One sentence: "Attended, the Operator approves each Consequential click and sees
 which Target matched; unattended, it is Refused unless it carries a Verification Check."
+(Superseded on 25 Sep 2026: a Consequential Action now always waits for an Operator's
+approval, and a capability that commits is Refused unattended.)
 
 **Q: Never persist secrets or raw sensitive data into artifacts or logs; redact.**
 Report: row 7, Figure 6.2, secrets by reference at the keystroke, evidence holds only

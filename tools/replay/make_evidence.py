@@ -30,8 +30,11 @@ EVIDENCE = Path("evidence")
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Live demo"}
 
 
-def clears_the_flag(request, surface):
-    """An Operator doing by hand what no Service Account may: signing off as themselves."""
+def on_shift(request, surface):
+    """One Operator for every run: approves each Consequential Action, and on the
+    flagged member does by hand what no Service Account may, signing off as themselves."""
+    if request.kind == "approval":
+        return "approve"
     tb = surface.page.get_by_role("textbox")
     tb.nth(0).fill("sup_ramirez")
     tb.nth(1).fill("4821")
@@ -40,12 +43,14 @@ def clears_the_flag(request, surface):
     return "resume"
 
 
+# The capability commits, so every run is attended: unattended it is Refused at the
+# front door, which run 07 shows for a different reason (the Tenant's grant).
+ATTENDED = {"attended": True, "operator": on_shift}
 RUNS = [
-    ("03-replay-succeeded", "12345", "bank_a", {}),
-    ("04-replay-business-outcome", "99999", "bank_a", {}),
-    ("05-replay-escalation-handoff", "44444", "bank_a",
-     {"attended": True, "operator": clears_the_flag}),
-    ("06-replay-unknown-state", "33333", "bank_a", {}),
+    ("03-replay-succeeded", "12345", "bank_a", ATTENDED),
+    ("04-replay-business-outcome", "99999", "bank_a", ATTENDED),
+    ("05-replay-escalation-handoff", "44444", "bank_a", ATTENDED),
+    ("06-replay-unknown-state", "33333", "bank_a", ATTENDED),
     ("07-replay-refused-by-policy", "12345", "bank_b", {}),
 ]
 
