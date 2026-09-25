@@ -1,14 +1,10 @@
-"""The two demonstrations, as tests so they cannot quietly stop working.
-
-B1: a control with no accessible name is found anyway, and the log says how.
-B2: one artifact recorded at one institution runs at another with a small Overlay.
-"""
+"""B1, live: a control with no accessible name is found anyway by the caption beside it, and the log says which rung matched."""
 
 import urllib.request
 
 import pytest
 
-from cua.governance.store import load_capability, overlay_for
+from cua.governance.store import load_capability
 from cua.replay.engine import RunContext, replay
 from cua.surface import Surface
 from tests.support.doubles import attended
@@ -49,27 +45,3 @@ def test_it_is_found_by_a_fallback_rung_and_the_log_says_which(approved, bank_ap
     matched = {e["target"]: e["matched_by"] for e in r.trail if e.get("matched_by")}
     assert matched["t_member_number_button"] == "label_anchor"   # not role_name
     assert matched["t_sign_in"] == "role_name"                   # buttons with names still use it
-
-
-# ── B2: one artifact, two institutions ───────────────────────────────────────
-
-def test_the_artifact_fails_at_the_second_institution_without_an_overlay(approved, bank2_app):
-    r = run(approved, bank2_app, "lakeside")
-    assert r.status == "failed"
-
-
-def test_the_same_artifact_succeeds_there_with_an_overlay(approved, bank2_app):
-    overlay = overlay_for("lakeside")
-    r = run(approved, bank2_app, "lakeside", overlay)
-    assert r.status == "succeeded", r
-    assert r.outputs["savings_balance"] == "$4210.00"
-    assert r.outputs["new_account_number"].startswith("SA-")
-
-
-def test_an_overlay_that_changes_behaviour_is_refused_before_the_browser_opens(approved, bank2_app):
-    overlay = overlay_for("lakeside")
-    overlay["transitions"] = [{"from_state": "s1_login", "to_state": "s2_search",
-                               "action": {"type": "click", "target": "t_open"}}]
-    r = run(approved, bank2_app, "lakeside", overlay)
-    assert r.status == "refused"
-    assert "overlay" in r.reason

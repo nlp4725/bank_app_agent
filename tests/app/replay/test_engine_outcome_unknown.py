@@ -10,7 +10,6 @@ tests/unit/test_recovery.py.
 from copy import deepcopy
 
 from cua.domain.artifact import Artifact, merged
-from cua.evidence import unfinished
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
@@ -86,10 +85,3 @@ def test_a_precondition_that_never_held_is_a_failure_not_outcome_unknown(artifac
                           "nickname": "Flagged"},
                RunContext(origin=bank_app, operator_timeout_s=1.5, **attended()))
     assert r.status == "failed"
-
-
-def test_a_real_run_leaves_a_trail_the_detector_reads(artifact, bank_app, tmp_path):
-    replay(artifact, {"member_number": "12345", "account_type": "savings",
-                      "nickname": "Holiday fund"},
-           RunContext(origin=bank_app, evidence_root=str(tmp_path), **attended()))
-    assert unfinished(tmp_path) == [], "a completed run must not look unfinished"

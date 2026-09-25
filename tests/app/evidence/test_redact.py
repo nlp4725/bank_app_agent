@@ -6,10 +6,15 @@ and the answer still reaches the caller in full. The pure masking rules are in
 tests/unit/test_redaction.py.
 """
 
+from pathlib import Path
+
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
+from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
 from tests.support.doubles import attended
+
+INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 
 
 def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
@@ -90,3 +95,23 @@ def test_the_page_text_the_model_reads_hides_a_value_no_pattern_can_find(bank_ap
         assert "Savings balance" in shown                   # captions stay: the model needs them
     finally:
         surface.close()
+
+
+# ── redaction ─────────────────────────────────────────────────────────────────
+
+def test_the_balance_reaches_the_caller_in_full_and_the_record_masked(artifact, bank_app, tmp_path):
+    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path),
+                                            **attended()))
+    assert r.outputs["savings_balance"] == "$4210.00"        # the answer is the product
+    written = (Path(r.evidence_id) / "trail.jsonl").read_text()
+    assert "$4210.00" not in written                          # the record of it is not
+
+
+def test_no_secret_value_appears_anywhere_in_the_evidence(artifact, bank_app, tmp_path):
+    r = replay(artifact, INPUTS, RunContext(origin=bank_app, evidence_root=str(tmp_path),
+                                            **attended()))
+    for path in Path(r.evidence_id).rglob("*"):
+        if path.is_file() and path.suffix in (".jsonl", ".json", ".txt"):
+            body = path.read_text()
+            assert "officer-pw" not in body
+            assert "svc_officer" not in body
