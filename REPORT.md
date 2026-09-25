@@ -1,14 +1,5 @@
 # REPORT
 
-An LLM works out how a task is done in a legacy bank application **once**, on a
-non-production server with a synthetic database: no real record, no real money. That run
-becomes a reviewable **Artifact**. From then on the **Replay Engine** runs it on the
-production server, against the real database, with typed inputs and **no model in the
-decision loop**.
-
-Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) · decisions:
-[docs/adr](./docs/adr) · modules: [docs/modules.md](./docs/modules.md).
-
 ## 1. Architecture
 
 ![system architecture](./docs/figures/architecture.svg)
@@ -17,8 +8,8 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
 
 **Key decisions.**
 
-- **The shape is record-and-replay**, after AgentRR<sup>[2]</sup> and
-  PreAct<sup>[1]</sup>: an LLM-driven Discovery module that captures a trace, a
+- **The shape is record-and-replay**, after PreAct from Li et al.<sup>[1]</sup> and
+  AgentRR from Feng et al.<sup>[2]</sup>: an LLM-driven Discovery module that captures a trace, a
   deterministic Recorder that turns the trace into an Artifact, a Replay Engine that
   executes whichever Artifact it is handed, and an Artifact Store that every Calling Agent
   and every Tenant draws from.
@@ -28,66 +19,26 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
   consequence (open a sub-account, move money).
 - **Policy is four files, four owners.**
   - **Baseline**, owned by the agent vendor: not a grant but the floor the product never
-    crosses for any Tenant, which a Tenant's file can narrow and never widen. For
-    example, the engine can only "click", "type", "select" and "read", so no run on any Tenant
-    can download a file or run a script; no secret is ever sent to a model; discovery
-    never runs against production; no Consequential/risky Action (one whose effect cannot
-    be undone or safely repeated, defined under Review Gate below) runs without an
-    Operator's approval, so a capability that commits is Refused unattended; a run stops after 60
-    actions; and a route with `wire`, `transfer` or
-    `payment` in it is refused, because this version of the product does not move money.
+    crosses for any Tenant, which a Tenant's file can narrow and never widen.
   - **Role**, written by a Reviewer (agent vendor) once per app, before any discovery:
-    the pages, actions, secrets and Service Account one job needs. For example,
-    `balance_reader` may "type", "click" and "read" on `/login`, `/search` and `/members/*`,
-    signed in as `svc_read`; a click that lands on `/admin` is refused at that action,
-    whatever any Tenant says.
+    the pages, actions, secrets and Service Account one job needs.
   - **Tenant Policy**, owned by the institution, the access authority: which Roles it
     grants, its origins and which of them is the test copy, and any further narrowing of
-    pages. For example, `bank_b` grants `balance_reader` but not `account_opener`, so
-    opening a sub-account there is Refused before a browser opens; and a Tenant may cut
-    `/members/notes` from a Role's pages for its own instance, but cannot add `/admin`
-    to it, because a Tenant file can only narrow.
+    pages.
   - **Needs**, derived from the Discovery Run: a declaration from discovery, "these are
     what I need to finish this capability", checked against the Tenant's grant before
     each replay, so a capability that cannot run here is Refused with nothing touched.
-    It must fit inside its Role. For example, `read_savings_balance` was seen to use the
-    login, search and member pages, three actions and the two login secrets, all inside
-    `balance_reader`.
 - **Review Gate.** The Reviewer is presented with the drafted Artifact and has two
-  responsibilities: declare each click Safe or Consequential/risky, and add the Watchers the
-  capability needs.
-  - *Risk.* An Action is Consequential/risky when its effect cannot be undone or safely
-    repeated: the click that opens the sub-account, or one that would move money. It is
-    Safe when it only moves between screens or reads them, so doing it twice changes
-    nothing. Every "click" arrives Consequential/risky; "type", "select" and "read" arrive
-    Safe. The Reviewer marks the clicks that only navigate as Safe and leaves the one
-    that commits Consequential/risky. That label decides how the capability may run: a
-    Consequential/risky click needs an Operator in the loop, who approves it on the live
-    session before the engine performs it, so the capability only runs attended, and an
-    unattended request is Refused before a browser opens. The engine never retries a
-    Consequential/risky click.
-  - *Watchers.* A Watcher is two things decided ahead of time: what a screen means (its
-    trigger) and what to do about it (its Condition and reaction). For this app we formed
-    them by deliberately running each edge case against the non-production copy, one
-    member number per condition, and recording what came back: a Business Outcome, so
-    "No records found" returns `MEMBER_NOT_FOUND` rather than a failure; a Recoverable,
-    for a screen the system clears itself; an Escalate, for one only a person can. The
-    Reviewer then adds the relevant ones to the capability, either borrowing a Watcher
-    another approved capability on the same app already has, or writing a new one from a
-    run's evidence. The product would work the same way: when a vendor app is onboarded,
-    a Reviewer runs its known edge cases once against the Tenant's test copy, and the
-    Watchers that result live in the App Profile, where every capability on that app
-    inherits them (Figure 3.3).
+  responsibilities: declare each click Safe or Consequential/risky (a click is risky by
+  default), and add the error handling (a prebuilt error handling list) the capability
+  needs.
 - **Verify Replay before finalizing.** After the Reviewer's decisions, a Verify
   Replay runs the candidate with no model on a member discovery never saw; only a pass is
   saved, as a new version.
-- **How each runtime condition is recognised and handled** is §3.
 
-**Left out.** A failed Verify Replay goes back to the Reviewer.
-PreAct<sup>[1]</sup> routes the other way: a failed replay goes back to the LLM, which
-adds the failed run as error handling automatically. We chose instead to ask the
-Reviewer to check the run and prompt the LLM with the failed input, to produce the error
-handling, which we named Watchers: what an error looks like, and what to do about it.
+**Left out.** Automatic error recording and building.
+In PreAct<sup>[1]</sup>, a failed replay during discovery goes back to the LLM, which
+adds the failed run as error handling automatically.
 
 ## 2. Artifact schema
 
@@ -134,309 +85,154 @@ full as Figure S1 of [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
 <predicate> ::= element_present | text_present | field_value | url_matches | all | any
 ```
 
-**Figure 2.2 — The schema every Artifact conforms to, adapted from the PreAct paper from
-Li et al.<sup>[1]</sup>.** *Four blocks are additions the bank setting forces. The
-contract is all a Calling Agent depends on: typed inputs validated before a browser opens,
-outputs that a Succeeded result carries, and business outcomes, the legitimate non-happy
-answers such as MEMBER_NOT_FOUND, each with who can resolve it. Needs is the access the
-flow was seen to use during discovery, and Policy must grant every item or the run is
-Refused. Targets are ladders, so a control is found by its accessible name, then by the
-caption beside it, then by a picture, and replay records which rung matched. Watchers are
-the flow's own triggers, while app-wide ones such as session expiry arrive from the App
-Profile at load time. The last line is the grammar for every predicate in the file: the
-only four questions the engine can ask a screen, or a combination of them, and never free
-text. Models in [`cua/domain/artifact.py`](./cua/domain/artifact.py); an unknown key or
-action type is rejected by parsing. An Artifact is one YAML file under
-[artifacts/](./artifacts/), named by id and version; the Capability Store reads the
-directory, validates every file, and merges the App Profile and the Tenant Overlay at
-load. The model's transcript is not in the file: provenance names the Discovery Run, and
-the transcript stays in that run's trail under evidence/.*
+The schema every Artifact conforms to, adapted from PreAct<sup>[1]</sup>. For the
+block-by-block description see §S1 of [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).
 
 ## 3. Determinism & error handling
 
-![one transition walked through the engine](./docs/figures/transition_walk.svg)
+**How replay runs.** The Replay Engine uses the
+Artifact as its guidance and Python plus Playwright as its hands and feet. It walks the
+Artifact's transition list in a `while` loop; for each transition it asks Playwright
+narrow questions about the live page and acts, in this order: (1) am I in the right
+place? the from-state's Checkpoint; (2) find the spot I need to act on: the Target's
+ladder; (3) may I, and is it risky? the Policy check, then the risk gate, where a
+Consequential/risky click waits for an Operator's approval; (4) act: the transition's
+Action, one of "click", "type", "select", "read"; (5) did I arrive? the to-state's
+Checkpoint, and if it holds, the next transition. If a Checkpoint does not pass, the
+engine goes down the Watcher list, and the first match decides: recover and continue,
+return a business outcome, hand to a human, or stop. If no Watcher matches it is an
+Unknown State: verify the effect if the action was a commit, hand over if a person is
+present, otherwise quit with a screenshot. Waiting is never a sleep: a Checkpoint is
+polled until it holds or the transition's `timeout_ms` runs out, and every retry has a
+budget.
 
-**Figure 3.1 — One Transition, walked through the engine.** *What makes replay
-deterministic: every Transition of every Artifact asks the same six questions in the same
-order, and none of the answers is a model's choice. The Artifact only supplies data (top
-lane); the engine asks (middle); the browser or the Policy answers (bottom). Policy is
-asked before acting, the Checkpoint after, so a click never lands on an unexpected screen
-and a missed keystroke is caught at once. Shown for one real step of Figure 2.1, replayed
-for member 12345. Determinism, listed: no model; a closed vocabulary; the matched rung
-recorded; a Checkpoint after every action; placeholders enforced by lint; a budget on
-every loop. Waiting is never a sleep: the engine polls a Checkpoint until it holds or the
-Transition's `timeout_ms` runs out (6 s by default), resolving a Target has its own
-timeout, and a Recoverable Watcher may fire twice by default. Budgets are engine
-defaults a Transition may override, and the override is visible in review, so a step
-quietly granted thirty retries looks suspicious. Engine:
-[`cua/replay/engine.py`](./cua/replay/engine.py).*
+**Error handling.** There are two kinds of error. An **app-level** error is well known
+and pre-established, such as a timeout, a session expiry or a system notice; it is
+recorded in the App Profile, by an engineer stress-testing the app ahead of time. A
+**capability-level** error is derived from runs: an engineer builds the edge cases for
+that capability (one member number per condition here) and uses the LLM to derive what
+each one looks like and what to do about it. Both kinds become Watchers on one list, a
+Watcher being what a screen means (its trigger) and what to do about it (its Condition
+and reaction), and at the Review Gate the Reviewer chooses which to add to the
+capability (Figure S5). See Figures S4 and S5 in
+[REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md) for the error handling tables: every
+Condition with its reaction and Run Result, and where each Watcher lives.
 
-| Example on screen | Condition | Who acts | Reaction | Run Result if unresolved |
-|---|---|---|---|---|
-| Input fails its Contract type/pattern/enum | — (caught before the run) | nobody needed | never started | **Refused** |
-| A capability that commits, with nobody on shift | — (caught before the run) | an Operator, next time | never started | **Refused** |
-| The click that commits | Consequential/risky Action | Operator, live | pause, show the control and its rung, click only on approval | **Aborted**, **Failed** on timeout; nothing committed |
-| "No records found" | Business Outcome | nobody — it is the answer | stop | **Business Outcome** `MEMBER_NOT_FOUND` (resolver: Member) |
-| "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
-| "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
-| "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
-| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
-| Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
-| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential/risky Action was already in flight |
-| "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
-| A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
-| Frozen screen after a Consequential/risky Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
-| System died mid-Consequential/risky Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
-
-**Figure 3.2 — Every surprise becomes one of four Conditions, and the test is who can
-act.** *The system alone within a budget, a person during the run, or nobody in time. The
-table is the one in [CONTEXT.md](./CONTEXT.md); budgets are in
-[docs/error-taxonomy.md](./docs/error-taxonomy.md).*
-
-| Level | Lives in | Watcher | Condition (see Figure 3.2) | Learnt how |
-|---|---|---|---|---|
-| **App-wide** | App Profile ([`config/profiles/demo-core-servicing.yaml`](./config/profiles/demo-core-servicing.yaml)), shared by every capability on the app | `w_session_expired` | Recoverable | added by a Reviewer after watching a run recover when an Operator pressed Resume without typing |
-| | | `w_system_notice` | Recoverable | discovery clicked "OK" on the notice; the Reviewer made that click a Watcher, not a step |
-| | | `w_approval_required` | Escalate | added by a Reviewer: only a supervisor's own credential clears it |
-| **Capability-specific** | the Artifact itself, alongside the Contract's Outcome Codes | `w_not_found` | Business Outcome `MEMBER_NOT_FOUND` | a second Discovery Run on member 99999 ended `report_outcome`; provenance `disc_0a3f513c` |
-| | | `w_not_authorized` | Business Outcome `NOT_AUTHORIZED` | added by a Reviewer by hand; provenance `reviewer:nasi` |
-
-**Figure 3.3 — Watchers live at two levels, and each records where it came from.** *How a
-Condition is handled is Figure 3.2; this is where the Watcher that names it lives. The
-Capability Store merges the App Profile's Watchers into the Artifact at load time, so
-app-wide knowledge is learnt once and reaches every capability; where both declare the
-same id, the Artifact's wins. A capability-specific Watcher that names an Outcome Code
-must have that code in the Contract, and every declared code must have a Watcher that can
-produce it: the lint refuses either alone. An unknown condition, such as
-`MAX_ACCOUNTS_REACHED` for member 33333, is an Unknown State until a Reviewer turns the
-evidence into a new Watcher, which is a new Artifact version.*
-
-- **One Run Result**: Succeeded, Business Outcome, Failed, Aborted, Refused (nothing
-  touched), or Outcome Unknown: a commit happened and could not be confirmed, so do not
-  retry, a person must look. Failed carries the step, what the Checkpoint expected, what
-  was observed (the URL, or the Watcher that fired) and an evidence id, so the envelope
-  alone says where to look ([docs/error-taxonomy.md](./docs/error-taxonomy.md)).
-- **Every commit carries a Verification Check.** When the screen after a consequential click
-  does not resolve, the engine looks for the effect instead of clicking again. Member 33333
-  hits a held-out condition, `MAX_ACCOUNTS_REACHED`, and the check confirms the commit did
-  not take effect. Adding that Watcher and code is a new version: the learning loop.
-- **The hole I know about.** The check runs only on the unrecognized route, so a Recoverable
-  firing *after* a commit would rewind and commit again. Not reachable in this app; fix is
-  item 0 of §7.
-
-![the same checkpoint miss, three answers](./docs/figures/error_paths.svg)
-
-**Figure 3.4 — The same Checkpoint miss, answered three ways.** *The chain of Figure 2.1
-under four replays: the chain is read from the artifact, each branch from the Watcher that
-fired. Member 12345 never leaves the chain. The other three all miss the same Checkpoint,
-and the Watcher that recognizes the screen decides what happens next: a Business Outcome
-stops and tells the caller; a Recoverable asks which State holds now and runs the chain
-again from there; an Escalate hands the live session to an Operator and resumes once the
-Checkpoint holds. Each run in full, drawn from its trail: Figure S2 of
-[REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
-
-UI drift, the brief's secondary case, is answered in §4: a renamed control fails at a
-Checkpoint rather than clicking the wrong thing, and the rung that matched is the early
-signal.
+**Improvement on error handling.** We acknowledge the current approach is very manual
+and requires prior knowledge of the system and the workflow. See §7, Cuts, for the
+suggested improvement.
 
 ## 4. Heterogeneity & multi-tenant
 
-**No clean DOM, and sometimes no DOM at all.** The brief's first worry. A Target is a
-ladder: the control's accessible name, then the caption beside it plus layout, then a
-picture. Each rung breaks for a different reason (the table in
-[CONTEXT.md](./CONTEXT.md)), replay logs which one matched, and a Target stores a
-relationship, never a measurement. The engine reaches the app through one `Surface`
-Protocol of thirteen methods ([`cua/replay/context.py`](./cua/replay/context.py)):
-navigate, observe, resolve a Target, act on what resolved. Predicates are evaluated above
-that line, so a desktop or Citrix surface implements those methods and none of the
-Predicate language; the three rungs exist there too, in UI Automation and AX, and the
-picture rung is the answer where there is no tree at all. Two parts of the schema are
-web-shaped and would need a desktop reading: `url_matches` becomes a window title or
-screen id, and `frame` becomes a child window. The picture matcher is a stub today (§7).
+**Layout drift.** We use the accessibility tree. A button is found by its name. If a
+control has no name, like a box, it is found by a nearby object with a name, "Member
+number", then a relative location, "right of". So if there is a layout drift, we can
+still find it.
 
-![one turn, three representations](./docs/figures/three_representations.svg)
-
-**Figure 4.1 — One turn three ways, adapted from the AgentRR paper from Feng et
-al.<sup>[2]</sup>.** *The masked screenshot the model saw, the accessibility list it read,
-and the recorded Target, for the unlabelled search icon: an `<img>` in a `<button>` with
-no alt, so it has no accessible name and a text-only agent cannot see it. It is found by
-the caption beside it, and the ladder records that.*
-
-**One artifact, many institutions.** Reuse is composition, not a recording per bank.
-
-```
-   App Profile     per vendor app     shared Watchers, Readable and Sensitive Regions
-        +
-   Artifact        recorded once      the flow; its own Watchers win on a clash
-        +
-   Tenant Overlay  per institution    how a control is FOUND: labels, anchors, relations
-                                      never what the flow DOES: transitions, contract, needs
-        =
-   what replays at this Tenant
-```
-
-**Figure 4.2 — Three-level composition
-([`cua/governance/overlay.py`](./cua/governance/overlay.py)).** *Demonstrated end to end:
-the Artifact recorded at First Credit Union fails honestly at Lakeside Savings,
-`unknown_state` at the first Checkpoint because the field is called "Find member by #",
-and runs unchanged with a 20-line Overlay
-([overlays/lakeside.yaml](./overlays/lakeside.yaml)). An Overlay that adds a transition,
-changes the contract or widens needs is refused before a browser opens.*
-
-**Knowing when a tenant has drifted.** Every run already logs which rung found each
-Target, so the Fallback Match rate, how often a ladder got past its first rung, is a
-per-tenant, per-version number that rises before anything breaks: a re-skinned app starts
-matching by caption instead of name; renamed captions stop matching and fail at a
-Checkpoint rather than clicking the wrong thing. Reading that signal across runs is
-designed, not built (§7).
+**Name change between tenants.** If a name changes between institutions, we patch it in
+an overlay file that says: in institution A, look for "Find member by #" instead of
+"Member number".
 
 ## 5. Escalation & handoff
 
-```
-  automation ──► awaiting_operator ──► operator_in_control ──► resuming ──► automation
-       │                 │                     │                   │
-       └─────────────────┴─────────────────────┴───────────────────┴──────► done
-```
+**What "stuck" means.** Every stop starts the same way: a Checkpoint does not match the
+live screen within the transition's `timeout_ms` (6 s by default). Then there are two
+cases:
 
-**Figure 5.1 — Control is a lease ([`cua/replay/handoff.py`](./cua/replay/handoff.py)).**
-*One holder at a time, illegal moves raise, and `done` is reachable from any state. The
-Operator gets the same browser the automation was using, mid-flow.*
+- **Intentional error handling**: the screen matches one of the known errors, a Watcher,
+  and that Watcher's Condition decides. A business outcome, a recoverable and a hard
+  failure are all handled or ended without a person; only a Watcher whose Condition is
+  `escalate`, a known screen that only a person can clear, counts as stuck.
+- **Surprise**: the screen matches no Watcher, an Unknown State. Always stuck.
 
-- **Two requests reach an Operator.** An approval, before every Consequential/risky Action:
-  the run pauses, names the control and the rung that found it, and acts only on
-  approve. And an escalation, when stuck: a Watcher whose Condition is `escalate`, or an
-  Unknown State in an attended run. Either way an `Intervention` file carries the
-  capability, the State, the reason, the live URL, a screenshot and, for an escalation,
-  the instruction a Reviewer wrote once on the Watcher. The
-  handoff exists on the replay path only. A stuck Discovery Run ends instead, by the model
-  calling `ask_human` or by the stuck detector in code, and its evidence is what the
-  Reviewer reads before running it again; letting an Operator take over a discovery
-  session is a gap, not a mechanism (§7).
-- **Same browser, same page.** Handback is Resume or Abort in the console, or the engine
-  noticing the blocking screen is gone. Resume never assumes they finished: it asks which
-  Checkpoint holds, so a wandered-off Operator gets `resume_checkpoint_missed`. Two
-  escalations per State. One run, one trail: the intervention, the decision and what
-  changed are events under the same run id, and the run resumes at the same step.
-  Recorded: who, what decision, and whether the URL changed. The Operator's clicks and
-  keystrokes are not captured. That is thinner than the brief asks, and deliberate for
-  now: the supervisor's PIN is the one thing the run must never hold, and a click
-  recorder that hides values is next-step work (§7).
-- **The demo's escalation is the honest shape**: member 44444 needs a supervisor's own ID
-  and PIN, held in no Role's secrets. The console is a mock Flask page; the lease, transfer,
-  recording and auto-resume are real.
+Both hand over the live session only when an Operator is present: the run waits
+`--wait` seconds (240 by default) for the Operator to resume or abort, then fails on
+timeout, and no State may escalate more than twice. Unattended, the run fails as
+`escalation_required` or `unknown_state`.
+
+**Handoff.** The run pauses, writes an intervention request (capability, State,
+reason, live URL, screenshot, the Reviewer's instruction) and gives the lease to the
+Operator, who works in the same browser window, on the same page. Control comes back
+on Resume, on Abort, or when the engine sees the blocking screen is gone. Resume
+re-checks which Checkpoint holds and continues from there. Recorded: who acted, the
+decision, and whether the URL changed.
 
 ## 6. Safety
 
-**What is protected, and from what.** The assets are a Member's record and the
-irreversible actions an app can take on a real account: opening it, moving its money. The
-threats run from a model that is wrong or whose page has turned on it, through a
-tampered Artifact and an ungranted Tenant, to one person committing alone and a crash
-mid-commit. The rule of the design is that the dangerous action is *impossible*, not
-disallowed: a model that ignores an instruction still hits a wall made of code,
-configuration or the Tenant's own system.
+**What the LLM can access.** A model is only ever in the loop during discovery, and three
+walls bound it there:
 
-![defence in depth, read outside in](./docs/figures/defence_in_depth.svg)
+1. **Non-production only.** Discovery runs against a separate server with no access to
+   real data.
+2. **A least-privilege Role, chosen from the goal.** The Role (§1) fixes the pages, the
+   action types, the secrets and the Service Account the model may use, and nothing
+   outside it is available whatever the goal says.
+3. **Network and per-tenant limits, per Policy (see §1).** Checked on every action the
+   model proposes during the discovery run; the browser itself aborts any request to an
+   origin outside the allowlist, including ones the page starts.
 
-1. **Environment.** No model near production (ADR 0003): a copy the Tenant tags
-   `production` is refused before a browser opens, and an import-graph test proves
-   replay imports no model SDK. That a non-production copy holds only synthetic Members
-   is the Tenant's promise, carried by its tag; nothing inspects the data.
-2. **Execution integrity.** An Artifact is data and the engine its only interpreter
-   (ADR 0001): four Actions ("click", "type", "select", "read"), four Predicates, anything else rejected at parse; an Overlay
-   that touches behaviour refused; an Unknown State stops, never a guess.
-3. **Network.** Allowlisted origins on every request the browser makes, page-initiated
-   included; downloads off, popups closed, permissions denied, a fresh context per run.
-4. **Authorization.** Baseline ∩ Role ∩ Tenant grant ∩ Needs (ADR 0005): four files owned
-   by four parties, checked at approval, before a browser opens and before every action;
-   each layer may narrow, none may widen.
-5. **Identity.** The Role's Service Account, least privilege inside the app itself:
-   `balance_reader` signs in as a user with no sub-account form.
-6. **Change control.** Consequential/risky by default; only a Reviewer may mark a click Safe;
-   two approvals for an Artifact that commits; a Verify Replay on inputs discovery never
-   saw. Every Consequential/risky click waits for an Operator's approval and shows which rung
-   matched; with nobody on shift, a capability that commits is Refused before a browser
-   opens.
-7. **Data.** Default-deny at one chokepoint (Figure 6.2), on the way to a model and on
-   the way to evidence; Secrets by name, substituted at the keystroke.
-8. **Audit.** One append-only writer, a line flushed before every action; on restart an
-   in-flight commit closes as Outcome Unknown.
+**What the LLM can see.** (Drawn as a decision chain in [README.md](./README.md#8-discovery--where-the-artifact-came-from).) Every observation passes through layers of redaction before it
+reaches the model, as text and again as pixels:
 
-**Figure 6.1 — Defence in depth: eight layers, each a wall of code, configuration or
-someone else's system, none an instruction to the model.** *Read outside in, from the
-model to the Member's record. Each layer is built as if every layer above it had already
-failed, and the first is what makes the rest affordable: nothing production is ever in
-front of a model. The full table, with the threat each layer counters, who owns it, when
-it is enforced, what a failure there becomes and what is not built, is Figure S3 of
-[REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
+1. **A secret is never read at all.** A password field's contents are never read,
+   whatever the declarations say. Beyond that, secrets are declared by name in the Role
+   ([config/roles/](./config/roles/)) and referenced by name in the Artifact; the value
+   is substituted at the keystroke and never enters the observation, the trail or the
+   file.
+2. **A value is hidden unless its region is declared readable.** Readable Regions are
+   declared per app in the App Profile
+   ([config/profiles/demo-core-servicing.yaml](./config/profiles/demo-core-servicing.yaml));
+   every other value, and every field nobody has reviewed yet, is `(hidden)`.
+3. **A pattern net** catches what comes through: SSN, card, email, phone, date, currency.
+4. **The screenshot is redacted too.** Undeclared value cells, declared Sensitive Regions
+   and declared text patterns are painted black at capture, before crop and downscale.
 
-```
-          A VALUE ON SCREEN
-                │
-       ┌────────▼─────────┐
-       │ is it a password?│──yes──► (protected)      never read at all
-       └────────┬─────────┘
-                │ no
-       ┌────────▼──────────────────┐
-       │ is its Target declared a  │──no──► (hidden)  ← names, birthdays, and every
-       │ Readable Region?          │                    field nobody has reviewed yet
-       └────────┬──────────────────┘
-                │ yes
-       ┌────────▼─────────┐
-       │ pattern net      │  SSN · card · email · phone · date · currency
-       └────────┬─────────┘
-                ▼
-            recorded                and in the screenshot: undeclared value cells,
-                                    Sensitive Regions and text patterns painted black
-```
+**At replay there is no LLM**, so the gate is on the Artifact instead. Its Needs, the
+pages, actions and secrets the discovery run was seen to use, are declared in the file
+and checked against the Baseline, the Role and the Tenant's grant before a browser opens
+and again before every action. Every click was unsafe until the Reviewer declared it Safe,
+and a Consequential/risky one never runs without an Operator present. And some actions
+are not allowed at all: the engine implements only "click", "type", "select" and "read",
+and the Baseline names what was considered and refused, download, upload, script
+execution, new tabs, and any route with `delete`, `admin`, `wire` or `transfer` in it
+([config/baseline.yaml](./config/baseline.yaml)).
 
-**Figure 6.2 — Layer 7, redaction: structural, origin, pattern, pixels.** *A name is just
-words and a birthday is just digits, so no pattern can find them; the origin layer hides a
-value unless its Target is a declared Readable Region, which is what makes an unreviewed
-screen safe by default. The pattern net then catches what does come through. Pixels are
-the weaker channel: undeclared value cells and declared Sensitive Regions are painted
-black at capture, but a control is never painted, or the model could not click it.*
+**Limits.** Two things this does not fully protect against:
 
-**What a model sees, and when.** In discovery, against non-production only, every
-observation passes Figure 6.2 twice, as text and as pixels. Measured on a real run, the
-model saw the member's name and join date as `(hidden)` and the balance as `$*,***.**`,
-and still reached the goal, because it needs the label to know which cell to read, not the
-value. In production there is no model: replay reads the balance with a "read" action and
-returns it to the caller in full, and a screenshot is taken only on failure or escalation,
-through the same chokepoint. Every run in this repository, the production-side replays in
-[evidence/](./evidence/) included, is against the fake bank with synthetic members.
-
-**Limits, plainly** ([docs/security-model.md](./docs/security-model.md)): the last
-column of Figure S3 is the residual risk register. Four points deserve a sentence.
-Pixels are the weaker channel, since a control is never painted. Prompt injection is
-mitigated by the model only proposing while code performs, not solved: a convincing
-injection can still waste a discovery run, never a production one. NER is not in the data
-path because 90–95% recall is a disclosure rate, not a gate. And one thing found after
-the fact: in the first recorded Discovery Run the member's name reached the model five
-times through the page-text channel, which went through the pattern net only; page text
-now takes the same origin masking as the cells, and
-[evidence/README.md](./evidence/README.md) records the one edit ever made to a trail.
+- **Screenshots can still leak.** Buttons and fields are never blacked out, because the
+  model has to see what it clicks, so a value shown inside a control can reach it.
+- **Prompt injection is contained, not solved.** Text on a page can try to instruct the
+  model. The model can only propose, and code checks every action, so the worst case is
+  a wasted discovery run, never a production one.
 
 ## 7. Cuts
 
-**Cut deliberately**: money movement, refused at the Baseline by route, with the `funds_mover` Role kept in the roles file as the shape of that future feature; the operator console is a mock over the run directory; no catalog API
-beyond `--list`; one vendor app and one surface, so §4 is an argument; **no LLM fallback on
-replay**, by design; the picture rung is a stub; no drift dashboard or identity system;
-versioning is one-deep, so re-approving replaces the live capability, and the Store's
-"highest version" is a string sort.
+**Cut**:
 
-**Not done**: only one model ran discovery (`DISCOVERY_MODEL`, default `claude-opus-5`),
-so no model was compared against another; the model's success rate was not tracked, so
-there is no count of how often a Discovery Run reaches an Artifact that passes the Verify
-Replay; and the Discovery Run loop in [`cua/discovery/run.py`](./cua/discovery/run.py) is
-tested only with a scripted model ([tests/app/test_discovery.py](./tests/app/test_discovery.py)),
-so the prompt and the real model's behaviour are covered by the three recorded runs alone.
+1. **Money movement.** The current product does not support it: any route with `wire`,
+   `transfer` or `payment` is refused at the Baseline, and the `funds_mover` Role is kept
+   in the roles file only as the shape of that future feature.
+2. **Automatic error handling from production.** A production error does not route
+   itself back to a non-production LLM agent to create its own error handling. Runtime
+   error handling uses pre-established error lists: Watchers derived at discovery time
+   and tested by an engineer. An automatic route, where an error goes back to the
+   non-production path and the LLM records the handling itself, is promising, as
+   PreAct<sup>[1]</sup> suggests, and is the first thing we would build next.
+3. **UI drift.** We did not run an intensive drift test. The ladder logs which rung
+   matched and the second skin exercises a rename and a move, but nothing beyond that.
+4. **Model comparison and optimisation.** Only one model ran discovery
+   (`DISCOVERY_MODEL`, default `claude-opus-5`); no model was compared against another
+   and the discovery success rate was not tracked.
 
-**Next, in order**: (0) ask the Verification Check *before* a commit and skip it when the
-effect is already there, so a rewind can never open a second account; (1) `NO_SAVINGS_ACCOUNT`
-as an Outcome Code with its Watcher; (2) the drift alarm, reading evidence across runs;
-(3) replay N times and report flakiness ([docs/evaluation.md](./docs/evaluation.md)); (4) a
-second `Surface`, so the seam is proven; (5) the handoff on the discovery path, and a
-recorder for the Operator's clicks that keeps every typed value out of the trail.
+**Next, in order**:
+
+1. **Production errors route back automatically** to the non-production LLM agent,
+   which records the error handling as a proposed Watcher for a Reviewer to approve.
+2. **A money-handling protocol**: the `funds_mover` Role, a Verification Check asked
+   *before* every commit so a rewind can never pay twice, and an idempotency key the
+   caller supplies.
+3. **Test more drift**: replay across more skins and versions, and read the Fallback
+   Match rate across runs so a tenant's drift is seen before it breaks.
 
 ## References
 

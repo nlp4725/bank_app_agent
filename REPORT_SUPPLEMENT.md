@@ -4,7 +4,7 @@ Material referenced from [REPORT.md](./REPORT.md) that is too long for its page 
 
 ## S1. A whole Artifact
 
-The state machine drawn in Figure 2.1 of the report, and the schema of Figure 2.2, with
+The state machine drawn in Figure 2.1 of the report, and the schema listed in §2, with
 every value filled in.
 
 ```json
@@ -84,9 +84,41 @@ Outcome Codes are only the legitimate non-happy answers. The Watchers were borro
 `open_sub_account` on the same app, which is what their provenance says. The balance is in
 an iframe, hence the `frame` on its Target.*
 
+### The schema, block by block
+
+The schema listed in §2 of the report, adapted from PreAct, one block at a time:
+
+- **capability** — the identity: id, version, the vendor app and Role it runs under,
+  and whether it is a draft or approved. A draft never replays; approval names who
+  signed it.
+- **contract** — all a Calling Agent depends on. `inputs` are typed and validated
+  before a browser opens; `outputs` are what a Succeeded result carries; `outcomes` are
+  the legitimate non-happy answers such as `MEMBER_NOT_FOUND`, each with who can resolve
+  it and a hint for the caller.
+- **needs** — the pages, action types and secrets the flow was seen to use during
+  discovery. Policy must grant every item or the run is Refused before anything runs.
+- **states** — the screens the flow passes through, one after every action, each with
+  a Checkpoint: the Predicate that must hold before the engine believes it is there.
+  One State is marked terminal, which is what Succeeded means.
+- **transitions** — the steps: one Action ("click", "type", "select" or "read") on one
+  Target, from one State to the next, with its risk label and, when the Action commits,
+  a Verification Check that answers "did it already happen?".
+- **targets** — where an action lands: the control, described by the frame it lives in
+  and a ladder of ways to find it, accessible name first, then the caption beside it,
+  then a picture. Replay records which rung matched.
+- **watchers** — the flow's own error handling: a trigger Predicate that recognises a
+  screen, the Condition it is (business outcome, recoverable, escalate, hard failure),
+  what to do about it, and where the Watcher came from. App-wide ones such as session
+  expiry arrive from the App Profile at load time.
+- **provenance** — which Discovery Run produced it, who fixed the Contract, and the
+  example values used, so the transcript itself is not in the file and stays in that
+  run's trail under evidence/.
+- **predicate** — the grammar for every check in the file: the only four questions the
+  engine can ask a screen, or a combination of them, never free text.
+
 ## S2. Four runs in full
 
-The four replays summarised in Figure 3.4 of the report, one row each.
+Four replays of the chain in Figure 2.1 of the report, one row each.
 
 ![read_savings_balance under four runs](./docs/figures/read_savings_balance_paths.svg)
 
@@ -99,7 +131,7 @@ State that now holds.*
 
 ## S3. Defence in depth, the full table
 
-Figure 6.1 of the report as a list; here every layer with the threat it counters, who
+The redaction chain of README §8 and REPORT §6 as a list; here every layer with the threat it counters, who
 owns it, when it is enforced, what a failure there becomes, and what is not built.
 
 | # | Layer · principle | Counters | Enforced by, and when | Owned by | A failure becomes | Not built, or weak |
@@ -115,3 +147,49 @@ owns it, when it is enforced, what a failure there becomes, and what is not buil
 
 **Figure S3 — Eight layers, read outside in.** *The last column is the residual risk
 register that "Limits, plainly" in the report refers to.*
+
+## S4. Every surprise becomes one of four Conditions
+
+The table §3 of the report summarises: each runtime condition, who can act on it, the engine's reaction, and the Run Result the caller sees if it is not resolved.
+
+| Example on screen | Condition | Who acts | Reaction | Run Result if unresolved |
+|---|---|---|---|---|
+| Input fails its Contract type/pattern/enum | — (caught before the run) | nobody needed | never started | **Refused** |
+| A capability that commits, with nobody on shift | — (caught before the run) | an Operator, next time | never started | **Refused** |
+| The click that commits | Consequential/risky Action | Operator, live | pause, show the control and its rung, click only on approval | **Aborted**, **Failed** on timeout; nothing committed |
+| "No records found" | Business Outcome | nobody — it is the answer | stop | **Business Outcome** `MEMBER_NOT_FOUND` (resolver: Member) |
+| "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
+| "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
+| "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
+| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
+| Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
+| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential/risky Action was already in flight |
+| "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
+| A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
+| Frozen screen after a Consequential/risky Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
+| System died mid-Consequential/risky Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
+
+**Figure S4 — Every surprise becomes one of four Conditions, and the test is who can
+act.** *The system alone within a budget, a person during the run, or nobody in time. The
+table is the one in [CONTEXT.md](./CONTEXT.md); budgets are in
+[docs/error-taxonomy.md](./docs/error-taxonomy.md).*
+
+## S5. Watchers live at two levels
+
+| Level | Lives in | Watcher | Condition (see Figure S4) | Learnt how |
+|---|---|---|---|---|
+| **App-wide** | App Profile ([`config/profiles/demo-core-servicing.yaml`](./config/profiles/demo-core-servicing.yaml)), shared by every capability on the app | `w_session_expired` | Recoverable | added by a Reviewer after watching a run recover when an Operator pressed Resume without typing |
+| | | `w_system_notice` | Recoverable | discovery clicked "OK" on the notice; the Reviewer made that click a Watcher, not a step |
+| | | `w_approval_required` | Escalate | added by a Reviewer: only a supervisor's own credential clears it |
+| **Capability-specific** | the Artifact itself, alongside the Contract's Outcome Codes | `w_not_found` | Business Outcome `MEMBER_NOT_FOUND` | a second Discovery Run on member 99999 ended `report_outcome`; provenance `disc_0a3f513c` |
+| | | `w_not_authorized` | Business Outcome `NOT_AUTHORIZED` | added by a Reviewer by hand; provenance `reviewer:nasi` |
+
+**Figure S5 — Watchers live at two levels, and each records where it came from.** *How a
+Condition is handled is Figure S4; this is where the Watcher that names it lives. The
+Capability Store merges the App Profile's Watchers into the Artifact at load time, so
+app-wide knowledge is learnt once and reaches every capability; where both declare the
+same id, the Artifact's wins. A capability-specific Watcher that names an Outcome Code
+must have that code in the Contract, and every declared code must have a Watcher that can
+produce it: the lint refuses either alone. An unknown condition, such as
+`MAX_ACCOUNTS_REACHED` for member 33333, is an Unknown State until a Reviewer turns the
+evidence into a new Watcher, which is a new Artifact version.*

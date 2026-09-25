@@ -105,6 +105,12 @@ button**: rung 1 (accessibility name) finds nothing, so rung 2 finds it by the c
 beside it, and the log records which rung won. And exactly one Transition is
 `consequential` — the click that actually opens the account.
 
+![one turn, three representations](./docs/figures/three_representations.svg)
+
+*The unlabelled search icon three ways: the masked screenshot, the accessibility list
+(no name, so a text-only agent cannot see it), and the recorded Target, found by the
+caption beside it.*
+
 ### 2. The conditions, one command each
 
 Every one of these is the *same approved Artifact* meeting a different screen.
@@ -203,6 +209,29 @@ PY
 refused · input 'member_number' does not match ^[0-9]{5}$
 refused · origin 'http://127.0.0.1:9999' is not an instance tenant 'bank_a' declares
 ```
+
+What each of the four layers contributes, by example:
+
+- **Baseline** ([config/baseline.yaml](./config/baseline.yaml)), the agent vendor's floor.
+  The engine can only "click", "type", "select" and "read", so no run on any Tenant can
+  download a file or run a script; no secret is ever sent to a model; discovery never runs
+  against production; no Consequential/risky Action (one whose effect cannot be undone or
+  safely repeated, such as the click that opens a sub-account) runs without an Operator's
+  approval, so a capability that commits is Refused unattended; a run stops after 60
+  actions; and a route with `wire`, `transfer` or `payment` in it is refused, because this
+  version of the product does not move money.
+- **Role** ([config/roles/](./config/roles/)), one job's access. `balance_reader` may
+  "type", "click" and "read" on `/login`, `/search` and `/members/*`, signed in as
+  `svc_read`; a click that lands on `/admin` is refused at that action, whatever any
+  Tenant says.
+- **Tenant Policy** ([config/policies/](./config/policies/)), the institution's grant.
+  `bank_b` grants `balance_reader` but not `account_opener`, so opening a sub-account
+  there is Refused before a browser opens; and a Tenant may cut `/members/notes` from a
+  Role's pages for its own instance, but cannot add `/admin` to it, because a Tenant file
+  can only narrow.
+- **Needs**, declared in the Artifact from what discovery used, and required to fit inside
+  its Role. `read_savings_balance` was seen to use the login, search and member pages,
+  three actions and the two login secrets, all inside `balance_reader`.
 
 ### 5. One Artifact, two institutions
 
@@ -356,6 +385,19 @@ Review this artifact now? [Y/n]  y
   Watch it replay now, in a visible browser, 2s per step? [Y/n]  y
 ```
 
+The two responsibilities behind those questions:
+
+- **Risk.** Every "click" arrives Consequential/risky by default; "type", "select" and
+  "read" arrive Safe. The Reviewer changes a click to Safe (the ones that only navigate)
+  and leaves the unsafe ones as they are. During replay an unsafe action requires a human
+  in the loop to confirm it, and if no human is present the run is refused automatically.
+- **Error handling.** The current approach is prebuilt: an engineer drives the LLM through
+  the known errors ahead of time, and each error's signature and how to deal with it is
+  recorded as a Watcher, either before discovery or during it. The Reviewer chooses which
+  to add to the capability (see the [Error handling reference](#error-handling-reference)
+  below). We acknowledge the current approach is very manual and requires prior knowledge
+  of the system and the workflow.
+
 The Recorder decides nothing; each question is one it could not answer from the run. Every
 click arrives Consequential and only a person downgrades it. A declared outcome needs a
 watcher that can recognise it — borrowed from another approved capability on this app when
@@ -407,6 +449,29 @@ turn**; code checks it against policy and performs it. It never sees a password,
 value from a field that is not a declared Readable Region, and cannot name an action outside
 the vocabulary. On success the Recorder compiles a draft Artifact immediately.
 
+```
+          A VALUE ON SCREEN
+                │
+       ┌────────▼─────────┐
+       │ is it a password?│──yes──► (protected)      never read at all
+       └────────┬─────────┘
+                │ no
+       ┌────────▼──────────────────┐
+       │ is its Target declared a  │──no──► (hidden)  ← names, birthdays, and every
+       │ Readable Region?          │                    field nobody has reviewed yet
+       └────────┬──────────────────┘
+                │ yes
+       ┌────────▼─────────┐
+       │ pattern net      │  SSN · card · email · phone · date · currency
+       └────────┬─────────┘
+                ▼
+            recorded                and in the screenshot: undeclared value cells,
+                                    Sensitive Regions and text patterns painted black
+```
+
+*Redaction: structural, origin, pattern, pixels. A value on screen reaches the model only
+if it is not a password, sits in a declared Readable Region, and clears the pattern net.*
+
 **Without a key**, the same chain runs from a saved discovery run:
 
 ```bash
@@ -448,6 +513,52 @@ cannot reach past the acting interface of the Surface.
 > The suite starts its own demo apps on ports 5099 and 5100 and refuses to run if either is
 > already taken — a shared server would have its state reset by another session mid-test.
 > If it stops at startup, clear the port: `pkill -f fake_bank.app`.
+
+---
+
+## Error handling reference
+
+The same two tables as Figures S4 and S5 of [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md): every runtime condition and what the engine does about it, then where each Watcher lives and how it was learnt.
+
+| Example on screen | Condition | Who acts | Reaction | Run Result if unresolved |
+|---|---|---|---|---|
+| Input fails its Contract type/pattern/enum | — (caught before the run) | nobody needed | never started | **Refused** |
+| A capability that commits, with nobody on shift | — (caught before the run) | an Operator, next time | never started | **Refused** |
+| The click that commits | Consequential/risky Action | Operator, live | pause, show the control and its rung, click only on approval | **Aborted**, **Failed** on timeout; nothing committed |
+| "No records found" | Business Outcome | nobody — it is the answer | stop | **Business Outcome** `MEMBER_NOT_FOUND` (resolver: Member) |
+| "You are not authorized to view this member" | Business Outcome | institution staff, later | stop | **Business Outcome** `NOT_AUTHORIZED` (resolver: institution staff) |
+| "Amount exceeds available balance", "maximum accounts reached" | Business Outcome | the Member, by supplying different input | stop | **Business Outcome** `VALIDATION_REJECTED` or a specific code |
+| "System notice" interstitial | Recoverable | system | dismiss, re-check, continue | — (invisible when it works) |
+| Slow or blank page, transient error | Recoverable | system | wait, retry, bounded, Safe Actions only | **Failed** when the budget runs out |
+| Session expired, login page returns | Recoverable | system | sign in again with the Service Account, re-observe, continue | **Failed** when the budget runs out |
+| A screen only a person's own credential clears (supervisor ID and PIN) | Escalate | Operator, live | pause, hand over the session, resume on the Checkpoint | **Aborted**, **Failed** on timeout — or **Outcome Unknown** if a Consequential/risky Action was already in flight |
+| "Application error" / stack trace | Hard Failure | nobody | stop with evidence | **Failed** |
+| A screen matching neither Checkpoint nor Watcher | Unknown State | Operator if Attended; Reviewer later | never guess through | **Failed** (Unattended) |
+| Frozen screen after a Consequential/risky Action | Unknown State | system first (Verification Check), else Operator | look, never click again | **Outcome Unknown** |
+| System died mid-Consequential/risky Action | — | a person, afterwards | write-ahead log detects it on restart | **Outcome Unknown** |
+
+**Every surprise becomes one of four Conditions, and the test is who can
+act.** *The system alone within a budget, a person during the run, or nobody in time. The
+table is the one in [CONTEXT.md](./CONTEXT.md); budgets are in
+[docs/error-taxonomy.md](./docs/error-taxonomy.md).*
+
+| Level | Lives in | Watcher | Condition (see the table above) | Learnt how |
+|---|---|---|---|---|
+| **App-wide** | App Profile ([`config/profiles/demo-core-servicing.yaml`](./config/profiles/demo-core-servicing.yaml)), shared by every capability on the app | `w_session_expired` | Recoverable | added by a Reviewer after watching a run recover when an Operator pressed Resume without typing |
+| | | `w_system_notice` | Recoverable | discovery clicked "OK" on the notice; the Reviewer made that click a Watcher, not a step |
+| | | `w_approval_required` | Escalate | added by a Reviewer: only a supervisor's own credential clears it |
+| **Capability-specific** | the Artifact itself, alongside the Contract's Outcome Codes | `w_not_found` | Business Outcome `MEMBER_NOT_FOUND` | a second Discovery Run on member 99999 ended `report_outcome`; provenance `disc_0a3f513c` |
+| | | `w_not_authorized` | Business Outcome `NOT_AUTHORIZED` | added by a Reviewer by hand; provenance `reviewer:nasi` |
+
+**Watchers live at two levels, and each records where it came from.** *How a
+Condition is handled is the table above; this is where the Watcher that names it lives. The
+Capability Store merges the App Profile's Watchers into the Artifact at load time, so
+app-wide knowledge is learnt once and reaches every capability; where both declare the
+same id, the Artifact's wins. A capability-specific Watcher that names an Outcome Code
+must have that code in the Contract, and every declared code must have a Watcher that can
+produce it: the lint refuses either alone. An unknown condition, such as
+`MAX_ACCOUNTS_REACHED` for member 33333, is an Unknown State until a Reviewer turns the
+evidence into a new Watcher, which is a new Artifact version.*
 
 ---
 
