@@ -29,7 +29,7 @@ automation is working against. `GET /reset` restores the seed data, and every to
 calls it first, so the walkthrough is repeatable in any order.
 
 No API key is needed for steps 1–7. Step 8 needs one: export `ANTHROPIC_API_KEY`, or put
-`ANTHROPIC_API_KEY=...` in a `.env` file in this folder (gitignored; `tools.discover` reads it).
+`ANTHROPIC_API_KEY=...` in a `.env` file in this folder (gitignored; `tools.discovery` reads it).
 
 ---
 
@@ -156,7 +156,7 @@ a decision, not a failure.
 There is also a browser console for the same thing:
 
 ```bash
-python -m tools.operator_console     # http://127.0.0.1:5010
+python -m tools.operator.web     # http://127.0.0.1:5010
 ```
 
 The automation never types the supervisor PIN, and it is never written to the trail — only
@@ -203,7 +203,7 @@ Lakeside Savings runs the same vendor product with renamed controls and the sear
 moved. The same approved Artifact, unchanged:
 
 ```bash
-python -m tools.demo_b2
+python -m tools.demos.b2
 ```
 
 ```
@@ -228,7 +228,7 @@ control labels, timeouts — and is refused outright if it tries to change what 
 ### 6. Why the targeting survives a hostile app
 
 ```bash
-python -m tools.demo_b1
+python -m tools.demos.b1
 ```
 
 Prints the accessibility view of the search control (it has no name at all), then the ladder
@@ -239,8 +239,8 @@ see [docs/targeting.md](./docs/targeting.md).
 ### 7. Read any run afterwards
 
 ```bash
-python -m tools.show_run                  # the most recent
-python -m tools.show_run runs/run_8de312d4
+python -m tools.inspect.show_run                  # the most recent
+python -m tools.inspect.show_run runs/run_8de312d4
 ```
 
 Every run leaves an append-only redacted trail: each policy decision, each action, which rung
@@ -251,7 +251,7 @@ you will see the member's name and date of birth blacked out while the balances,
 the answer, remain.
 
 Seven runs are committed in **[evidence/](./evidence/)** with a guide to reading them. The
-five replays regenerate from the current code with `python -m tools.make_evidence`.
+five replays regenerate from the current code with `python -m tools.replay.make_evidence`.
 
 ### 8. Discovery — where the Artifact came from
 
@@ -362,8 +362,8 @@ python -m tools.start --review runs/disc_12e097f2
 ``` The flag-driven equivalent, for scripts:
 
 ```bash
-ANTHROPIC_API_KEY=... python -m tools.discover                 # the sub-account request, member 54321
-ANTHROPIC_API_KEY=... python -m tools.discover 99999           # same goal; expects report_outcome
+ANTHROPIC_API_KEY=... python -m tools.discovery                 # the sub-account request, member 54321
+ANTHROPIC_API_KEY=... python -m tools.discovery 99999           # same goal; expects report_outcome
 ```
 
 **A goal is stated once, by a Reviewer, at discovery.** Production callers never state
@@ -381,13 +381,13 @@ the origin is never a flag — it comes from the Tenant's own Policy file:
 
 ```bash
 # a different goal, under a Role that may not commit anything
-ANTHROPIC_API_KEY=... python -m tools.discover --contract contracts/read_balance.yaml
+ANTHROPIC_API_KEY=... python -m tools.discovery --contract contracts/read_balance.yaml
 # or spell it out
-ANTHROPIC_API_KEY=... python -m tools.discover \
+ANTHROPIC_API_KEY=... python -m tools.discovery \
     --goal "Look up member {member_number} and read their current savings balance" \
     --contract contracts/read_balance.yaml --role balance_reader --tenant bank_a \
     --values member_number=12345
-python -m tools.discover --dry-run --contract contracts/read_balance.yaml   # no key: show the request
+python -m tools.discovery --dry-run --contract contracts/read_balance.yaml   # no key: show the request
 ```
 
 Type a goal that strays outside its Role — "wire $5,000 from member 12345" under
@@ -403,9 +403,9 @@ the vocabulary. On success the Recorder compiles a draft Artifact immediately.
 **Without a key**, the same chain runs from a saved discovery run:
 
 ```bash
-python -m tools.show_run evidence/01-discovery-goal-reached   # what the model saw and asked for
-python -m tools.record   evidence/01-discovery-goal-reached   # compile the draft + suggestions
-python -m tools.review   evidence/01-discovery-goal-reached   # apply decisions, verify, approve
+python -m tools.inspect.show_run evidence/01-discovery-goal-reached   # what the model saw and asked for
+python -m tools.authoring.record  evidence/01-discovery-goal-reached   # compile the draft + suggestions
+python -m tools.authoring.approve evidence/01-discovery-goal-reached   # apply decisions, verify, approve
 ```
 
 `record` prints what it could not decide for itself — "every click is marked Consequential:

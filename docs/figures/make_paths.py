@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT))
 
 from cua.replay import RunContext, replay                      # noqa: E402
 from cua.governance.store import load_capability, origin_for               # noqa: E402
-from tools.make_evidence import clears_the_flag                 # noqa: E402
+from tools.replay.make_evidence import clears_the_flag               # noqa: E402
 
 CAPABILITY = "member.read_savings_balance"
 OUT = Path(__file__).resolve().parent / "read_savings_balance_paths.svg"

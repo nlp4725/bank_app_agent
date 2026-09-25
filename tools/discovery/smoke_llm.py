@@ -4,7 +4,7 @@ Not the discovery loop — this proves the plumbing before the real run matters.
 
     export ANTHROPIC_API_KEY=sk-ant-...
     python -m fake_bank.app &            # the demo app on :5001
-    python -m tools.smoke_llm
+    python -m tools.discovery.smoke_llm
 
 It opens the member search page, sends the accessibility list *and* a screenshot,
 and prints the one action the model proposes. The search control on that page has no

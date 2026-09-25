@@ -366,7 +366,7 @@ box(s, 6.82, 5.05, 5.90, 1.70,
      "for one tenant is the signal that its app has drifted."],
     fill=PANEL, line=None, size=10.5, align=PP_ALIGN.LEFT, spacing=5)
 
-footnote(s, "cua/surface.py · docs/targeting.md · tools/demo_b1.py")
+footnote(s, "cua/surface.py · docs/targeting.md · tools/demos/b1.py")
 
 # ── 6. replay step ──────────────────────────────────────────────────────────
 s = slide(prs, "Replay Engine", "What does replay do for a single step?")
@@ -647,7 +647,7 @@ box(s, 0.62, 6.15, 12.10, 0.62,
      "different artifact."],
     fill=RED_BG, line=None, size=10.5, align=PP_ALIGN.LEFT)
 
-footnote(s, "overlays/lakeside.yaml · cua/overlay.py · tools/demo_b2.py")
+footnote(s, "overlays/lakeside.yaml · cua/overlay.py · tools/demos/b2.py")
 
 # ── 12. delta ───────────────────────────────────────────────────────────────
 s = slide(prs, "Then and now", "What changed from the original sketch — and why?")

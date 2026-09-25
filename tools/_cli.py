@@ -1,8 +1,11 @@
 """What the command-line tools share and the package does not need: reading a
-gitignored .env for the one key, and printing a Discovery Result."""
+gitignored .env for the one key, printing a Discovery Result, and resetting the demo
+app before a run."""
 
 import json
 import os
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 DOTENV = Path(".env")
@@ -44,3 +47,16 @@ def report(result, actions: bool = True) -> None:
         rungs = " -> ".join(r["kind"] for r in a["target"]["rungs"]) or "(no rungs!)"
         print(f'  {a["turn"]:2d} {a["action"]:7s} {rungs:28s} '
               f'anchor={a["anchor"]!r} value={a.get("value")!r}')
+
+
+def reset_or_exit(origin: str) -> None:
+    """Restore the demo app's seed data — or say plainly that it is not running."""
+    try:
+        urllib.request.urlopen(f"{origin}/reset", timeout=5).read()
+    except (urllib.error.URLError, OSError) as e:
+        raise SystemExit(
+            f"\nthe demo app is not answering at {origin} ({getattr(e, 'reason', e)}).\n"
+            f"start it in another terminal, then run this again:\n"
+            f"    python -m fake_bank.app                          # {origin}\n"
+            f"    SKIN=bank2 PORT=5002 python -m fake_bank.app     # the second institution\n"
+        ) from None

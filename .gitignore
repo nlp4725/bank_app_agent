@@ -5,7 +5,7 @@ venv/
 .env
 .DS_Store
 # evidence/ is committed on purpose: it is the worked-runs deliverable,
-# 712K, regenerable with `python -m tools.make_evidence`.
+# 712K, regenerable with `python -m tools.replay.make_evidence`.
 runs/
 node_modules/
 .pytest_cache/

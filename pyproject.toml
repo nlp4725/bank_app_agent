@@ -20,12 +20,14 @@ dev = ["pytest>=8.0", "ruff>=0.6", "mypy>=1.11"]
 
 [project.scripts]
 cua-replay = "tools.replay:main"
-cua-discover = "tools.discover:main"
+cua-discover = "tools.discovery.cli:main"
 cua-start = "tools.start:main"
 
 [tool.setuptools]
 packages = ["cua", "cua.domain", "cua.governance", "cua.evidence", "cua.surface",
-            "cua.replay", "cua.authoring", "cua.discovery"]
+            "cua.replay", "cua.authoring", "cua.discovery",
+            "tools", "tools.discovery", "tools.authoring", "tools.replay", "tools.operator",
+            "tools.demos", "tools.inspect"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

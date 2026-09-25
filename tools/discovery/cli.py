@@ -1,13 +1,13 @@
 """Run one Discovery Run: a goal in words, bounded by a Role, against a Tenant's app.
 
-    ANTHROPIC_API_KEY=... python -m tools.discover                       # the default request
+    ANTHROPIC_API_KEY=... python -m tools.discovery                       # the default request
     (or put ANTHROPIC_API_KEY=... in a gitignored .env and omit it)
-    ANTHROPIC_API_KEY=... python -m tools.discover 99999                 # expects report_outcome
-    ANTHROPIC_API_KEY=... python -m tools.discover --contract contracts/read_balance.yaml
-    ANTHROPIC_API_KEY=... python -m tools.discover \\
+    ANTHROPIC_API_KEY=... python -m tools.discovery 99999                 # expects report_outcome
+    ANTHROPIC_API_KEY=... python -m tools.discovery --contract contracts/read_balance.yaml
+    ANTHROPIC_API_KEY=... python -m tools.discovery \\
         --goal "Look up member {member_number} and read their savings balance" \\
         --contract contracts/read_balance.yaml --role balance_reader --tenant bank_a
-    python -m tools.discover --dry-run ...                               # show the request, touch nothing
+    python -m tools.discovery --dry-run ...                               # show the request, touch nothing
 
 A Discovery Request is three things, and only the first is free text: the goal (the
 model reads it every turn), the Role (what the goal may touch — pages, actions, whether
@@ -26,9 +26,6 @@ import yaml
 from cua.discovery import DiscoveryRequest, discover, request_from_spec
 from tools._cli import load_dotenv, report
 
-__all__ = ["CONTRACT", "DEFAULT_CONTRACT", "GOAL", "build", "load_dotenv", "load_request",
-           "main", "parse_args", "parse_values", "report", "request_from_spec"]
-
 DEFAULT_CONTRACT = Path("contracts/open_sub_account.yaml")
 
 
@@ -38,11 +35,13 @@ def load_request(path: Path = DEFAULT_CONTRACT) -> dict:
     return yaml.safe_load(Path(path).read_text())
 
 
-# Kept by name: tools/record.py, tools/review.py and the tests compile the shipped
-# discovery run against this same Contract, so it lives in one file, not two.
+# Kept by name: tools/authoring/record.py, tools/authoring/approve.py and the tests
+# compile the shipped discovery run against this same Contract, so it lives in one
+# file, not two.
 _DEFAULT = load_request()
 CONTRACT = _DEFAULT["contract"]
 GOAL = _DEFAULT["goal"]
+EXAMPLE_VALUES = _DEFAULT["example_values"]
 
 
 def parse_values(pairs: list[str]) -> dict:
@@ -82,7 +81,7 @@ def describe(request: DiscoveryRequest) -> str:
 
 
 def parse_args(argv=None):
-    p = argparse.ArgumentParser(prog="python -m tools.discover", description=__doc__,
+    p = argparse.ArgumentParser(prog="python -m tools.discovery", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("member", nargs="?", help="member number (shorthand for --values member_number=…)")
     p.add_argument("--goal", help="the goal, in words; {name} is filled from --values")
