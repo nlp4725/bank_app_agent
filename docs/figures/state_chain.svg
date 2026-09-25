@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 385" width="1240" height="385" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/></marker></defs>
+<rect width="1240" height="385" fill="#ffffff"/>
+<rect x="60" y="26" width="52" height="20" rx="4" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="86" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#2f5597" font-weight="normal" font-style="normal" text-anchor="middle">state</text>
+<path d="M 132 36 L 180 36" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="156" y="30" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">action</text>
+<rect x="200" y="26" width="76" height="20" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="238" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">checkpoint</text>
+<rect x="60" y="80" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="160.0" y="111.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s1_login</text>
+<rect x="60" y="140" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="160.0" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_user_id on screen?</text>
+<path d="M 264 107.0 L 356 107.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="310.0" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">type login_username</text>
+<rect x="360" y="80" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="460.0" y="111.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s2_user_id_entered</text>
+<rect x="360" y="140" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="460.0" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_user_id non-empty?</text>
+<path d="M 564 107.0 L 656 107.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="610.0" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">type login_password</text>
+<rect x="660" y="80" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="760.0" y="111.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s3_password_entered</text>
+<rect x="660" y="140" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="760.0" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_password non-empty?</text>
+<path d="M 864 107.0 L 956 107.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="910.0" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">click 'Sign in'</text>
+<rect x="960" y="80" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="1060.0" y="111.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s4_search</text>
+<rect x="960" y="140" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="1060.0" y="156" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_member_number on screen?</text>
+<path d="M 1060.0 168 L 1060.0 236" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="1072.0" y="208.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="start">type member_number</text>
+<rect x="960" y="240" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="1060.0" y="271.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s5_member_number_entered</text>
+<rect x="960" y="300" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="1060.0" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_member_number non-empty?</text>
+<path d="M 956 267.0 L 864 267.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="910.0" y="216" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">click the button</text>
+<text x="910.0" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">beside 'Member number'</text>
+<rect x="660" y="240" width="200" height="54" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="760.0" y="271.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s6_members_id</text>
+<rect x="660" y="300" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="760.0" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_savings_balance on screen?</text>
+<path d="M 656 267.0 L 564 267.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="610.0" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">read savings_balance</text>
+<rect x="360" y="240" width="200" height="54" rx="5" fill="#e4f2ec" stroke="#1b7450" stroke-width="1.5"/>
+<text x="460.0" y="271.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s7_savings_balance_read</text>
+<rect x="360" y="300" width="200" height="24" rx="4" fill="#faf0d8" stroke="#9a6a12" stroke-width="1"/>
+<text x="460.0" y="316" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">t_savings_balance on screen?</text>
+</svg>

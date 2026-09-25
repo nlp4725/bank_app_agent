@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 330" width="1240" height="330" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/></marker></defs>
+<rect width="1240" height="330" fill="#ffffff"/>
+<text x="30" y="112.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#9a6a12" font-weight="700" font-style="normal" text-anchor="start">Artifact says</text>
+<text x="30" y="184.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#2f5597" font-weight="700" font-style="normal" text-anchor="start">Engine does</text>
+<text x="30" y="248.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#7a7a7a" font-weight="700" font-style="normal" text-anchor="start">Browser or</text>
+<text x="30" y="262.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#7a7a7a" font-weight="700" font-style="normal" text-anchor="start">Policy answers</text>
+<text x="236.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">1 PRECONDITION</text>
+<rect x="150" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="236.0" y="98.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">from s4_search</text>
+<text x="236.0" y="112.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">checkpoint:</text>
+<text x="236.0" y="126.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">t_member_number on screen?</text>
+<rect x="150" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="236.0" y="177.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">ask the browser</text>
+<text x="236.0" y="191.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">whether it holds</text>
+<rect x="150" y="222" width="172" height="60" rx="5" fill="#f2f1ee" stroke="#7a7a7a" stroke-width="1.2"/>
+<text x="236.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">yes: the field is</text>
+<text x="236.0" y="263.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">on the page</text>
+<path d="M 323 180.0 L 329 180.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="416.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">2 RESOLVE</text>
+<rect x="330" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="416.0" y="98.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">target t_member_number</text>
+<text x="416.0" y="112.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">rung 1: label_anchor</text>
+<text x="416.0" y="126.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">right_of 'Member number'</text>
+<rect x="330" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="416.0" y="177.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">walk the ladder;</text>
+<text x="416.0" y="191.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">log which rung matched</text>
+<rect x="330" y="222" width="172" height="60" rx="5" fill="#f2f1ee" stroke="#7a7a7a" stroke-width="1.2"/>
+<text x="416.0" y="242.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">rung 1 matched</text>
+<text x="416.0" y="256.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">(no accessible name;</text>
+<text x="416.0" y="270.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">found by its caption)</text>
+<path d="M 503 180.0 L 509 180.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="596.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">3 POLICY</text>
+<rect x="510" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="596.0" y="98.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">needs.pages /search</text>
+<text x="596.0" y="112.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">needs.actions type</text>
+<text x="596.0" y="126.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">role balance_reader</text>
+<rect x="510" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="596.0" y="170.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">Baseline ∩ Role ∩</text>
+<text x="596.0" y="184.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">Tenant ∩ Needs</text>
+<text x="596.0" y="198.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">for /search, type</text>
+<rect x="510" y="222" width="172" height="60" rx="5" fill="#fae9e6" stroke="#a8251e" stroke-width="1.2"/>
+<text x="596.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">allowed</text>
+<text x="596.0" y="263.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">(policy_allow logged)</text>
+<path d="M 683 180.0 L 689 180.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="776.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">4 RISK GATE</text>
+<rect x="690" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="776.0" y="112.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">risk: safe</text>
+<rect x="690" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="776.0" y="170.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">consequential?</text>
+<text x="776.0" y="184.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">unattended without</text>
+<text x="776.0" y="198.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">a Verification Check?</text>
+<rect x="690" y="222" width="172" height="60" rx="5" fill="#fae9e6" stroke="#a8251e" stroke-width="1.2"/>
+<text x="776.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">no gate: safe</text>
+<text x="776.0" y="263.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">action</text>
+<path d="M 863 180.0 L 869 180.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="956.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">5 ACT</text>
+<rect x="870" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="956.0" y="105.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">type {{member_number}}</text>
+<text x="956.0" y="119.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">into t_member_number</text>
+<rect x="870" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="956.0" y="177.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">render {{member_number}}</text>
+<text x="956.0" y="191.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">→ 12345, type it</text>
+<rect x="870" y="222" width="172" height="60" rx="5" fill="#f2f1ee" stroke="#7a7a7a" stroke-width="1.2"/>
+<text x="956.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">keystrokes land</text>
+<text x="956.0" y="263.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">in the field</text>
+<path d="M 1043 180.0 L 1049 180.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#head)"/>
+<text x="1136.0" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11" fill="#1a1a1a" font-weight="700" font-style="normal" text-anchor="middle">6 OBSERVE</text>
+<rect x="1050" y="78" width="172" height="60" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.2"/>
+<text x="1136.0" y="98.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">to s5_member_number_entered</text>
+<text x="1136.0" y="112.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">checkpoint:</text>
+<text x="1136.0" y="126.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">t_member_number non-empty?</text>
+<rect x="1050" y="150" width="172" height="60" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.2"/>
+<text x="1136.0" y="170.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">ask the browser;</text>
+<text x="1136.0" y="184.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">else ask the Watchers;</text>
+<text x="1136.0" y="198.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">else Unknown State</text>
+<rect x="1050" y="222" width="172" height="60" rx="5" fill="#f2f1ee" stroke="#7a7a7a" stroke-width="1.2"/>
+<text x="1136.0" y="249.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">yes: field holds a</text>
+<text x="1136.0" y="263.0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">value → next Transition</text>
+<text x="150" y="316" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#6f6f6f" font-weight="normal" font-style="normal" text-anchor="start">Transition s4_search → s5_member_number_entered of read_savings_balance 1.0.0, replayed for member 12345. Every step is a question the engine asks; the Artifact never acts.</text>
+</svg>

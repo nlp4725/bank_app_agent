@@ -46,9 +46,9 @@
 <text x="205" y="432" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">one Run</text>
 <text x="205" y="447" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">Result</text>
 <path d="M 491.0 372.0 L 620.0 372.0" stroke="#1b7450" stroke-width="1.4" fill="none" marker-end="url(#h1b7450)"/>
-<text x="555" y="360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1b7450" font-weight="normal" font-style="italic" text-anchor="middle">escalate</text>
+<text x="555" y="360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">escalate</text>
 <path d="M 625.0 410 L 491 410" stroke="#1b7450" stroke-width="1.4" fill="none" marker-end="url(#h1b7450)"/>
-<text x="555" y="432" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1b7450" font-weight="normal" font-style="italic" text-anchor="middle">resume</text>
+<text x="555" y="432" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1a1a1a" font-weight="normal" font-style="italic" text-anchor="middle">resume</text>
 <path d="M 1020.0 152 L 1020.0 300 L 446 300 L 446 341" stroke="#9a6a12" stroke-width="1.5" fill="none" stroke-dasharray="6 4" marker-end="url(#h9a6a12)"/>
 <circle cx="325.0" cy="250" r="34" fill="#fae9e6" stroke="#a8251e" stroke-width="1.5"/>
 <text x="325.0" y="255" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">Policy</text>

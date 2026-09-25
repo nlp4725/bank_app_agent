@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 300" width="1240" height="300" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<defs>
+<marker id="h1a1a1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1a1a1a"/></marker>
+<marker id="ha8251e" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#a8251e"/></marker>
+<marker id="h1b7450" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1b7450"/></marker>
+<marker id="h2f5597" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2f5597"/></marker>
+<marker id="h9a6a12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6a12"/></marker>
+</defs>
+<rect width="1240" height="300" fill="#ffffff"/>
+<rect x="30" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="108.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s1_login</text>
+<path d="M 189 60.0 L 199 60.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#h1a1a1a)"/>
+<rect x="202" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="280.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s2_user_id_entered</text>
+<path d="M 361 60.0 L 371 60.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#h1a1a1a)"/>
+<rect x="374" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="452.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s3_password_entered</text>
+<path d="M 533 60.0 L 543 60.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#h1a1a1a)"/>
+<rect x="546" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="624.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s4_search</text>
+<path d="M 705 60.0 L 715 60.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#h1a1a1a)"/>
+<rect x="718" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="796.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s5_member_number_entered</text>
+<path d="M 877 60.0 L 887 60.0" stroke="#a8251e" stroke-width="1.4" fill="none" marker-end="url(#ha8251e)"/>
+<text x="882.0" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#a8251e" font-weight="600" font-style="normal" text-anchor="middle">✗ checkpoint misses</text>
+<rect x="890" y="40" width="156" height="40" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="968.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s6_members_id</text>
+<path d="M 1049 60.0 L 1059 60.0" stroke="#1a1a1a" stroke-width="1.4" fill="none" marker-end="url(#h1a1a1a)"/>
+<rect x="1062" y="40" width="156" height="40" rx="5" fill="#e4f2ec" stroke="#1b7450" stroke-width="1.5"/>
+<text x="1140.0" y="64.0" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">s7_savings_balance_read</text>
+<text x="1218" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1b7450" font-weight="normal" font-style="normal" text-anchor="end">12345: Succeeded, savings_balance</text>
+<path d="M 882.0 64.0 L 882.0 144" stroke="#a8251e" stroke-width="1.4" fill="none" stroke-dasharray="4 3"/>
+<path d="M 240.0 144 L 920.0 144" stroke="#a8251e" stroke-width="1.4" fill="none" stroke-dasharray="4 3"/>
+<text x="892.0" y="122" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#a8251e" font-weight="normal" font-style="italic" text-anchor="start">which Watcher fires?</text>
+<path d="M 240.0 144 L 240.0 176" stroke="#1b7450" stroke-width="1.4" fill="none" marker-end="url(#h1b7450)"/>
+<rect x="90" y="180" width="300" height="42" rx="5" fill="#e4f2ec" stroke="#1b7450" stroke-width="1.5"/>
+<text x="240.0" y="197" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">w_not_found</text>
+<text x="240.0" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#1b7450" font-weight="normal" font-style="normal" text-anchor="middle">Business Outcome</text>
+<text x="240.0" y="238" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">stop, tell the caller</text>
+<text x="240.0" y="253" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">MEMBER_NOT_FOUND</text>
+<text x="240.0" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#6f6f6f" font-weight="normal" font-style="normal" text-anchor="middle">member 99999</text>
+<path d="M 580.0 144 L 580.0 176" stroke="#2f5597" stroke-width="1.4" fill="none" marker-end="url(#h2f5597)"/>
+<rect x="430" y="180" width="300" height="42" rx="5" fill="#e8edf6" stroke="#2f5597" stroke-width="1.5"/>
+<text x="580.0" y="197" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">w_session_expired</text>
+<text x="580.0" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#2f5597" font-weight="normal" font-style="normal" text-anchor="middle">Recoverable</text>
+<text x="580.0" y="238" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">which State holds now?</text>
+<text x="580.0" y="253" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">s1_login: run the chain again</text>
+<text x="580.0" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#6f6f6f" font-weight="normal" font-style="normal" text-anchor="middle">member 88888</text>
+<path d="M 920.0 144 L 920.0 176" stroke="#9a6a12" stroke-width="1.4" fill="none" marker-end="url(#h9a6a12)"/>
+<rect x="770" y="180" width="300" height="42" rx="5" fill="#faf0d8" stroke="#9a6a12" stroke-width="1.5"/>
+<text x="920.0" y="197" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" fill="#1a1a1a" font-weight="600" font-style="normal" text-anchor="middle">w_approval_required</text>
+<text x="920.0" y="212" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#9a6a12" font-weight="normal" font-style="normal" text-anchor="middle">Escalate</text>
+<text x="920.0" y="238" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">Operator acts in the live session</text>
+<text x="920.0" y="253" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="10.5" fill="#1a1a1a" font-weight="normal" font-style="normal" text-anchor="middle">resume at s6 once it holds</text>
+<text x="920.0" y="270" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10" fill="#6f6f6f" font-weight="normal" font-style="normal" text-anchor="middle">member 44444</text>
+<path d="M 438 180 C 350 136, 20 120, 108.0 84" stroke="#2f5597" stroke-width="1.4" fill="none" marker-end="url(#h2f5597)" stroke-dasharray="4 3"/>
+<path d="M 1062 180 C 1130 166, 1058.0 120, 968.0 84" stroke="#9a6a12" stroke-width="1.4" fill="none" marker-end="url(#h9a6a12)" stroke-dasharray="4 3"/>
+</svg>

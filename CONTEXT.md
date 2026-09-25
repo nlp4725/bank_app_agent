@@ -99,7 +99,7 @@ The pages and action types an Artifact uses, derived from what its Discovery Run
 _Avoid_: Permissions, scopes, requirements
 
 **Watcher**:
-A recognisable surprise screen — a trigger Predicate, the Condition it represents, how to react, and where it came from. Evaluated at every State, so it does not belong to any one Transition.
+A recognisable surprise screen — a trigger Predicate, the Condition it represents, how to react, and where it came from. Consulted only when a Checkpoint misses, and can fire from any State, so it does not belong to any one Transition.
 _Avoid_: Handler, trap, exception rule
 
 **App Profile**:

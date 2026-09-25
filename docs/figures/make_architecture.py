@@ -135,10 +135,10 @@ add(f'<path d="M {engine.x} 410 L {caller.x + caller.w + 5} 410" stroke="{INK}" 
 elabel(205, 432, ["one Run", "Result"], size=13)
 
 edge((engine.x + engine.w, 372), (operator.x, 372), color=GREEN)
-elabel(555, 360, ["escalate"], size=13, color=GREEN)
+elabel(555, 360, ["escalate"], size=13)
 add(f'<path d="M {operator.x} 410 L {engine.x + engine.w + 5} 410" stroke="{GREEN}" '
     f'stroke-width="1.4" fill="none" marker-end="url(#h{GREEN[1:]})"/>')
-elabel(555, 432, ["resume"], size=13, color=GREEN)
+elabel(555, 432, ["resume"], size=13)
 
 # the store serves replay: PreAct's dashed "retrieve on next invocation"
 add(f'<path d="M {store.x + store.w / 2} {store.y + store.h} L {store.x + store.w / 2} 300 '
