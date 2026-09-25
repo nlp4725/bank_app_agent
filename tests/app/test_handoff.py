@@ -1,18 +1,12 @@
-"""Control transfer: one holder at a time, the same session, and a checked resume."""
+"""Control transfer against the live app: the same session, and a checked resume.
+
+The lease itself — one holder at a time, moves only along declared transitions — is
+tests/unit/test_lease.py."""
 
 import json
 from pathlib import Path
 
-import pytest
-
 from cua.replay.engine import RunContext, replay
-from cua.replay.handoff import (
-    AUTOMATION,
-    AWAITING_OPERATOR,
-    OPERATOR_IN_CONTROL,
-    Control,
-    ControlError,
-)
 
 # The flagged member: only a supervisor's own ID and PIN clears it, and no Role
 # holds those, so this is the one condition a person must resolve inside the run.
@@ -44,25 +38,6 @@ def escalating_run(artifact, bank_app, tmp_path, operator, **overrides):
     return replay(artifact, INPUTS,
                   RunContext(origin=bank_app, attended=True, operator=operator,
                              evidence_root=str(tmp_path), **overrides))
-
-
-# ── the lease ────────────────────────────────────────────────────────────────
-
-def test_only_the_holder_may_act():
-    control = Control()
-    control.assert_may_act("automation")
-    with pytest.raises(ControlError):
-        control.assert_may_act("operator")
-
-
-def test_control_moves_only_along_declared_transitions():
-    control = Control()
-    control.move(AWAITING_OPERATOR, "operator")
-    with pytest.raises(ControlError):
-        control.move(AUTOMATION, "automation")      # must pass through the Operator
-    control.move(OPERATOR_IN_CONTROL, "operator")
-    with pytest.raises(ControlError):
-        control.assert_may_act("automation")        # they cannot both hold it
 
 
 # ── the whole handoff, against the live app ─────────────────────────────────
