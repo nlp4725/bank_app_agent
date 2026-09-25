@@ -5,10 +5,10 @@ Every question or requirement in the assignment brief
 with where REPORT.md answers it and how well. Checked 24 Sep 2026 against the uncommitted
 REPORT.md.
 
-**Status, later on 24 Sep 2026.** Items 1 to 6 of the list at the bottom were applied to
-REPORT.md, and Figure 6.1's table moved to the supplement as Figure S3. Every **No** and
-**Partial** below is now answered in the report; the verdicts are kept as the record of
-what was missing. What remains: length. The report is about 4,000 words with six figures
+**Status, 25 Sep 2026.** Items 1 and 3 to 6 of the list at the bottom were applied to
+REPORT.md, and Figure 6.1's table moved to the supplement as Figure S3. Item 2, the three
+§1 paragraphs on stack, loop shape and the target app, was applied and then removed by
+choice, so the four **No** rows under "Section 4" stand; the README covers them. What remains: length. The report is about 4,000 words with six figures
 and two tables, over the brief's three pages, kept knowingly because every cut left would
 remove an answer the brief asks for by name.
 

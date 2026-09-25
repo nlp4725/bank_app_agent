@@ -18,6 +18,10 @@ account_opener:
   consequential: allowed_with_approval
   service_account: svc_officer
 
+# A future feature, not a live Role. The Baseline refuses any route with "transfer",
+# "wire" or "payment" in it before a Role is consulted, so this version of the product
+# cannot move money and no Tenant can grant this. Kept as the shape it would take:
+# consequential with approval, two people, and never unattended.
 funds_mover:
   intent: "Move money between accounts."
   pages:   ["/login", "/search", "/members/*", "/transfers/*"]

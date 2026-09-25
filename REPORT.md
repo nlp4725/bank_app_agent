@@ -1,8 +1,10 @@
 # REPORT
 
-An LLM works out how a task is done in a legacy bank application **once**, against a
-non-production copy. That run becomes a reviewable **Artifact**. From then on the **Replay
-Engine** runs it with typed inputs and **no model in the decision loop**.
+An LLM works out how a task is done in a legacy bank application **once**, on a
+non-production server with a synthetic database: no real record, no real money. That run
+becomes a reviewable **Artifact**. From then on the **Replay Engine** runs it on the
+production server, against the real database, with typed inputs and **no model in the
+decision loop**.
 
 Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) · decisions:
 [docs/adr](./docs/adr) · modules: [docs/modules.md](./docs/modules.md).
@@ -11,46 +13,89 @@ Vocabulary: [CONTEXT.md](./CONTEXT.md) · worked runs: [evidence/](./evidence/) 
 
 ![system architecture](./docs/figures/architecture.svg)
 
-**Figure 1.1 — One capability's path.** *A Reviewer states a goal and confirms the
-Contract the LLM proposes. The Discovery Run drives a non-production app once, one
-policy-checked action per turn. The Recorder turns the trace into a draft; the Reviewer
-decides which clicks are safe and which screens are Watchers; the Verify Replay runs that
-candidate with no model on a member discovery never saw, and only a pass enters the store.
-In production a Calling Agent invokes the capability by name with typed inputs, the engine
-replays it with Policy checked before every action, and returns one Run Result. When it
-cannot safely continue it hands the live session to an Operator and resumes on a
-re-checked Checkpoint.*
+**Figure 1.1 — One capability's path.**
 
-**The calls the brief leaves open.** Python, Playwright driving Chromium, and a Flask
-stand-in for the bank app. Claude sits behind one adapter
-([`cua/discovery/model.py`](./cua/discovery/model.py), `claude-opus-5` by default), the
-only file that imports a model SDK. One process, synchronous: a run is a function call
-that returns a Run Result, and the boundaries are files, not services. An Artifact is a
-YAML file, a run is a directory of append-only JSONL, and the Operator console reaches a
-paused run through one `decision.json` in that directory. A queue or a service would add
-nothing a bank could audit that a directory does not, and would cost the property that a
-crash leaves a readable trail on disk.
+**Key decisions.**
 
-**The loop.** The input is a goal in words plus a target: the origin the Tenant's own
-Policy file declares for the vendor app, so nobody typing a goal chooses a URL. Each turn
-the model receives the masked screenshot, the accessibility list of the screen with every
-control numbered and every value hidden unless its caption is a declared Readable
-Region, the goal, the example input values and the names of the secrets it may ask for.
-It must answer with exactly one tool call from eight: `click`, `type`, `select`, `read`,
-and four endings, `goal_reached`, `report_outcome`, `ask_human`, `give_up`. Code checks
-the call against Policy, performs it, and records what was acted on in durable terms, a
-Target name and a placeholder, never a value. The code decides two more endings: a step
-or time limit (24 turns, 300 s) and a stuck detector (the same screen three times, or
-three turns without a usable action). The model only proposes, so a prompt injection on
-the page can waste a Discovery Run and nothing more (§6).
+- **The shape is record-and-replay**, after AgentRR<sup>[2]</sup> and
+  PreAct<sup>[1]</sup>: an LLM-driven Discovery module that captures a trace, a
+  deterministic Recorder that turns the trace into an Artifact, a Replay Engine that
+  executes whichever Artifact it is handed, and an Artifact Store that every Calling Agent
+  and every Tenant draws from.
+- **RBAC for the agent.** When the Contract is proposed from the goal, the narrowest
+  Role that can do it is chosen with it ([config/roles/](./config/roles/)):
+  `balance_reader` may not perform a Consequential Action at all and signs in as a
+  read-only Service Account, so it has no transfer form to click.
+- **Policy is four files, four owners.**
+  - **Baseline**, owned by the agent vendor: not a grant but the floor the product never
+    crosses for any Tenant, which a Tenant's file can narrow and never widen. For
+    example, the engine can only click, type, select and read, so no run on any Tenant
+    can download a file or run a script; no secret is ever sent to a model; discovery
+    never runs against production; no commit runs unattended without a Verification
+    Check; a run stops after 60 actions; and a route with `wire`, `transfer` or
+    `payment` in it is refused, because this version of the product does not move money.
+  - **Role**, written by a Reviewer (agent vendor) once per app, before any discovery:
+    the pages, actions, secrets and Service Account one job needs. For example,
+    `balance_reader` may type, click and read on `/login`, `/search` and `/members/*`,
+    signed in as `svc_read`; a click that lands on `/admin` is refused at that action,
+    whatever any Tenant says.
+  - **Tenant Policy**, owned by the institution, the access authority: which Roles it
+    grants, its origins and which of them is the test copy, and any further narrowing of
+    pages. For example, `bank_b` grants `balance_reader` but not `account_opener`, so
+    opening a sub-account there is Refused before a browser opens; and a Tenant may cut
+    `/members/notes` from a Role's pages for its own instance, but cannot add `/admin`
+    to it, because a Tenant file can only narrow.
+  - **Needs**, derived from the Discovery Run: a declaration from discovery, "these are
+    what I need to finish this capability", checked against the Tenant's grant before
+    each replay, so a capability that cannot run here is Refused with nothing touched.
+    It must fit inside its Role. For example, `read_savings_balance` was seen to use the
+    login, search and member pages, three actions and the two login secrets, all inside
+    `balance_reader`.
+- **Review Gate.** The Reviewer is presented with the drafted Artifact and has two
+  responsibilities: declare each click Safe or Consequential, and add the Watchers the
+  capability needs.
+  - *Risk.* Every click arrives Consequential; typing, selecting and reading arrive
+    Safe. The Reviewer marks the clicks that only navigate as Safe and leaves the one
+    that commits Consequential. That label decides how the capability may run: a
+    Consequential click needs an Operator in the loop, who approves it on the live
+    session before the engine performs it, so the capability only runs attended, and an
+    unattended request is Refused before a browser opens. The engine never retries a
+    Consequential click.
+  - *Watchers.* A Watcher is two things decided ahead of time: what a screen means (its
+    trigger) and what to do about it (its Condition and reaction). For this app we formed
+    them by deliberately running each edge case against the non-production copy, one
+    member number per condition, and recording what came back: a Business Outcome, so
+    "No records found" returns `MEMBER_NOT_FOUND` rather than a failure; a Recoverable,
+    for a screen the system clears itself; an Escalate, for one only a person can. The
+    Reviewer then adds the relevant ones to the capability, either borrowing a Watcher
+    another approved capability on the same app already has, or writing a new one from a
+    run's evidence. The product would work the same way: when a vendor app is onboarded,
+    a Reviewer runs its known edge cases once against the Tenant's test copy, and the
+    Watchers that result live in the App Profile, where every capability on that app
+    inherits them (Figure 3.3).
+- **Verify Replay before finalizing.** After the Reviewer's decisions, a Verify
+  Replay runs the candidate with no model on a member discovery never saw; only a pass is
+  saved, as a new version.
+- **Human-in-the-loop in discovery: at two gates, never mid-run.** Before the run, the
+  Reviewer approves the Contract the model proposes: the capability id, its Role, the
+  typed inputs and outputs, and the outcome codes. After the run, the Reviewer walks the
+  draft, makes the decisions above, and the Verify Replay follows. During the run nobody
+  steers: the model proposes, code checks Policy and acts, and a run that is stuck ends,
+  by `ask_human`, `give_up` or the stuck detector, with its evidence for the Reviewer,
+  who fixes the goal or the Contract and runs again. The live handoff to a person exists
+  on the replay path only (§5).
+- **How each runtime condition is recognised and handled** is §3.
 
-**Why a fake bank.** A public demo site has terms, someone else's data, and no way to
-stage a session expiry on demand. The stand-in ([fake_bank/](./fake_bank/)) is hostile on
-purpose: server-rendered with full reloads, nested tables, no ids or test ids, control
-names generated per session, an icon button with no label, the balances inside an
-iframe, and two skins that play two Tenants on one product. The member number given at
-replay picks the runtime condition, so every row of Figure 3.2 reproduces with one
-command. The 190 tests start that app and run against it.
+**Left out.** A failed Verify Replay goes back to the Reviewer, not to the model.
+PreAct<sup>[1]</sup> routes the other way: replay "hands control back to the agent the
+moment something is off", and the agent explores afresh when no program fits, so the
+program repairs itself and the error handling it lacked is added. Instead of autonomous
+error handling, we built a review loop: a failed verify returns the candidate, the
+problems and the replay's trail to the Reviewer, who adds a Watcher, marks a click Safe
+or changes a Target and verifies again. The bounded form the brief calls "assisted
+fallback" is the next step we would consider: on a failed verify in non-production only,
+one policy-checked model turn proposes a Watcher or a Target, recorded as a proposal in
+the trail, and the Reviewer still approves before anything is saved.
 
 ## 2. Artifact schema
 
@@ -295,9 +340,10 @@ configuration or the Tenant's own system.
 
 ![defence in depth, read outside in](./docs/figures/defence_in_depth.svg)
 
-1. **Environment.** No model near production (ADR 0003): the Tenant Policy's
-   `environment` tag is refused before a browser opens, and an import-graph test proves
-   replay imports no model SDK.
+1. **Environment.** No model near production (ADR 0003): a copy the Tenant tags
+   `production` is refused before a browser opens, and an import-graph test proves
+   replay imports no model SDK. That a non-production copy holds only synthetic Members
+   is the Tenant's promise, carried by its tag; nothing inspects the data.
 2. **Execution integrity.** An Artifact is data and the engine its only interpreter
    (ADR 0001): four Actions, four Predicates, anything else rejected at parse; an Overlay
    that touches behaviour refused; an Unknown State stops, never a guess.
@@ -374,7 +420,7 @@ now takes the same origin masking as the cells, and
 
 ## 7. Cuts
 
-**Cut deliberately**: the operator console is a mock over the run directory; no catalog API
+**Cut deliberately**: money movement, refused at the Baseline by route, with the `funds_mover` Role kept in the roles file as the shape of that future feature; the operator console is a mock over the run directory; no catalog API
 beyond `--list`; one vendor app and one surface, so §4 is an argument; **no LLM fallback on
 replay**, by design; the picture rung is a stub; no drift dashboard or identity system;
 versioning is one-deep, so re-approving replaces the live capability, and the Store's
@@ -384,7 +430,7 @@ versioning is one-deep, so re-approving replaces the live capability, and the St
 so no model was compared against another; the model's success rate was not tracked, so
 there is no count of how often a Discovery Run reaches an Artifact that passes the Verify
 Replay; and the Discovery Run loop in [`cua/discovery/run.py`](./cua/discovery/run.py) is
-tested only with a scripted model ([tests/test_discovery.py](./tests/test_discovery.py)),
+tested only with a scripted model ([tests/app/test_discovery.py](./tests/app/test_discovery.py)),
 so the prompt and the real model's behaviour are covered by the three recorded runs alone.
 
 **Next, in order**: (0) ask the Verification Check *before* a commit and skip it when the

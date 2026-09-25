@@ -20,7 +20,7 @@ GREY, GREY_BG = "#7a7a7a", "#f2f1ee"
 SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
 
-W, H = 1240, 520
+W, H = 1300, 520
 out = []
 add = out.append
 
@@ -104,26 +104,36 @@ class Person:
     left = Box.left; right = Box.right; top = Box.top; bottom = Box.bottom
 
 # ── discovery lane: happens once ────────────────────────────────────────────
-text(34, 42, "NON-PRODUCTION: RECORD (LLM)", size=12, weight="700", fill=MUTED)
-goal = Box(30, 74, 130, 78, "Goal + Contract", fg=GREY, bg=GREY_BG)
-disc = Box(250, 74, 150, 78, "Discovery Run", fg=AMBER, bg=AMBER_BG)
-rec = Box(455, 74, 110, 78, "Recorder", fg=BLUE, bg=BLUE_BG)
-gate = Person(645, 74, "Review Gate", color=RED, w=70)
-verify = Box(745, 74, 130, 78, "Verify Replay", fg=BLUE, bg=BLUE_BG)
-store = Box(945, 74, 150, 78, "Artifact Store", fg=AMBER, bg=AMBER_BG)
+text(34, 42, "NON-PRODUCTION SERVER + SYNTHETIC DATABASE (LLM)", size=12, weight="700", fill=MUTED)
+goal = Box(30, 74, 120, 78, "Goal + Contract", fg=GREY, bg=GREY_BG)
+cgate = Person(215, 74, "Contract Gate", color=RED, w=70)
+disc = Box(300, 74, 150, 78, "Discovery Run", fg=AMBER, bg=AMBER_BG)
+rec = Box(505, 74, 110, 78, "Recorder", fg=BLUE, bg=BLUE_BG)
+gate = Person(700, 74, "Review Gate", color=RED, w=70)
+verify = Box(800, 74, 130, 78, "Verify Replay", fg=BLUE, bg=BLUE_BG)
+store = Box(1000, 74, 150, 78, "Artifact Store", fg=AMBER, bg=AMBER_BG)
 
-edge(goal.right, disc.left)
+edge(goal.right, cgate.left)
+edge(cgate.right, disc.left)
+elabel(275, 84, ["Role", "(RBAC)"])
 edge(disc.right, rec.left)
-elabel(427, 96, ["trace"])
+elabel(477, 96, ["trace"])
 edge(rec.right, gate.left)
-elabel(587, 96, ["draft"])
+elabel(640, 84, ["Artifact", "draft"])
 edge(gate.right, verify.left)
-elabel(712, 96, ["candidate"])
+elabel(767, 84, ["Artifact", "candidate"])
 edge(verify.right, store.left)
-elabel(910, 96, ["passed"])
+elabel(965, 96, ["passed"])
+# a fail goes back to the Reviewer, with the replay's trail; nothing enters the store
+vx, vy = verify.bottom
+gx, gy = gate.bottom
+add(f'<path d="M {vx} {vy + 5} L {vx} 190 L {gx} 190 L {gx} {gy + 6}" stroke="{RED}" '
+    f'stroke-width="1.4" fill="none" marker-end="url(#h{RED[1:]})"/>')
+elabel((vx + gx) / 2, 206, ["failed: back to the Reviewer, with the trail"], color=RED, size=12)
 
 # ── replay lane: happens every time ─────────────────────────────────────────
-text(34, 322, "PRODUCTION: REPLAY (DETERMINISTIC)", size=12, weight="700", fill=MUTED)
+text(34, 308, "PRODUCTION SERVER + REAL DATABASE", size=12, weight="700", fill=MUTED)
+text(34, 324, "(DETERMINISTIC)", size=12, weight="700", fill=MUTED)
 caller = Box(30, 352, 130, 78, "Calling Agent", fg=GREY, bg=GREY_BG)
 engine = Box(250, 346, 236, 90, "Replay Engine", fg=BLUE, bg=BLUE_BG)
 operator = Person(660, 352, "Operator", color=GREEN, w=70)
