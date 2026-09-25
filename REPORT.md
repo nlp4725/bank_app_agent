@@ -7,25 +7,16 @@
 **Figure 1.1 — One capability's path.**
 
 **The shape is record-and-replay**, after PreAct from Li et al.<sup>[1]</sup> and
-AgentRR from Feng et al.<sup>[2]</sup>.
-
-**RBAC for the agent, as four Policy files with four owners.** When the Contract is
-proposed from the goal, the narrowest Role that can do it is chosen with it. The **Baseline**, owned by the agent vendor, is
-not a grant but the floor the product never crosses for any Tenant; a Tenant's file can
-narrow it and never widen it. A **Role**, written by a Reviewer (agent vendor) once per
-app, before any discovery, is the pages, actions, secrets and Service Account one job
-needs. The **Tenant Policy**, owned by the institution, is which Roles it grants, its
-origins and which of them is the test copy. **Needs**, derived from the Discovery Run,
-is what the capability needs to finish, checked against the Tenant's grant before each
-replay, so a capability that cannot run here is Refused with nothing touched.
-
-**Review Gate.** The Reviewer is presented with the drafted Artifact and has two
-responsibilities: declare each click Safe or Consequential/risky (a click is risky by
-default), and add the error handling (from a prebuilt list) the capability needs.
-
-**Verify Replay before finalizing.** After the Reviewer's decisions, a Verify Replay
-runs the candidate with no model on a member discovery never saw; only a pass is saved,
-as a new version.
+AgentRR from Feng et al.<sup>[2]</sup>: an LLM-driven Discovery module that captures a
+trace, a deterministic Recorder that turns the trace into an Artifact, a Replay Engine
+that executes whichever Artifact it is handed, and an Artifact Store that every Calling
+Agent and every Tenant draws from. Two gates stand between the draft and the store. The
+**Review Gate**, which the brief asks for, presents the Reviewer with the drafted
+Artifact and two responsibilities: declare each click Safe or Consequential/risky (a
+click is risky by default), and add the error handling (from a prebuilt list) the
+capability needs. The **Verify Replay**, adapted from PreAct<sup>[1]</sup>, then runs
+the candidate with no model on a member discovery never saw; only a pass is saved, as a
+new version.
 
 ## 2. Artifact schema
 
@@ -80,6 +71,16 @@ supplement Figures S4 and S5).
 
 ## 4. Heterogeneity & multi-tenant
 
+**The seam.** The Replay Engine never touches a browser. It speaks to one Protocol,
+`ActingSurface`, of a dozen methods: resolve a Target, click, type, select, read,
+screenshot, current URL. Playwright implements it today; a desktop accessibility API or
+OCR over a screenshot would implement the same dozen, and the Artifact would not change,
+because a Target is not a selector. It is a role and a name, or a named caption and a
+relation, "right of", scored over bounding boxes, which every surface has. Two parts of
+the schema are web-shaped and would need a desktop reading: `url_matches` and `frame`.
+The `picture` rung is in the schema for a surface with neither a tree nor text; it is
+not implemented.
+
 **Layout drift.** We use the accessibility tree. A button is found by its name. If a
 control has no name, like a box, it is found by a nearby named object, "Member number",
 then a relative location, "right of", so a layout drift does not lose it.
@@ -87,6 +88,13 @@ then a relative location, "right of", so a layout drift does not lose it.
 **Name change between tenants.** If a name changes between institutions, we patch it in
 an overlay file that says: in institution A, look for "Find member by #" instead of
 "Member number".
+
+**What an Overlay may not do.** One approved Artifact per vendor product; a Tenant
+Overlay per institution patches Targets only: origin, labels, where a control sits. An
+Overlay that touches transitions, contract or needs is refused, so a cosmetic file cannot
+alter a reviewed flow. Demonstrated end to end: the same Artifact succeeds on First
+Credit Union, fails on Lakeside with no Overlay, succeeds with a 20-line one, and a
+behaviour-changing Overlay is refused.
 
 ## 5. Escalation & handoff
 
@@ -109,11 +117,16 @@ and continues from there. Recorded: who acted, the decision, and whether the URL
 
 ## 6. Safety
 
-**What the LLM can access during discovery.** (1) **non-production only**, a separate server with no real data;
-(2) **a least-privilege Role, chosen from the goal** (§1), which fixes the pages, action
-types, secrets and Service Account the model may use, whatever the goal says; (3)
-**network and per-tenant limits, per Policy**, checked on every action the model
-proposes, and the browser itself aborts any request to an origin outside the allowlist.
+**What the LLM can access during discovery.** (1) **Synthetic data only**: a separate
+server with no real data, so the outermost layer is the environment. (2) **The
+Baseline**, owned by the agent vendor: the four action types the engine implements, the
+denied route keywords, and the hard rules, the floor no Tenant can lower. (3) **The
+Tenant Policy**, owned by the institution: which origins exist, which Roles it grants
+and on which Service Account, and any narrowing of the Role's pages. (4) **RBAC**: a
+least-privilege Role was chosen when the Contract was proposed, which limits what the
+agent can access, whatever the goal says. Under all four, the browser itself aborts any
+request to an origin the Tenant Policy does not declare, so a page the model was never
+shown cannot be fetched either.
 
 **What the LLM can see.** Every observation passes through redaction before it reaches
 the model, as text and again as pixels: (1) **a secret is never read at all**: a password
@@ -125,7 +138,7 @@ pattern net** catches what comes through: SSN, card, email, phone, date, currenc
 **the screenshot is redacted too**: undeclared value cells, Sensitive Regions and declared
 text patterns are painted black at capture.
 
-**At replay there is no LLM**, so the gate is on the Artifact instead. Its Needs (§1)
+**At replay there is no LLM**, so the gate is on the Artifact instead. Its Needs
 are checked against Policy before a browser opens and again before every action. Every click was unsafe until the Reviewer declared
 it Safe, and a Consequential/risky one never runs without an Operator present. The
 engine implements only "click", "type", "select" and "read", and the Baseline
@@ -144,17 +157,15 @@ worst case is a wasted discovery run, never a production one.
 Baseline; the `funds_mover` Role is kept only as the shape of that future feature. (2)
 **Automatic error handling from production.** A production error does not route itself
 back to the non-production LLM to record its own handling, as PreAct<sup>[1]</sup>
-suggests; Watchers are derived at discovery and tested by an engineer instead. (3) **UI
-drift.** No intensive drift test: the second skin exercises a rename and a move, nothing
-beyond that. (4) **Model comparison and optimisation.** Only one model ran discovery
+suggests; Watchers are derived at discovery and tested by an engineer instead. (3)
+**Model comparison and optimisation.** Only one model ran discovery
 (`DISCOVERY_MODEL`, default `claude-opus-5`); no success rate was tracked.
 
 **Next, in order.** (1) **Production errors route back automatically** to the
 non-production LLM agent, which records the handling as a proposed Watcher for a Reviewer
 to approve; (2) **a money-handling protocol**: the `funds_mover` Role, a Verification
 Check asked *before* every commit so a rewind can never pay twice, and a caller-supplied
-idempotency key; (3) **test more drift**: replay across more skins and versions, and read
-the Fallback Match rate so a tenant's drift is seen before it breaks.
+idempotency key.
 
 ## References
 
