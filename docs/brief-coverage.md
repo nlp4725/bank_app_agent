@@ -5,6 +5,13 @@ Every question or requirement in the assignment brief
 with where REPORT.md answers it and how well. Checked 24 Sep 2026 against the uncommitted
 REPORT.md.
 
+**Status, later on 24 Sep 2026.** Items 1 to 6 of the list at the bottom were applied to
+REPORT.md, and Figure 6.1's table moved to the supplement as Figure S3. Every **No** and
+**Partial** below is now answered in the report; the verdicts are kept as the record of
+what was missing. What remains: length. The report is about 4,000 words with six figures
+and two tables, over the brief's three pages, kept knowingly because every cut left would
+remove an answer the brief asks for by name.
+
 Verdicts: **Yes** = answered and easy to find · **Partial** = answered in the repo but the
 report only hints at it, or leaves out a piece the brief names · **No** = not in the report.
 
@@ -263,15 +270,18 @@ one line in §1 or §7.
 
 ---
 
-## What to change, in order
+## What was changed, in order (applied)
 
-1. **Fix the two things that are wrong.** "Nine verbs" is thirteen methods. §5 implies a
-   handoff during discovery; there is none, the run ends.
-2. **Add the missing defences the brief asks for by name** (§4 of the brief): stack, model
-   and loop shape, target app, process boundary. One paragraph in §1.
-3. **State what `Failed` carries** (step, expected, observed, evidence id) in §3.
-4. **Restore the wait strategy and the web-shaped-schema note** that the rewrite dropped.
-5. **Say the attended-mode rule** for Consequential clicks in §6, and say plainly that
-   human clicks are not captured in §5.
-6. **List the six discovery endings** in §1.
-7. **Cut toward three pages.** Figure 6.1 to the supplement is the largest single saving.
+1. "Nine verbs" is now "one Protocol of thirteen methods", with the web-shaped note back.
+   §5 says the handoff exists on the replay path only and a stuck Discovery Run ends.
+2. §1 gained three paragraphs: the stack and process boundary, the loop (what the model
+   receives, the eight tools, the six endings, the limits), and why a hostile local app.
+3. §3's Run Result bullet says what `Failed` carries.
+4. Figure 3.1's caption lists what determinism is and how waiting works; §3 ends with a
+   pointer to drift in §4.
+5. §6 layer 6 states the attended rule; §5 says plainly that clicks are not captured.
+6. §7 no longer says the loop is untested (it is, with a scripted model), and names the
+   discovery-path handoff and a value-hiding click recorder as next step 5.
+7. Figure 6.1's table is Figure S3 of the supplement; an eight-line list stays. The
+   "Limits" paragraph also admits the run-01 page-text leak that evidence/README.md
+   records.
