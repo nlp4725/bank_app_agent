@@ -1,4 +1,14 @@
-"""The demo app is the fixture: started once, reset before each test."""
+"""The demo app is the fixture: started once, on first use, reset before each test.
+
+Two tiers, as directories:
+
+    pytest tests/unit          no browser, no model: seconds, nothing listening
+    pytest tests/app           against the demo app, which this file starts and stops
+    pytest -m "not app"        the same split, for anyone who prefers markers
+
+A test under tests/app/ is marked `app` at collection; a test under tests/unit/ that
+asks for the app fails a boundary test.
+"""
 
 import os
 import socket
@@ -101,3 +111,13 @@ def artifact():
     apart the moment the App Profile moved.
     """
     return merged(Artifact.model_validate(artifact_dict()), load_profile(VENDOR_APP))
+
+
+def pytest_configure(config):
+    config.addinivalue_line("markers", "app: drives the demo app (everything under tests/app/)")
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if "tests/app/" in str(item.fspath).replace("\\", "/"):
+            item.add_marker(pytest.mark.app)

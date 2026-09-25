@@ -228,3 +228,23 @@ def test_discovery_acts_through_the_recording_interface_not_on_a_locator():
     used = _attributes_used_on(under("discovery"), "surface")
     assert "act_on" in used
     assert not ({"click", "type", "select", "read", "page"} & used), used
+
+
+# ── the test tiers ────────────────────────────────────────────────────────────
+
+TESTS = CUA.parent / "tests"
+APP_FIXTURES = {"bank_app", "bank2_app", "approved"}
+
+
+def test_nothing_under_unit_asks_for_the_demo_app():
+    """`pytest tests/unit` runs in seconds with nothing listening, because conftest
+    starts the demo app on first use and nothing here uses it. A test that needs the
+    app belongs in tests/app/."""
+    offenders = []
+    for path in sorted((TESTS / "unit").glob("test_*.py")):
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.FunctionDef) and node.name.startswith("test_"):
+                asked = {a.arg for a in node.args.args} & APP_FIXTURES
+                if asked:
+                    offenders.append(f"{path.name}::{node.name} asks for {sorted(asked)}")
+    assert not offenders, "\n".join(offenders)

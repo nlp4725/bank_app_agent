@@ -93,3 +93,25 @@ the last one runs everything.
 | 2 | move | imports, relative paths to `evidence/` | full run; `pytest tests/unit` starts no app |
 | 3 | split | a test losing a helper or a constant | the touched files, then a full run after the last split |
 | 4 | tooling | nothing at run time | `pytest tests/unit`, `pytest -m "not app"`, both without the app |
+
+## 5. Status (2026-09-24)
+
+Done, one commit per step, each after a green run (full runs at steps 1, 2 and the end
+of 3; the touched files for each split).
+
+| step | commits | result |
+|---|---|---|
+| 1 | `85ded19` | `tests/support/`: the Artifact and the three doubles |
+| 2 | `5e57858` | `unit/` and `app/`, whole files |
+| 3 | `709c1f2` `01d2b74` `5b72df4` `b08a9e9` `3129e09` | safety, pii, bugs, handoff, store split; `test_bugs.py` retired |
+| 4 | (this commit) | the tier guard in `unit/test_boundaries.py`; the `app` marker from `conftest.py` |
+
+| command | tests | time | demo app |
+|---|---|---|---|
+| `pytest tests/unit` | 157 | under 2 s | never started |
+| `pytest -m "not app"` | 157 | under 2 s | never started |
+| `pytest tests/app` | 49 | about 5 min | started once, on first use |
+| `pytest` | 206 | about 5 min 20 s | started once |
+
+The marker is registered from `conftest.py` rather than `pyproject.toml` because another
+session held uncommitted changes to that file at the time.
