@@ -192,8 +192,8 @@ when nobody is on shift, and an input that fails its Contract:
 
 ```bash
 python - <<'PY'
-from cua.engine import RunContext, replay
-from cua.store import load_capability, origin_for
+from cua.replay.engine import RunContext, replay
+from cua.governance.store import load_capability, origin_for
 
 art = load_capability("member.open_sub_account")
 here = origin_for("bank_a", "demo-core-servicing")
@@ -562,19 +562,161 @@ evidence into a new Watcher, which is a new Artifact version.*
 
 ---
 
-## Where things live
+## Code organization
+
+Three top-level packages, one direction of dependency. `cua/` is the system and is a
+library: nothing in it imports from `tools/`, and nothing in it knows about the demo app.
+`tools/` are entry points that wire `cua/` together, one package per stage of a
+capability's life. `fake_bank/` is the target. Everything else is data the code reads or
+writes. Every boundary named below is asserted by
+[`tests/unit/test_boundaries.py`](./tests/unit/test_boundaries.py), which walks the import
+graph, so a file that moves cannot slip out from under a rule.
+
+```
+cua/                       the system (a library; imports nothing from tools/)
+├── domain/                pure: the Artifact schema, the result shape, the rules. No I/O.
+├── governance/            what a Reviewer, a Role author or a Tenant owns, read from config/
+├── evidence/              the trail: one Redactor in front of one writer, and a reader
+├── surface/               the browser — the only package that imports Playwright
+├── replay/                production: execute an approved Artifact, no model in the loop
+├── authoring/             draft → approved, with no browser and no model
+├── discovery/             the one package where a model is in the loop
+├── settings.py            where the data lives (CUA_ROOT) and which secrets provider (CUA_SECRETS)
+└── secrets.py             secrets by reference, resolved at the keystroke, never stored
+tools/                     command-line entry points, one package per stage
+fake_bank/                 the deliberately hostile demo app (Flask), one scenario per member number
+tests/                     unit/ (no browser, no model) and app/ (against the demo app); both mirror cua/
+config/ contracts/ artifacts/ overlays/ evidence/ runs/ docs/     data, not code
+```
+
+The dependency direction, bottom up. Each package imports only from those listed after the
+arrow, and `domain` imports from nothing else in `cua`:
+
+```
+domain  ←  evidence, surface, governance  ←  replay  ←  authoring  ←  discovery
+```
+
+`replay` cannot reach `discovery`, and no file on the replay path imports a model SDK. The
+only file that does is `cua/discovery/model.py`. Discovery never imports `replay` either:
+the verify-replay that approval requires is passed in by the tool that calls it.
+
+### `cua/` — the system
+
+**`domain/`** — models and rules only. A test asserts it opens no file, browser, model or
+clock, and imports nothing from the rest of `cua`.
+
+| Module | What it does |
+|---|---|
+| `artifact.py` | The Artifact schema: a closed vocabulary of four actions, four predicates and three target rungs, so an Artifact cannot name an action the engine has no function for (ADR 0001). `merged()` folds an App Profile into an Artifact. |
+| `result.py` | `RunResult`: one shape, six statuses (`succeeded`, `business_outcome`, `failed`, `refused`, `aborted`, `outcome_unknown`). |
+| `rules.py` | Rules more than one package asks: does a page list cover a route, what is the route of a URL under an origin, do these inputs satisfy their Contract. |
+| `placeholders.py` | The one regex for `{{name}}`, shared by the engine (render) and the lint (check) so they cannot disagree. |
+| `issue.py` · `errors.py` | A lint finding with a code and a place; `CuaError`, the base of every error raised on purpose. |
+
+**`governance/`** — the only modules that read YAML. What a Reviewer, a Role author or a
+Tenant owns, read from `config/`, `artifacts/` and `overlays/`.
+
+| Module | What it does |
+|---|---|
+| `policy.py` | Permissions as an intersection, Baseline ∩ Role ∩ Tenant grant ∩ Needs (ADR 0005). `policy_for()` answers "may this Artifact run at this Tenant", and the engine asks `Policy` before every action. |
+| `roles.py` | Roles per vendor app, written before any discovery: pages, actions, secrets, whether it may commit, which Service Account. |
+| `profile.py` | The App Profile: Watchers, Readable and Sensitive Regions shared by every capability on one app. `redactor_for()` builds the Redactor from it. |
+| `store.py` | The Capability Store, the one answer to "which Artifact is live": the highest **approved** version of a capability id, with its App Profile merged and the Tenant's origin and Overlay resolved. |
+| `overlay.py` | Tenant Overlays: may change how things look (origin, labels, where a control sits) and are refused if they touch transitions, the Contract or Needs. |
+| `files.py` | The one YAML reader, cached by path. |
+
+**`evidence/`** — every log line, screenshot and result leaves through here.
+
+| Module | What it does |
+|---|---|
+| `redact.py` | The Redaction Chokepoint: structural (passwords never read), origin (values outside a Readable Region are `(hidden)`), pattern (SSN, card, email, phone, date, currency), and pixels (regions painted black at capture). Serves the model and the trail alike. |
+| `writer.py` | `EvidenceWriter`: the trail as append-only masked JSONL, screenshots, and a write-ahead line before and after each Consequential Action. |
+| `recovery.py` | Reads a trail back to find a run that died with a Consequential Action in flight. |
+
+**`surface/`** — the only package that touches the browser. Everything above it works in
+Targets, Predicates and Actions; everything below is Playwright.
+
+| Module | What it does |
+|---|---|
+| `driver.py` | Launches a hardened browser (downloads off, popups closed, every request gated to the Tenant's origins), and exposes two interfaces over one driver: `Surface` acts and observes (what replay needs) and `RecordingSurface` enumerates and describes (what discovery needs). |
+| `locate.py` | The rung ladder: `role_name` asks the accessibility tree, `label_anchor` finds the caption and the nearest control by geometry, `picture` falls through. Records which rung won. See [docs/targeting.md](./docs/targeting.md). |
+| `screen.py` | Record-time enumeration for discovery: every control a person could act on, every label/value pair, and the durable description of what was acted on. Also the target crop. |
+| `recording.py` | The record-time interface. It cannot resolve or act on a Target; a boundary test says so. |
+
+**`replay/`** — the production path. `replay()` is the front door.
+
+| Module | What it does |
+|---|---|
+| `engine.py` | The Replay Engine and the `Run`: per Transition, checkpoint → resolve → policy → act → checkpoint; Watchers on a miss; bounded recovery; escalation; the Verification Check after a Consequential Action. Every guarantee in [REPORT.md](./REPORT.md) is enforced here. |
+| `predicates.py` | The four Predicates plus `all`/`any`: rendering placeholders, Target lookup, evaluation against a Surface. Adding a Predicate means editing `artifact.py` and one case here. |
+| `handoff.py` | Control transfer as a lease: one holder of the live session at a time (`automation → awaiting_operator → operator_in_control → resuming`). Writes the intervention file and waits for the decision. |
+| `context.py` | `RunContext` and the four Protocols the engine is given: `ActingSurface`, `SecretsProvider`, `Operator`, `Narrator`. The seams a scripted stand-in implements. |
+| `narration.py` | How a run looks to a person watching it: `Console` when somebody is, `Silent` in tests and production. |
+
+**`authoring/`** — draft → approved, deterministic, no browser and no model. Nothing here
+decides anything a person did not.
+
+| Module | What it does |
+|---|---|
+| `recorder.py` | Compiles a finished Discovery Run into a draft Artifact: one State and one Checkpoint per step, example values replaced by placeholders. Where it must guess it attaches a suggestion for the Reviewer. |
+| `lint.py` | What a well-formed Artifact must also satisfy: no discovery literal frozen into a checkpoint, no placeholder nothing fills, no Outcome Code without a Watcher that can produce it. |
+| `review.py` | Applies a decisions file mechanically, then approves only if the result lints clean and a verify-replay on inputs discovery never saw succeeds. |
+
+**`discovery/`** — the one package where a model is in the loop. Runs only against a
+non-production environment (ADR 0003).
+
+| Module | What it does |
+|---|---|
+| `model.py` | The one adapter over the model SDK. Two questions are ever asked, "what next?" and "what should this capability look like?", and both come back as plain data, so a scripted stand-in is a class with one method. |
+| `propose.py` | Before any run: a Contract and the narrowest Role proposed from a goal in words, for a Reviewer to confirm (ADR 0004). |
+| `request.py` | `DiscoveryRequest` and `DiscoveryResult`, and how a Contract file plus this run's values becomes one. |
+| `run.py` | The loop: observe → one proposed action → policy check → act → record, until one of six endings (`goal_reached`, `report_outcome`, `ask_human`, `give_up`, step limit, stuck). Hands a successful run to the Recorder. |
+
+**Cross-cutting.** `settings.py` names the few environment switches once (`CUA_ROOT`,
+`CUA_SECRETS`); loaders read it at call time. `secrets.py` resolves `secret:<name>`
+references at the moment of typing, from `SECRET_<ACCOUNT>_<NAME>` variables or, beside the
+demo app only, the demo accounts.
+
+### `tools/` — entry points, one package per stage
+
+| Package | Command | What it does |
+|---|---|---|
+| `start.py` | `python -m tools.start` | The front door: a goal typed in words, both reviews, one sitting. |
+| `discovery/` | `python -m tools.discovery` | `contract.py` is the first review (the Contract shown and confirmed before any run); `cli.py` builds the same request from flags; `smoke_llm.py` proves the key and image path with one turn. |
+| `authoring/` | `python -m tools.authoring.record` · `.approve` | The second review. `walkthrough.py` shows the draft one step at a time, `interview.py` asks what the Recorder could not decide and writes the decisions file, `review.py` applies, verify-replays and saves; `record.py` and `approve.py` are the scripted stages. |
+| `replay/` | `python -m tools.replay` | `run.py` is one replay narrated to the console; `cli.py` the flags and the `--list` catalog; `make_evidence.py` regenerates `evidence/03…07`. |
+| `operator/` | `python -m tools.operator` · `.web` | The Operator's side of a handoff: show the open intervention, approve, resume or abort, as a terminal or as a page on :5010. |
+| `demos/` | `python -m tools.demos.b1` · `.b2` | The unlabelled icon found by its caption; one Artifact at two institutions, with and without its Overlay. |
+| `inspect/` | `python -m tools.inspect.show_run` · `.a11y_dump` | Read a saved run as a story; print the accessibility view of a page as the model would see it. |
+| `_cli.py` | | What the tools share and the package does not need: the `.env` key, printing a result, resetting the demo app. |
+
+### `fake_bank/` — the target
+
+`app.py` is the Flask console: login, search, member page with the balances panel in an
+iframe, the sub-account flow, the supervisor screen, and `GET /reset`. `data.py` is the
+in-memory store where each member number selects a scenario. `templates/` holds one screen
+per Condition the taxonomy names. `SKIN=bank2` is the same product branded as a second
+institution.
+
+### `tests/` — two tiers, mirroring the package
+
+`tests/unit/` runs with no browser and no model, in seconds. `tests/app/` runs against the
+demo app, which `conftest.py` starts on :5099 and :5100 and resets before every test. Both
+mirror `cua/`: the tests of `cua/<package>/<module>.py` are
+`tests/<tier>/<package>/test_<module>.py`, and a boundary test enforces the naming.
+`tests/support/` holds the hand-written Artifact and the doubles (a scripted Surface, a
+scripted model, a scripted person at the prompt).
+
+### Data, not code
 
 | Path | What |
 |---|---|
-| `cua/replay/engine.py` | the Replay Engine and the `Run` module — the interpreter, and every guarantee |
-| `cua/artifact.py` | the Artifact schema: the closed vocabulary an Artifact may name |
-| `cua/replay/predicates.py` | the four Predicates, their rendering and evaluation |
-| `cua/surface.py` | the only module that touches a browser |
-| `cua/discovery/run.py` | the only module that touches a model |
-| `cua/authoring/recorder.py` · `cua/authoring/review.py` | run → draft Artifact → approved Artifact |
-| `cua/policy.py` · `cua/roles.py` · `cua/profile.py` · `cua/store.py` | permissions, and which Artifact is live |
-| `cua/redact.py` | the Redaction Chokepoint — every channel passes through it |
-| `config/` | the Baseline, the Roles, each Tenant's Policy, each app's Profile |
-| `contracts/` | one Discovery Request per capability: goal, Role, Contract, example values |
-| `artifacts/` | the draft, the Reviewer's decisions, and the approved capability |
-| `evidence/` | seven committed runs, with a guide |
+| `config/baseline.yaml` | The provider-wide floor: allowed actions, denied route keywords, hard rules. |
+| `config/roles/<app>.yaml` · `config/profiles/<app>.yaml` | Per vendor app: the Roles, and the App Profile (shared Watchers, Readable and Sensitive Regions). |
+| `config/policies/<tenant>.<app>.yaml` | Per institution: origin, environment, which Roles it grants and on which Service Account. |
+| `overlays/<tenant>.yaml` | Appearance-only patches for a second institution running the same product. |
+| `contracts/<name>.yaml` | One Discovery Request per capability: goal, Role, Contract, example values. |
+| `artifacts/` | `<name>.draft.yaml` as recorded, `<name>.decisions.yaml` as the Reviewer answered, `<name>.1.0.0.yaml` approved, the only thing that replays. `assets/` holds crops of clicked controls. |
+| `evidence/` | Eight committed runs with a guide; the replays regenerate from the current code. |
+| `runs/<id>/` (gitignored) | Every run's masked record: `trail.jsonl`, screenshots, `actions.json`, `intervention.json`, `decision.json`. |
+| `docs/` | The error taxonomy, security model, targeting, evaluation, the ADRs, and the scripts that draw the figures. [docs/modules.md](./docs/modules.md) has every module with an in → out example. |
