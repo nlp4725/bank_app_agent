@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 
 from cua.domain.artifact import Artifact, merged
+from cua.governance.policy import policy_for
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
@@ -93,3 +94,26 @@ def test_every_policy_decision_is_recorded(artifact, bank_app, tmp_path):
     decisions = [json.loads(line) for line in
                  (Path(r.evidence_id) / "trail.jsonl").read_text().splitlines()]
     assert any(d["event"] == "policy_allow" for d in decisions)
+
+
+# ── S4: the Allowlist covers origins, not only routes ────────────────────────
+#
+# S4 of the architecture review: a Tenant declares the instances automation may reach,
+# and an undeclared one is refused before the browser opens.
+
+def test_an_undeclared_origin_is_refused_before_the_browser_opens(artifact, bank_app):
+    r = replay(artifact, {"member_number": "12345", "account_type": "savings",
+                          "nickname": "Elsewhere"},
+               RunContext(origin="http://127.0.0.1:9999", tenant="bank_a"))
+    assert r.status == "refused"
+    assert "origin" in r.reason
+    assert r.trail, "a refusal still leaves evidence"
+
+
+def test_a_declared_origin_runs(artifact, bank_app):
+    """The test harness's instance is declared in the tenant's own policy file."""
+    policy = policy_for(artifact, "bank_a")
+    assert policy.allows_origin(bank_app)
+    r = replay(artifact, {"member_number": "12345", "account_type": "savings",
+                          "nickname": "Declared"}, RunContext(origin=bank_app))
+    assert r.status == "succeeded", r
