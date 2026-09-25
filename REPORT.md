@@ -7,16 +7,20 @@
 **Figure 1.1 — One capability's path.**
 
 **The shape is record-and-replay**, after PreAct from Li et al.<sup>[1]</sup> and
-AgentRR from Feng et al.<sup>[2]</sup>: an LLM-driven Discovery module that captures a
-trace, a deterministic Recorder that turns the trace into an Artifact, a Replay Engine
-that executes whichever Artifact it is handed, and an Artifact Store that every Calling
-Agent and every Tenant draws from. Two gates stand between the draft and the store. The
-**Review Gate**, which the brief asks for, presents the Reviewer with the drafted
-Artifact and two responsibilities: declare each click Safe or Consequential/risky (a
-click is risky by default), and add the error handling (from a prebuilt list) the
-capability needs. The **Verify Replay**, adapted from PreAct<sup>[1]</sup>, then runs
-the candidate with no model on a member discovery never saw; only a pass is saved, as a
-new version.
+AgentRR from Feng et al.<sup>[2]</sup>: the LLM discovers and the engine replays. Two
+gates stand between the two. The **Review Gate**, which the brief asks for, asks a human
+to confirm each click as Safe or Consequential/risky (risky by default) and to add the
+error handling the capability needs; the **Verify Replay**, adapted from
+PreAct<sup>[1]</sup>, is a second gate, at the cost of one more run per approval.
+
+**The choices the brief leaves open.** (1) **Python**, with Playwright and a Flask
+stand-in app. (2) **One synchronous process**: a replay is a function call that returns
+a Run Result. (3) **Playwright, for the accessibility tree**: controls are found by role,
+name and geometry, not markup, at the cost of a browser-only seam (§4). (4) **Claude, one
+tool call per turn** from eight predefined tools, given the live controls, masked text
+and a redacted screenshot; the model proposes, code acts. (5) **A local legacy-style bank
+app with no clean DOM**, where the member number selects the runtime condition, so every
+error class in §3 is reproducible.
 
 ## 2. Artifact schema
 
@@ -24,9 +28,7 @@ new version.
 
 **Figure 2.1 — The core of an Artifact is a state machine, adapted from PreAct<sup>[1]</sup>.**
 *A box is a State, the amber box under it the Checkpoint that must hold on the live
-screen, an arrow a Transition holding one Action. The engine executes this graph
-directly. Below, the schema every Artifact conforms to; the block-by-block description
-is §S1 of [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md).*
+screen, an arrow a Transition holding one Action.*
 
 ```jsonc
 {
@@ -57,7 +59,10 @@ Watcher list and the first match decides: recover and continue, return a busines
 outcome, hand to a human, or stop. No match is an Unknown State: verify the effect if
 the action was a commit, hand over if a person is present, otherwise quit with a
 screenshot. Waiting is never a sleep: a Checkpoint is polled until it holds or the
-transition's `timeout_ms` runs out, and every retry has a budget.
+transition's `timeout_ms` runs out, and every retry has a budget. A Run Result is one of
+six statuses, Succeeded with outputs, Business Outcome, Failed, Refused, Aborted or
+Outcome Unknown, and a Failed one carries the step, the Checkpoint expected, what was
+observed and an evidence id.
 
 **Error handling.** There are two kinds of error. An **app-level** error is well known
 and pre-established, such as a timeout, a session expiry or a system notice; it is
@@ -78,23 +83,20 @@ OCR over a screenshot would implement the same dozen, and the Artifact would not
 because a Target is not a selector. It is a role and a name, or a named caption and a
 relation, "right of", scored over bounding boxes, which every surface has. Two parts of
 the schema are web-shaped and would need a desktop reading: `url_matches` and `frame`.
-The `picture` rung is in the schema for a surface with neither a tree nor text; it is
-not implemented.
 
-**Layout drift.** We use the accessibility tree. A button is found by its name. If a
-control has no name, like a box, it is found by a nearby named object, "Member number",
-then a relative location, "right of", so a layout drift does not lose it.
+**Layout drift.** A Target, where an action takes place, is found by a ladder of rungs, tried in order: (1) **name**,
+the accessibility tree's role and name, "button Search"; (2) **position relative to a
+known object**, "the textbox right of 'Member number'", scored over bounding boxes; (3)
+**picture**, a template match on a crop, in the schema and not implemented. Every
+transition records which rung found its Target, so a rising fallback rate for one tenant
+or vendor version is the drift signal. A shift that leaves the same rung matching, a box
+nudged right but still right of "Member number", escapes it, and is harmless.
 
-**Name change between tenants.** If a name changes between institutions, we patch it in
-an overlay file that says: in institution A, look for "Find member by #" instead of
-"Member number".
-
-**What an Overlay may not do.** One approved Artifact per vendor product; a Tenant
-Overlay per institution patches Targets only: origin, labels, where a control sits. An
-Overlay that touches transitions, contract or needs is refused, so a cosmetic file cannot
-alter a reviewed flow. Demonstrated end to end: the same Artifact succeeds on First
-Credit Union, fails on Lakeside with no Overlay, succeeds with a 20-line one, and a
-behaviour-changing Overlay is refused.
+**Multi-tenant handling.** One approved Artifact per vendor product; a Tenant Overlay per
+institution patches Targets only: origin, labels, where a control sits, so when a name
+changes between institutions the Overlay says: in institution A, look for "Find member
+by #" instead of "Member number". An Overlay that touches transitions, contract or needs
+is refused, so a cosmetic file cannot alter a reviewed flow.
 
 ## 5. Escalation & handoff
 
@@ -143,8 +145,8 @@ are checked against Policy before a browser opens and again before every action.
 it Safe, and a Consequential/risky one never runs without an Operator present. The
 engine implements only "click", "type", "select" and "read", and the Baseline
 ([config/baseline.yaml](./config/baseline.yaml)) names what was refused:
-download, upload, script execution, new tabs, and any route with `delete`, `admin`,
-`wire` or `transfer` in it.
+download, upload, script execution, new tabs, and any route whose path includes a denied
+keyword such as `delete`, `admin`, `wire` or `transfer`.
 
 **Limits.** Screenshot redaction still needs work: buttons and fields are never blacked
 out, because the model has to see what it clicks, so a value shown inside a control can
@@ -153,8 +155,8 @@ instruct the model, but the model can only propose and code checks every action,
 worst case is a wasted discovery run, never a production one.
 
 ## 7. Cuts
-(1) **Money movement.** Any route with `wire`, `transfer` or `payment` is refused at the
-Baseline; the `funds_mover` Role is kept only as the shape of that future feature. (2)
+(1) **Money movement.** Any route naming money movement, `wire`, `transfer` or `payment`
+among the Baseline's denied keywords, is refused; the `funds_mover` Role is kept only as the shape of that future feature. (2)
 **Automatic error handling from production.** A production error does not route itself
 back to the non-production LLM to record its own handling, as PreAct<sup>[1]</sup>
 suggests; Watchers are derived at discovery and tested by an engineer instead. (3)
