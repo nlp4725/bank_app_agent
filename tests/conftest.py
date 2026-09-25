@@ -12,8 +12,7 @@ import pytest
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from cua.settings import configure
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 VENDOR_APP = "demo-core-servicing"
 

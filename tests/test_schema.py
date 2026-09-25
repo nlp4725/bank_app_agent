@@ -4,8 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from cua.domain.artifact import Artifact
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 
 def test_a_well_formed_artifact_parses():

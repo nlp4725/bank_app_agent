@@ -12,8 +12,7 @@ from cua.domain.artifact import Artifact, merged
 from cua.governance.policy import Policy, load_baseline, load_tenant_policy
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 CUA = Path(__file__).resolve().parent.parent / "cua"

@@ -8,8 +8,7 @@ caller that nothing can produce.
 from cua.authoring.lint import lint
 from cua.domain.artifact import Artifact
 from cua.governance.profile import load_profile
-
-from .fixtures import artifact_dict, overlay_dict
+from tests.support.artifact import artifact_dict, overlay_dict
 
 
 def transition_to(d, target):

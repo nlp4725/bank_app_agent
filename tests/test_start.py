@@ -7,6 +7,7 @@ the shape the model must return and what the Reviewer is asked.
 import pytest
 
 from cua.discovery import ProposalError, spec_from_proposal
+from tests.support.doubles import VerifyBad, VerifyOk, scripted_answers
 from tools import start
 
 VENDOR = "demo-core-servicing"
@@ -50,11 +51,6 @@ def test_a_capability_that_returns_nothing_is_refused():
         spec_from_proposal(dict(PROPOSAL, outputs=[], outcomes=[]), VENDOR)
 
 
-def _scripted(answers):
-    answers = iter(answers)
-    return lambda prompt: next(answers)
-
-
 def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path, monkeypatch):
     monkeypatch.setattr(start, "CONTRACTS", tmp_path)
     seen = {}
@@ -67,7 +63,7 @@ def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path,
             def __str__(self): return "ok"
         return R()
 
-    code = start.run(ask=_scripted(["read the savings balance of a member", "y", "12345", "n"]),
+    code = start.run(ask=scripted_answers(["read the savings balance of a member", "y", "12345", "n"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=fake_discover)
     assert code == 0
@@ -101,7 +97,7 @@ def test_a_value_that_breaks_the_contract_is_asked_again(tmp_path, monkeypatch):
 
 def test_edit_saves_the_proposal_and_runs_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(start, "CONTRACTS", tmp_path)
-    code = start.run(goal="read a balance", ask=_scripted(["e"]),
+    code = start.run(goal="read a balance", ask=scripted_answers(["e"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=lambda r: pytest.fail("must not run"))
     assert code == 0
@@ -112,7 +108,7 @@ def test_edit_saves_the_proposal_and_runs_nothing(tmp_path, monkeypatch):
 def test_a_failed_proposal_ends_the_conversation_cleanly():
     def bad(goal, app, **kw):
         raise ProposalError("nope")
-    assert start.run(goal="x", ask=_scripted([]), propose=bad,
+    assert start.run(goal="x", ask=scripted_answers([]), propose=bad,
                      discover_fn=lambda r: pytest.fail("must not run")) == 1
 
 
@@ -140,14 +136,14 @@ def test_the_proposal_receives_the_known_outcomes(tmp_path, monkeypatch):
     got = {}
     def propose(goal, app, **kw):
         got.update(kw); return spec_from_proposal(PROPOSAL, app)
-    start.run(goal="x", ask=_scripted(["n"]), propose=propose,
+    start.run(goal="x", ask=scripted_answers(["n"]), propose=propose,
               discover_fn=lambda r: pytest.fail("must not run"))
     assert [o["code"] for o in got["known_outcomes"]] == ["NO_SAVINGS_ACCOUNT"]
 
 
 def test_not_approved_saves_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(start, "CONTRACTS", tmp_path)
-    code = start.run(goal="read a balance", ask=_scripted(["n"]),
+    code = start.run(goal="read a balance", ask=scripted_answers(["n"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=lambda r: pytest.fail("must not run"))
     assert code == 0 and list(tmp_path.glob("*.yaml")) == []
@@ -155,22 +151,13 @@ def test_not_approved_saves_nothing(tmp_path, monkeypatch):
 
 # ── the second review: the Artifact, from the shipped discovery run ────────────
 
+
 RUN = "evidence/01-discovery-goal-reached"      # the sub-account run: 2 consequential clicks + t_ok
 
 
 def _sub_account_spec():
     return start.load_request("contracts/open_sub_account.yaml") if hasattr(start, "load_request") \
         else __import__("yaml").safe_load(open("contracts/open_sub_account.yaml"))
-
-
-class _Ok:
-    status = "succeeded"
-    def __str__(self): return "succeeded"
-
-
-class _Bad:
-    status = "failed"
-    def __str__(self): return "failed · target_not_found"
 
 
 def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact(tmp_path, monkeypatch):
@@ -196,7 +183,7 @@ def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact
     verified = {}
     def fake_replay(art, inputs):
         verified["inputs"] = inputs; verified["status"] = art.capability.status
-        return _Ok()
+        return VerifyOk()
     code = start.review_artifact(spec, RUN, ask=ask, replay_fn=fake_replay)
     assert code == 0, seen
     d = yaml.safe_load((tmp_path / "open_sub_account.decisions.yaml").read_text())
@@ -228,7 +215,7 @@ def test_a_failed_verify_replay_refuses_and_keeps_the_decisions(tmp_path, monkey
         if "proves it happened" in prompt: return "{{nickname}}"
         if "second approver" in prompt: return "reviewer:sam"
         return "y" if "?" in prompt else "reviewer:nasi"
-    code = start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: _Bad())
+    code = start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyBad())
     assert code == 2
     assert (tmp_path / "open_sub_account.decisions.yaml").exists()
     assert not (tmp_path / "open_sub_account.1.0.0.yaml").exists()
@@ -259,7 +246,7 @@ def test_the_watch_step_replays_the_capability_just_approved(tmp_path, monkeypat
         if "Watch it replay" in prompt: return "y"
         return "y" if "?" in prompt else "reviewer:nasi"
     watched = {}
-    start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: _Ok(),
+    start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyOk(),
                           watch_fn=lambda cap, member, tenant: watched.update(cap=cap, member=member))
     assert watched == {"cap": "member.open_sub_account", "member": "54321"}   # the discovery member
 

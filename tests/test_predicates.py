@@ -11,39 +11,8 @@ import pytest
 from cua.domain.artifact import Artifact
 from cua.domain.placeholders import render
 from cua.replay.predicates import Predicates
-
-from .fixtures import artifact_dict
-
-
-class ScriptedSurface:
-    """A Surface that is a page description rather than a browser."""
-
-    def __init__(self, text="", url="http://app/", present=(), values=None, targets=None):
-        self._text, self.url = text, url
-        self._present = set(present)
-        self._values = values or {}
-        # The seam hands a Target, not its name: the stand-in maps back the way a
-        # driver would, by which Target object it was given.
-        self._names = {id(t): n for n, t in (targets or {}).items()}
-        self.waits = 0
-        self.went_to = []
-
-    def text(self):
-        return self._text
-
-    def wait(self, ms=150):
-        self.waits += 1
-
-    def goto(self, path):
-        self.went_to.append(path)
-        self.url = "http://app" + path
-
-    def resolve(self, target, timeout_ms=0):
-        name = self._names.get(id(target))
-        return name if name in self._present else None
-
-    def value_of(self, resolved):
-        return self._values.get(resolved, "")
+from tests.support.artifact import artifact_dict
+from tests.support.doubles import ScriptedSurface
 
 
 @pytest.fixture

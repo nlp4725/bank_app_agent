@@ -10,8 +10,7 @@ from pydantic import ValidationError
 from cua.domain.artifact import Artifact, Watcher, merged
 from cua.evidence import HIDDEN, PROTECTED, mask_value, redact_text
 from cua.governance.profile import load_profile
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 # ── by origin: what patterns cannot catch ────────────────────────────────────
 

@@ -32,7 +32,7 @@ def test_an_unknown_vendor_app_has_no_profile():
 
 
 def test_the_test_package_no_longer_holds_an_app_profile():
-    from tests import fixtures
+    from tests.support import artifact as fixtures
     assert not hasattr(fixtures, "app_profile_dict")
 
 

@@ -6,37 +6,16 @@ it never wrote down.
 """
 
 import json
-import re
 from pathlib import Path
 
-from cua.discovery import DiscoveryRequest, ToolCall, Turn, discover
+from cua.discovery import DiscoveryRequest, ToolCall, discover
 from cua.evidence import PROTECTED
+from tests.support.doubles import Scripted, control_numbered
 
 VENDOR_APP = "demo-core-servicing"
 CONTRACT = {"inputs": {}, "outputs": {},
             "outcomes": [{"code": "MEMBER_NOT_FOUND", "meaning": "No such member.",
                           "resolver": "member"}]}
-
-
-class Scripted:
-    """Answers each turn from a list. An entry is a ToolCall, None (no tool call), or
-    a function of the transcript that returns one of those — for a turn that has to
-    read the observation to know which control to name."""
-
-    def __init__(self, answers):
-        self.answers = list(answers)
-        self.seen = []
-
-    def next_action(self, messages, **_):
-        self.seen.append(list(messages))       # the transcript as it stood when asked
-        answer = self.answers.pop(0)
-        if callable(answer):
-            answer = answer(messages)
-        if answer is None:
-            return Turn([{"type": "text", "text": "..."}], None, [])
-        block = {"type": "tool_use", "id": f"call_{len(self.seen)}", "name": answer.name,
-                 "input": answer.input}
-        return Turn([block], answer, [])
 
 
 def request(origin, tmp_path, model, **overrides):
@@ -45,18 +24,6 @@ def request(origin, tmp_path, model, **overrides):
                   evidence_root=str(tmp_path), compile_draft=False, model=model)
     fields.update(overrides)
     return DiscoveryRequest(**fields)
-
-
-def observation_text(messages) -> str:
-    return next(b["text"] for b in messages[-1]["content"] if b.get("type") == "text")
-
-
-def control_numbered(messages, caption: str) -> int:
-    """The [n] of the control the observation lists beside `caption`."""
-    for line in observation_text(messages).splitlines():
-        if f'near text: "{caption}"' in line:
-            return int(re.match(r"\[(\d+)\]", line).group(1))
-    raise AssertionError(f"no control near {caption!r} in:\n{observation_text(messages)}")
 
 
 def test_a_business_outcome_the_model_reports_ends_the_run_with_it(bank_app, tmp_path):

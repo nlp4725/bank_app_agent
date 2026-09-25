@@ -8,8 +8,7 @@ expect MEMBER_NOT_FOUND" with nothing mocked.
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
 

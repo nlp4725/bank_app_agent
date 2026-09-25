@@ -11,8 +11,7 @@ from cua.evidence import unfinished
 from cua.governance.policy import Policy, load_baseline, policy_for, policy_for_role
 from cua.governance.profile import load_profile
 from cua.replay.engine import RunContext, replay
-
-from .fixtures import artifact_dict
+from tests.support.artifact import artifact_dict
 
 VENDOR_APP = "demo-core-servicing"
 
