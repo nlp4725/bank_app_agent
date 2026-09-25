@@ -1,4 +1,6 @@
-"""Every file in an evidence directory leaves through the writer, and the writer through the Redactor: an intervention request included, and a writer built with no profile still masks text and patterns."""
+"""Every file in an evidence directory leaves through the writer, and the writer
+through the Redactor: an intervention request included, and a writer built with no
+profile still masks text and patterns."""
 
 from cua.evidence import EvidenceWriter
 
@@ -20,8 +22,8 @@ def test_an_intervention_request_leaves_through_the_redactor(tmp_path):
     assert body["url"] == request.url            # what the Operator needs, still there
 
 
-def test_a_writer_with_no_profile_still_masks_text_and_patterns():
-    writer = EvidenceWriter(tmp())
+def test_a_writer_with_no_profile_still_masks_text_and_patterns(tmp_path):
+    writer = EvidenceWriter(tmp_path)
     record = writer.event("run_x", "observed", note="card 4111 1111 1111 1111")
     writer.close()
     assert "[card]" in record["note"]

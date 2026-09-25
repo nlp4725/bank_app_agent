@@ -3,6 +3,7 @@
 import pytest
 
 from cua.discovery import ProposalError, spec_from_proposal
+from tests.support.proposal import PROPOSAL, VENDOR
 
 
 def test_a_proposal_becomes_a_discovery_request_in_the_engine_s_contract_shape():

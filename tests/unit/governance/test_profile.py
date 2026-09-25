@@ -4,6 +4,8 @@ import pytest
 
 from cua.governance.profile import UnknownProfile, load_profile
 
+VENDOR_APP = "demo-core-servicing"
+
 # ── the App Profile has one home ─────────────────────────────────────────────
 
 def test_the_app_profile_is_read_from_config_not_from_a_fixture():
