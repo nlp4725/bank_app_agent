@@ -1,4 +1,7 @@
-"""Masking is by origin first, pattern second, and default-deny.
+"""Masking is by origin first, pattern second, and default-deny — without a browser.
+
+The four tests that paint a screenshot or read a live page are in
+tests/app/test_pixels.py.
 
 A name and a birthday have no shape a regex can find, so the mechanism that has to
 work is knowing *which field* a value came from. See CONTEXT.md, "Redaction".
@@ -7,10 +10,9 @@ work is knowing *which field* a value came from. See CONTEXT.md, "Redaction".
 import pytest
 from pydantic import ValidationError
 
-from cua.domain.artifact import Artifact, Watcher, merged
+from cua.domain.artifact import Watcher
 from cua.evidence import HIDDEN, PROTECTED, mask_value, redact_text
 from cua.governance.profile import load_profile
-from tests.support.artifact import artifact_dict
 
 # ── by origin: what patterns cannot catch ────────────────────────────────────
 
@@ -91,16 +93,6 @@ def test_readable_regions_are_declared_on_the_app_profile():
     assert "t_member_name" not in profile.readable_regions
 
 
-def test_the_artifact_still_returns_its_declared_outputs_in_full(bank_app):
-    """Masking protects the record, never the answer."""
-    from cua.replay.engine import RunContext, replay
-    art = merged(Artifact.model_validate(artifact_dict()),
-                 load_profile("demo-core-servicing"))
-    r = replay(art, {"member_number": "12345", "account_type": "savings",
-                     "nickname": "Holiday fund"}, RunContext(origin=bank_app))
-    assert r.outputs["savings_balance"] == "$4210.00"
-
-
 # ── the two channels take opposite defaults, on purpose ──────────────────────
 
 def test_values_are_allowlisted_but_pixels_are_deny_listed():
@@ -110,27 +102,6 @@ def test_values_are_allowlisted_but_pixels_are_deny_listed():
     # a control the model must use is readable in pixels though its value is hidden
     assert "t_ok" not in profile.sensitive_regions
     assert "t_ok" not in profile.readable_regions
-
-
-def test_a_declared_sensitive_region_is_painted_black(bank_app):
-    from cua.surface import Surface
-    profile = load_profile("demo-core-servicing")
-    masked = [profile.targets[n] for n in profile.sensitive_regions if n in profile.targets]
-    surface = Surface(bank_app)
-    try:
-        surface.goto("/login")
-        tb = surface.page.get_by_role("textbox")
-        tb.nth(0).fill("svc_officer"); tb.nth(1).fill("officer-pw")
-        surface.page.get_by_role("button", name="Sign in").click()
-        surface.page.wait_for_load_state()
-        surface.page.get_by_role("textbox").first.fill("12345")
-        surface.page.get_by_role("button").last.click()
-        surface.page.wait_for_load_state(); surface.page.wait_for_timeout(800)
-        surface.screenshot("/tmp/_plain.png", mask_targets=[])
-        surface.screenshot("/tmp/_masked.png", mask_targets=masked)
-        assert open("/tmp/_plain.png", "rb").read() != open("/tmp/_masked.png", "rb").read()
-    finally:
-        surface.close()
 
 
 # ── the chokepoint is one module, and replay goes through it too ─────────────
@@ -199,46 +170,6 @@ def tmp():
     return Path(tempfile.mkdtemp())
 
 
-# ── pixels take the same default as text ─────────────────────────────────────
-
-def _member_page(surface):
-    surface.goto("/login")
-    tb = surface.page.get_by_role("textbox")
-    tb.nth(0).fill("svc_officer"); tb.nth(1).fill("officer-pw")
-    surface.page.get_by_role("button", name="Sign in").click()
-    surface.page.wait_for_load_state()
-    surface.page.get_by_role("textbox").first.fill("12345")
-    surface.page.get_by_role("button").last.click()
-    surface.page.wait_for_load_state(); surface.page.wait_for_timeout(800)
-
-
-def _is_black(png, box):
-    from PIL import Image
-    img = Image.open(png).convert("RGB")
-    x, y = int(box["x"] + box["width"] / 2), int(box["y"] + box["height"] / 2)
-    return img.getpixel((x, y)) == (0, 0, 0)
-
-
-def test_a_value_cell_not_declared_readable_is_painted_black(bank_app, tmp_path):
-    """The Checking balance is a value nobody declared readable: hidden in text, so hidden
-    in pixels. The Savings balance is a Readable Anchor: visible in both. The member
-    number in the heading is not a cell at all; the profile names it by pattern."""
-    from cua.evidence import Redactor
-    from cua.surface import Surface
-    surface = Surface(bank_app)
-    try:
-        _member_page(surface)
-        cells = {c["anchor"]: c["box"] for c in surface.values(0)}
-        heading = surface.page.get_by_text("Member 12345").first.bounding_box()
-        shot = str(tmp_path / "member.png")
-        Redactor(load_profile("demo-core-servicing")).screenshot(surface, shot)
-        assert _is_black(shot, cells["Checking balance"])
-        assert not _is_black(shot, cells["Savings balance"])
-        assert _is_black(shot, heading)
-    finally:
-        surface.close()
-
-
 def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
     """Discovery crops a target before acting, and only for a click: a field after
     typing or a cell being read is a picture of a value."""
@@ -248,23 +179,3 @@ def test_a_crop_is_only_ever_of_a_control_never_of_a_value():
     src = inspect.getsource(discovery.discover)
     assert 'if call.name == "click" else None' in src
     assert src.index("surface.crop(") < src.index("record = _perform(")
-
-
-def test_the_page_text_the_model_reads_hides_a_value_no_pattern_can_find(bank_app):
-    """The gap this closed: the 'visible text' block went through the pattern net only,
-    so a name — which no pattern can find — reached the model and, repeated in its
-    reason, the trail. Page text now goes through origin masking like the cells do."""
-    from cua.evidence import Redactor
-    from cua.surface import Surface
-    surface = Surface(bank_app)
-    try:
-        _member_page(surface)
-        raw = surface.text()
-        assert "Jane Q. Public" in raw                      # it is on the page
-        shown = Redactor(load_profile("demo-core-servicing")).page_text(surface)
-        assert "Jane Q. Public" not in shown
-        assert "Member 12345" not in shown                  # declared text pattern
-        assert "(hidden)" in shown
-        assert "Savings balance" in shown                   # captions stay: the model needs them
-    finally:
-        surface.close()
