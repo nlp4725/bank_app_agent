@@ -40,7 +40,7 @@ demo's real values. Vocabulary: [CONTEXT.md](../CONTEXT.md).
 | `tools/_cli.py` | `.env` → the one key into the environment ; a Discovery Result → printed ; an origin → `/reset`, or a plain message that the demo app is not running | what the tools share and the package does not need |
 | **the target** | | |
 | `fake_bank/app.py` · `fake_bank/data.py` | `POST /members {member: 88888}` → the login page with "Your session has expired" (once) ; `44444` → the supervisor screen ; `99999` → "No records found" ; `GET /reset` → seed data restored | the hostile stand-in: one scenario per member number |
-| **tests** (`tests/`) | 181 tests; the demo app is the fixture, reset before each; `test_safety` also asserts the import graph (no model SDK reachable from replay; Playwright only in `surface.py`) | one file per concern |
+| **tests** (`tests/`) | 211 tests; the demo app is the fixture, reset before each; `test_safety` also asserts the import graph (no model SDK reachable from replay; Playwright only in `surface.py`) | one file per concern |
 | **data, not code** — the folders the modules read and write | | |
 | `config/baseline.yaml` | ours, provider-wide: `actions_allowed: [click, type, select, read]`, denied route keywords, hard rules (`secrets_never_sent_to_a_model`, `max_actions_per_run: 60`) | the floor every Tenant may narrow, never widen |
 | `config/roles/<app>.yaml` | per vendor app, before any discovery: `balance_reader` (pages, actions, secrets, `consequential: forbidden`, `service_account: svc_read`) … | what a goal may touch |
@@ -53,3 +53,88 @@ demo's real values. Vocabulary: [CONTEXT.md](../CONTEXT.md).
 | `runs/<id>/` (gitignored) | `trail.jsonl`, `screens/`, `actions.json`, `draft.yaml`, `intervention.json`, `decision.json` | every run's masked record; the figures and evidence are copies of these |
 | `docs/` | `error-taxonomy.md` (the four Conditions, six Run Results) · `security-model.md` (controls built, limits) · `targeting.md` (the rung ladder) · `evaluation.md` · `adr/0001–0007` (one decision each) · `figures/make_*.py` → the three SVGs in this report, generated from the artifacts and from live replays | the reasoning, kept where the code can't drift from it |
 | `fake_bank/templates/` | `login`, `search`, `member` (+ `panel` in an iframe), `subaccount_*`, `approval_required`, `not_authorized`, `app_error`, `notice`, `leaky` | one screen per Condition the taxonomy names |
+
+## By package
+
+The same modules grouped the way the tree is laid out, one table per package under `cua/`.
+Each package imports only from those listed after the arrow, and `domain` imports from
+nothing else in `cua`:
+
+```
+domain  ←  evidence, surface, governance  ←  replay  ←  authoring  ←  discovery
+```
+
+**`domain/`** — models and rules only. A test asserts it opens no file, browser, model or
+clock, and imports nothing from the rest of `cua`.
+
+| Module | What it does |
+|---|---|
+| `artifact.py` | The Artifact schema: a closed vocabulary of four actions, four predicates and three target rungs, so an Artifact cannot name an action the engine has no function for (ADR 0001). `merged()` folds an App Profile into an Artifact. |
+| `result.py` | `RunResult`: one shape, six statuses (`succeeded`, `business_outcome`, `failed`, `refused`, `aborted`, `outcome_unknown`). |
+| `rules.py` | Rules more than one package asks: does a page list cover a route, what is the route of a URL under an origin, do these inputs satisfy their Contract. |
+| `placeholders.py` | The one regex for `{{name}}`, shared by the engine (render) and the lint (check) so they cannot disagree. |
+| `issue.py` · `errors.py` | A lint finding with a code and a place; `CuaError`, the base of every error raised on purpose. |
+
+**`governance/`** — the only modules that read YAML. What a Reviewer, a Role author or a
+Tenant owns, read from `config/`, `artifacts/` and `overlays/`.
+
+| Module | What it does |
+|---|---|
+| `policy.py` | Permissions as an intersection, Baseline ∩ Role ∩ Tenant grant ∩ Needs (ADR 0005). `policy_for()` answers "may this Artifact run at this Tenant", and the engine asks `Policy` before every action. |
+| `roles.py` | Roles per vendor app, written before any discovery: pages, actions, secrets, whether it may commit, which Service Account. |
+| `profile.py` | The App Profile: Watchers, Readable and Sensitive Regions shared by every capability on one app. `redactor_for()` builds the Redactor from it. |
+| `store.py` | The Capability Store, the one answer to "which Artifact is live": the highest **approved** version of a capability id, with its App Profile merged and the Tenant's origin and Overlay resolved. |
+| `overlay.py` | Tenant Overlays: may change how things look (origin, labels, where a control sits) and are refused if they touch transitions, the Contract or Needs. |
+| `files.py` | The one YAML reader, cached by path. |
+
+**`evidence/`** — every log line, screenshot and result leaves through here.
+
+| Module | What it does |
+|---|---|
+| `redact.py` | The Redaction Chokepoint: structural (passwords never read), origin (values outside a Readable Region are `(hidden)`), pattern (SSN, card, email, phone, date, currency), and pixels (regions painted black at capture). Serves the model and the trail alike. |
+| `writer.py` | `EvidenceWriter`: the trail as append-only masked JSONL, screenshots, and a write-ahead line before and after each Consequential Action. |
+| `recovery.py` | Reads a trail back to find a run that died with a Consequential Action in flight. |
+
+**`surface/`** — the only package that touches the browser. Everything above it works in
+Targets, Predicates and Actions; everything below is Playwright.
+
+| Module | What it does |
+|---|---|
+| `driver.py` | Launches a hardened browser (downloads off, popups closed, every request gated to the Tenant's origins), and exposes two interfaces over one driver: `Surface` acts and observes (what replay needs) and `RecordingSurface` enumerates and describes (what discovery needs). |
+| `locate.py` | The rung ladder: `role_name` asks the accessibility tree, `label_anchor` finds the caption and the nearest control by geometry, `picture` falls through. Records which rung won. See [docs/targeting.md](../docs/targeting.md). |
+| `screen.py` | Record-time enumeration for discovery: every control a person could act on, every label/value pair, and the durable description of what was acted on. Also the target crop. |
+| `recording.py` | The record-time interface. It cannot resolve or act on a Target; a boundary test says so. |
+
+**`replay/`** — the production path. `replay()` is the front door.
+
+| Module | What it does |
+|---|---|
+| `engine.py` | The Replay Engine and the `Run`: per Transition, checkpoint → resolve → policy → act → checkpoint; Watchers on a miss; bounded recovery; escalation; the Verification Check after a Consequential Action. Every guarantee in [REPORT.md](../REPORT.md) is enforced here. |
+| `predicates.py` | The four Predicates plus `all`/`any`: rendering placeholders, Target lookup, evaluation against a Surface. Adding a Predicate means editing `artifact.py` and one case here. |
+| `handoff.py` | Control transfer as a lease: one holder of the live session at a time (`automation → awaiting_operator → operator_in_control → resuming`). Writes the intervention file and waits for the decision. |
+| `context.py` | `RunContext` and the four Protocols the engine is given: `ActingSurface`, `SecretsProvider`, `Operator`, `Narrator`. The seams a scripted stand-in implements. |
+| `narration.py` | How a run looks to a person watching it: `Console` when somebody is, `Silent` in tests and production. |
+
+**`authoring/`** — draft → approved, deterministic, no browser and no model. Nothing here
+decides anything a person did not.
+
+| Module | What it does |
+|---|---|
+| `recorder.py` | Compiles a finished Discovery Run into a draft Artifact: one State and one Checkpoint per step, example values replaced by placeholders. Where it must guess it attaches a suggestion for the Reviewer. |
+| `lint.py` | What a well-formed Artifact must also satisfy: no discovery literal frozen into a checkpoint, no placeholder nothing fills, no Outcome Code without a Watcher that can produce it. |
+| `review.py` | Applies a decisions file mechanically, then approves only if the result lints clean and a verify-replay on inputs discovery never saw succeeds. |
+
+**`discovery/`** — the one package where a model is in the loop. Runs only against a
+non-production environment (ADR 0003).
+
+| Module | What it does |
+|---|---|
+| `model.py` | The one adapter over the model SDK. Two questions are ever asked, "what next?" and "what should this capability look like?", and both come back as plain data, so a scripted stand-in is a class with one method. |
+| `propose.py` | Before any run: a Contract and the narrowest Role proposed from a goal in words, for a Reviewer to confirm (ADR 0004). |
+| `request.py` | `DiscoveryRequest` and `DiscoveryResult`, and how a Contract file plus this run's values becomes one. |
+| `run.py` | The loop: observe → one proposed action → policy check → act → record, until one of six endings (`goal_reached`, `report_outcome`, `ask_human`, `give_up`, step limit, stuck). Hands a successful run to the Recorder. |
+
+**Cross-cutting.** `settings.py` names the few environment switches once (`CUA_ROOT`,
+`CUA_SECRETS`); loaders read it at call time. `secrets.py` resolves `secret:<name>`
+references at the moment of typing, from `SECRET_<ACCOUNT>_<NAME>` variables or, beside the
+demo app only, the demo accounts.
