@@ -6,6 +6,11 @@ Two tiers, as directories:
     pytest tests/app           against the demo app, which this file starts and stops
     pytest -m "not app"        the same split, for anyone who prefers markers
 
+Both tiers mirror the package: the tests of cua/<package>/<module>.py are
+tests/<tier>/<package>/test_<module>.py, so `pytest tests/unit/replay` is the replay
+package and `pytest tests/unit/authoring/test_lint.py` is the lint module. A boundary
+test enforces the naming.
+
 A test under tests/app/ is marked `app` at collection; a test under tests/unit/ that
 asks for the app fails a boundary test.
 """

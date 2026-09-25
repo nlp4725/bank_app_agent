@@ -248,3 +248,26 @@ def test_nothing_under_unit_asks_for_the_demo_app():
                 if asked:
                     offenders.append(f"{path.name}::{node.name} asks for {sorted(asked)}")
     assert not offenders, "\n".join(offenders)
+
+
+def test_every_test_file_is_named_after_the_module_it_tests():
+    """An outsider finds the tests of cua/<package>/<module>.py at
+    tests/<tier>/<package>/test_<module>.py, and the tests of a package at
+    tests/<tier>/<package>/ — without a table. A second file about the same module
+    is test_<module>_<story>.py. This file is the one exception: it is about the
+    package as a whole."""
+    roots = {"cua": CUA, "tools": CUA.parent / "tools"}
+    wrong = []
+    for tier in ("unit", "app"):
+        for path in sorted((TESTS / tier).rglob("test_*.py")):
+            rel = path.relative_to(TESTS / tier)
+            if str(rel) == "test_boundaries.py":
+                continue
+            parts = list(rel.parts)
+            root = roots["tools"] if parts[0] == "tools" else roots["cua"]
+            package = root.joinpath(*(parts[1:-1] if parts[0] == "tools" else parts[:-1]))
+            modules = {q.stem for q in package.glob("*.py") if q.stem != "__init__"} if package.is_dir() else set()
+            name = rel.stem[len("test_"):]
+            if not any(name == m or name.startswith(m + "_") for m in modules):
+                wrong.append(f"{tier}/{rel}: no module {name!r} in {package.relative_to(CUA.parent)}/")
+    assert not wrong, "\n".join(wrong)

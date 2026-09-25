@@ -144,3 +144,28 @@ test of the crop rule to `discovery/test_run`; the secrets tests to `test_secret
 
 Three commits: the unit tier (verified by `pytest tests/unit`, seconds), the app tier
 (verified by the full run), then the guard test and the doc citations.
+
+### Status of step 6 (2026-09-25)
+
+Done in three commits (`a428579` unit, `67f9dd2` app, and the guard). Layout now:
+
+```
+tests/unit/                                    tests/app/
+  test_boundaries.py  test_settings.py  test_secrets.py
+  domain/      test_artifact  test_rules             replay/      test_engine  test_engine_outcome_unknown  test_handoff
+  governance/  test_policy  test_store  test_profile  test_overlay
+                                                     governance/  test_policy  test_overlay
+  evidence/    test_redact  test_writer  test_recovery
+                                                     evidence/    test_redact  test_recovery
+  surface/     test_locate                           surface/     test_driver  test_locate
+  replay/      test_predicates  test_handoff  test_narration
+  authoring/   test_lint  test_recorder
+  discovery/   test_propose  test_run               discovery/   test_run
+  tools/       test_start  discovery/test_cli
+```
+
+`unit/test_boundaries.py::test_every_test_file_is_named_after_the_module_it_tests`
+fails on a file whose name is not a module of its directory; it caught
+`test_discover_cli.py` the moment it ran, since that tool had become
+`tools/discovery/cli.py`. Still without tests of their own: `authoring/review.py`,
+`surface/screen.py`, `surface/recording.py`, `governance/roles.py`, `governance/files.py`.
