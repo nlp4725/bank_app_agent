@@ -9,6 +9,8 @@ import pytest
 from cua.discovery import ProposalError, spec_from_proposal
 from tests.support.doubles import VerifyBad, VerifyOk, scripted_answers
 from tools import start
+from tools.authoring import interview, review
+from tools.discovery import contract
 
 VENDOR = "demo-core-servicing"
 
@@ -52,7 +54,7 @@ def test_a_capability_that_returns_nothing_is_refused():
 
 
 def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     seen = {}
 
     def fake_discover(request):
@@ -76,7 +78,7 @@ def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path,
 
 
 def test_a_value_that_breaks_the_contract_is_asked_again(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     asked = []
     def ask(prompt):
         asked.append(prompt)
@@ -96,7 +98,7 @@ def test_a_value_that_breaks_the_contract_is_asked_again(tmp_path, monkeypatch):
 
 
 def test_edit_saves_the_proposal_and_runs_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     code = start.run(goal="read a balance", ask=scripted_answers(["e"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=lambda r: pytest.fail("must not run"))
@@ -113,7 +115,7 @@ def test_a_failed_proposal_ends_the_conversation_cleanly():
 
 
 def test_known_outcomes_are_gathered_from_the_contracts_on_this_app(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     (tmp_path / "a.yaml").write_text(
         "vendor_app: demo-core-servicing\ncontract:\n  outcomes:\n"
         "    - {code: MEMBER_NOT_FOUND, meaning: none, resolver: member}\n")
@@ -124,12 +126,12 @@ def test_known_outcomes_are_gathered_from_the_contracts_on_this_app(tmp_path, mo
     (tmp_path / "other.yaml").write_text(
         "vendor_app: some-other-app\ncontract:\n  outcomes:\n"
         "    - {code: ELSEWHERE, meaning: x, resolver: member}\n")
-    codes = [o["code"] for o in start.known_outcomes("demo-core-servicing")]
+    codes = [o["code"] for o in contract.known_outcomes("demo-core-servicing")]
     assert codes == ["MEMBER_NOT_FOUND", "NO_SAVINGS_ACCOUNT"]
 
 
 def test_the_proposal_receives_the_known_outcomes(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     (tmp_path / "a.yaml").write_text(
         "vendor_app: demo-core-servicing\ncontract:\n  outcomes:\n"
         "    - {code: NO_SAVINGS_ACCOUNT, meaning: none, resolver: member}\n")
@@ -142,7 +144,7 @@ def test_the_proposal_receives_the_known_outcomes(tmp_path, monkeypatch):
 
 
 def test_not_approved_saves_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "CONTRACTS", tmp_path)
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
     code = start.run(goal="read a balance", ask=scripted_answers(["n"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=lambda r: pytest.fail("must not run"))
@@ -156,12 +158,11 @@ RUN = "evidence/01-discovery-goal-reached"      # the sub-account run: 2 consequ
 
 
 def _sub_account_spec():
-    return start.load_request("contracts/open_sub_account.yaml") if hasattr(start, "load_request") \
-        else __import__("yaml").safe_load(open("contracts/open_sub_account.yaml"))
+    return __import__("yaml").safe_load(open("contracts/open_sub_account.yaml"))
 
 
 def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path)
     import yaml
     spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
     seen = []
@@ -184,7 +185,7 @@ def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact
     def fake_replay(art, inputs):
         verified["inputs"] = inputs; verified["status"] = art.capability.status
         return VerifyOk()
-    code = start.review_artifact(spec, RUN, ask=ask, replay_fn=fake_replay)
+    code = review.review_artifact(spec, RUN, ask=ask, replay_fn=fake_replay)
     assert code == 0, seen
     d = yaml.safe_load((tmp_path / "open_sub_account.decisions.yaml").read_text())
     assert "t_continue" not in d["safe_targets"] and "t_sign_in" in d["safe_targets"]
@@ -203,7 +204,7 @@ def test_the_review_writes_decisions_applies_them_and_saves_an_approved_artifact
 
 
 def test_a_failed_verify_replay_refuses_and_keeps_the_decisions(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path)
     import yaml
     spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
     def ask(prompt):
@@ -215,23 +216,23 @@ def test_a_failed_verify_replay_refuses_and_keeps_the_decisions(tmp_path, monkey
         if "proves it happened" in prompt: return "{{nickname}}"
         if "second approver" in prompt: return "reviewer:sam"
         return "y" if "?" in prompt else "reviewer:nasi"
-    code = start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyBad())
+    code = review.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyBad())
     assert code == 2
     assert (tmp_path / "open_sub_account.decisions.yaml").exists()
     assert not (tmp_path / "open_sub_account.1.0.0.yaml").exists()
 
 
 def test_declining_the_review_leaves_the_draft_and_runs_nothing(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path)
     import yaml
     spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
-    code = start.review_artifact(spec, RUN, ask=lambda p: "n",
+    code = review.review_artifact(spec, RUN, ask=lambda p: "n",
                                  replay_fn=lambda a, i: pytest.fail("must not run"))
     assert code == 0 and list(tmp_path.glob("*")) == []
 
 
 def test_the_watch_step_replays_the_capability_just_approved(tmp_path, monkeypatch):
-    monkeypatch.setattr(start, "ARTIFACTS", tmp_path)
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path)
     import yaml
     spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
     def ask(prompt):
@@ -246,7 +247,7 @@ def test_the_watch_step_replays_the_capability_just_approved(tmp_path, monkeypat
         if "Watch it replay" in prompt: return "y"
         return "y" if "?" in prompt else "reviewer:nasi"
     watched = {}
-    start.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyOk(),
+    review.review_artifact(spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyOk(),
                           watch_fn=lambda cap, member, tenant: watched.update(cap=cap, member=member))
     assert watched == {"cap": "member.open_sub_account", "member": "54321"}   # the discovery member
 
@@ -275,6 +276,6 @@ def test_replay_asks_which_capability_when_more_than_one_is_approved():
 
 def test_an_approver_must_be_role_name_so_yes_is_not_a_signature():
     answers = iter(["yes", "y", "reviewer:nasi"])
-    got = start._approver(lambda p: next(answers), "approve as: ", None)
+    got = interview.ask_approver(lambda p: next(answers), "approve as: ", None)
     assert got == "reviewer:nasi"
-    assert start._approver(lambda p: "", "approve as [reviewer:x]: ", "reviewer:x") == "reviewer:x"
+    assert interview.ask_approver(lambda p: "", "approve as [reviewer:x]: ", "reviewer:x") == "reviewer:x"

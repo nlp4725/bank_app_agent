@@ -107,7 +107,7 @@ Every step has the same shape:
 1. `git mv` or edit.
 2. One `sed`/`grep` pass over `cua/ tools/ tests/ docs/ REPORT.md` for the old dotted path.
    No compatibility shims: they would make the boundary test's `LAYOUT` rows ambiguous.
-3. Update the matching row of `LAYOUT` in `tests/test_safety.py` and the row of
+3. Update the matching row of `LAYOUT` in `tests/app/test_safety.py` and the row of
    `docs/modules.md` in the same commit.
 4. `python -m pytest -q` (the suite owns the demo app; nothing else may be on 5099/5100).
 5. `python -X importtime -c 'import cua.replay.engine' 2>&1 | grep -c anthropic` prints
@@ -120,14 +120,14 @@ second change in flight: `contract.outcomes` → `contract.business_outcomes` ac
 schema, tests, tools, artifacts and contracts. Finish that rename first, then run the
 suite and commit. The full run on 2026-09-24 (180 passed, 6 failed, 5m54s) showed:
 
-- `tests/test_start.py` × 3: `KeyError: 'business_outcomes'` at `tools/start.py:351`,
+- `tests/unit/test_start.py` × 3: `KeyError: 'business_outcomes'` at `tools/start.py:351`,
   which still reads `draft["contract"]["outcomes"]` and appends to `keep_outcomes`.
   That is the rename, not yet applied to this file.
-- `tests/test_store.py::test_a_run_compiled_after_it_moved_still_finds_its_crops`:
+- `tests/unit/test_store.py::test_a_run_compiled_after_it_moved_still_finds_its_crops`:
   `evidence/01-discovery-goal-reached/screens/` holds `01.png…` but no `NN_target.png`
   crops, while its `actions.json` names them. Pre-existing data problem: either
   re-record that evidence run or relax the test to the runs that do carry crops.
-- `tests/test_replay.py` × 2 (`transient_error_is_retried`,
+- `tests/app/test_replay.py` × 2 (`transient_error_is_retried`,
   `expired_session_is_signed_into_again`): fail in the full run, pass when run alone.
   Order-dependent, almost certainly the fire-once scenarios in the demo app that
   `conftest.py` warns about. Worth pinning down before the moves, because a flaky

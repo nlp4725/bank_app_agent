@@ -15,7 +15,7 @@ from cua.replay.engine import RunContext, replay
 from tests.support.artifact import artifact_dict
 
 INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "Holiday fund"}
-CUA = Path(__file__).resolve().parent.parent / "cua"
+CUA = Path(__file__).resolve().parents[2] / "cua"
 
 
 # ── the front door ────────────────────────────────────────────────────────────

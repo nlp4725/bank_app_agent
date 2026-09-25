@@ -6,7 +6,8 @@ discovery receives, and that the shipped Contract did not move when it left the 
 
 import pytest
 
-from tools.discover import CONTRACT, DEFAULT_CONTRACT, build, load_request, parse_args
+from tools._cli import load_dotenv
+from tools.discovery.cli import CONTRACT, DEFAULT_CONTRACT, build, load_request, parse_args
 
 
 def _request(*argv):
@@ -65,7 +66,6 @@ def test_the_exported_contract_is_the_file_so_record_and_review_compile_against_
 
 
 def test_dotenv_fills_only_what_the_shell_did_not_set(tmp_path, monkeypatch):
-    from tools.discover import load_dotenv
     env = tmp_path / ".env"
     env.write_text("# key\nANTHROPIC_API_KEY='from-file'\nALREADY_SET=file\n\nbad line\n")
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
@@ -77,5 +77,4 @@ def test_dotenv_fills_only_what_the_shell_did_not_set(tmp_path, monkeypatch):
 
 
 def test_no_dotenv_file_is_not_an_error(tmp_path):
-    from tools.discover import load_dotenv
     assert load_dotenv(tmp_path / ".env") == []

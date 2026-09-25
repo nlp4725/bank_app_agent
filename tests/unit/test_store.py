@@ -106,7 +106,7 @@ def test_a_run_compiled_after_it_moved_still_finds_its_crops(tmp_path):
     import shutil
 
     from cua.authoring.recorder import record_from_run
-    from tools.discover import CONTRACT
+    from tools.discovery.cli import CONTRACT
 
     moved = tmp_path / "somewhere_else"
     shutil.copytree("evidence/01-discovery-goal-reached", moved)

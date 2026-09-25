@@ -5,7 +5,7 @@ The App Profile that used to live here now has a home of its own —
 because it is governance data a Reviewer owns, not test scaffolding.
 
 Every Target here was checked against the running demo app with
-`tools/a11y_dump.py`: rung 1 (role+name) resolves buttons and links only, so every
+`tools/inspect/a11y_dump.py`: rung 1 (role+name) resolves buttons and links only, so every
 text field is reached by its visible caption instead. See docs/targeting.md.
 
 This is also the ground truth the Replay Engine is built against, before any model

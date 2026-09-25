@@ -18,7 +18,7 @@ Terms in [CONTEXT.md](../CONTEXT.md). The principle: arrange things so the dange
 | 9 | **BUILT** — **Secrets by reference.** Substituted at the moment of typing, below the model, below the log, below the Artifact. | `cua/replay/engine.py` |
 | 10 | **BUILT** — **Redaction Chokepoint**, both inbound (logs, evidence, artifacts, returned outputs) and outbound (observation text before it reaches a model, and the screenshot: declared Sensitive Regions, every value cell not declared readable, and declared text patterns painted black at capture). | `cua/evidence/redact.py`, `Surface.screenshot` |
 
-Rows marked BUILT are implemented and covered by a test in `tests/test_safety.py`. The rest are decisions, not claims about the code.
+Rows marked BUILT are implemented and covered by a test in `tests/app/test_safety.py`. The rest are decisions, not claims about the code.
 
 ## Tests that are controls
 
