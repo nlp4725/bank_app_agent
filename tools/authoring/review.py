@@ -13,7 +13,7 @@ from cua.authoring.recorder import record_from_run
 from cua.authoring.review import apply_decisions, approve
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
-from cua.governance.store import origin_for
+from cua.governance.store import origin_for, refresh
 from cua.replay.engine import RunContext, replay
 from tools._cli import reset_or_exit, terminal_operator
 from tools.authoring.interview import decide
@@ -83,6 +83,7 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
         return 2
     out = ARTIFACTS / f"{stem}.{approved.capability.version}.yaml"
     out.write_text(yaml.safe_dump(approved.model_dump(exclude_none=True), sort_keys=False, width=100))
+    refresh()           # the interview read the Store before this file existed
     print(f"\n  APPROVED -> {out}")
     # The walk-through shows the flow; the file is what was approved, and it also
     # carries the contract, needs and provenance the walk-through leaves out.

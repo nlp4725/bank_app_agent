@@ -52,9 +52,10 @@ def apply_decisions(draft: dict, decisions: dict) -> dict:
             if t["action"]["target"] == item["target"]:
                 t["verify_effect"] = item["verify_effect"]
 
-    # 5. contract trimming: outcomes nothing can produce yet
-    keep = set(decisions.get("keep_outcomes", []))
-    if keep:
+    # 5. contract trimming: outcomes nothing can produce yet. An empty list is a
+    #    decision too — every outcome dropped — so only a missing key keeps them all.
+    if "keep_outcomes" in decisions:
+        keep = set(decisions["keep_outcomes"])
         art["contract"]["outcomes"] = [o for o in art["contract"]["outcomes"]
                                        if o["code"] in keep]
 

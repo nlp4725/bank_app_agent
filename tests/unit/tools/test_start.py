@@ -240,3 +240,35 @@ def test_an_approver_must_be_role_name_so_yes_is_not_a_signature():
     got = interview.ask_approver(lambda p: next(answers), "approve as: ", None)
     assert got == "reviewer:nasi"
     assert interview.ask_approver(lambda p: "", "approve as [reviewer:x]: ", "reviewer:x") == "reviewer:x"
+
+
+def test_the_watch_step_finds_an_artifact_approved_into_an_empty_store(tmp_path, monkeypatch):
+    """The store was read during the interview, before the approved file existed.
+
+    With nothing to borrow, every outcome is dropped — which must leave a contract
+    with none, not one with all of them and nothing to produce them."""
+    import yaml
+    from pathlib import Path
+    from cua.governance.store import load_capability
+    from cua.settings import settings
+    (tmp_path / "config").symlink_to(Path("config").resolve())
+    monkeypatch.setattr(settings, "root", tmp_path)
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path / "artifacts")
+    spec = yaml.safe_load(open("contracts/open_sub_account.yaml"))
+    def ask(prompt):
+        if "is this action safe" in prompt: return "n" if "t_continue" in prompt else "y"
+        if "interruption" in prompt: return "y" if "'OK'" in prompt else "n"
+        if "identifies it" in prompt: return "System notice"
+        if "no watcher can recognise" in prompt: return "d"
+        if "page to open afterwards" in prompt: return ""
+        if "proves it happened" in prompt: return "{{nickname}}"
+        if "second approver" in prompt: return "reviewer:sam"
+        if "show the approved file" in prompt: return "n"
+        if "Watch it replay" in prompt: return "y"
+        return "y" if "?" in prompt else "reviewer:nasi"
+    watched = {}
+    code = review.review_artifact(
+        spec, RUN, ask=ask, replay_fn=lambda a, i: VerifyOk(),
+        watch_fn=lambda cap, member, tenant: watched.update(art=load_capability(cap)))
+    assert code == 0
+    assert watched["art"].capability.status == "approved"

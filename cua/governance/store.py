@@ -46,6 +46,18 @@ def _index(artifacts_dir: Path) -> dict:
     return found
 
 
+def refresh() -> None:
+    """Forget what has been read, so the next question sees the files as they are now.
+
+    The index and each file are read once per process. A caller that writes an
+    Artifact and then asks for it in the same process — a review that approves and
+    then offers to replay — calls this in between, or it is answered from before the
+    file existed, or from the version it just replaced.
+    """
+    _index.cache_clear()
+    read_yaml.cache_clear()
+
+
 def artifacts() -> list[Artifact]:
     """Every Artifact on disk, approved or not — what a Reviewer may borrow from."""
     return list(_index(settings.artifacts_dir).values())
