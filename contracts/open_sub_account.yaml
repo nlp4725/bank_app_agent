@@ -16,6 +16,14 @@ example_values:
   account_type: savings
   nickname: Holiday fund
 
+# Test data, not signature: inputs that should produce each Business Outcome. Discovery
+# probes each one so the Watcher's text is learnt from the screen, not typed in review.
+outcome_examples:
+  MEMBER_NOT_FOUND:
+    member_number: "99999"
+  NOT_AUTHORIZED:
+    member_number: "22222"
+
 contract:
   inputs:
     member_number: {type: string, pattern: "^[0-9]{5}$", sensitive: true}

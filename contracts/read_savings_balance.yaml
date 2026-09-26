@@ -5,6 +5,11 @@ role: balance_reader
 goal: Look up member {member_number} and read that member's savings balance.
 example_values:
   member_number: '12345'
+outcome_examples:
+  MEMBER_NOT_FOUND:
+    member_number: '99999'
+  NOT_AUTHORIZED:
+    member_number: '22222'
 contract:
   inputs:
     member_number:

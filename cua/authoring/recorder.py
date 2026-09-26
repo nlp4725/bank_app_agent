@@ -10,9 +10,15 @@ import re
 import shutil
 from pathlib import Path
 
+from ..evidence.redact import HIDDEN, PATTERNS, PROTECTED
 from ..settings import settings
 
 SLUG = re.compile(r"[^a-z0-9]+")
+# What masking leaves in page text. A quote is cut at these: the live page shows the
+# value, never the mask, so a watcher that contained one could never match.
+MASKS = re.compile("|".join([re.escape(HIDDEN), re.escape(PROTECTED)]
+                            + [re.escape(replacement) for _, replacement in PATTERNS]))
+MIN_TRIGGER = 6          # shorter than this cannot identify a screen
 
 
 def slug(text: str) -> str:
@@ -220,3 +226,35 @@ def record_from_run(run_dir: str, contract: dict, example_values: dict, **kwargs
             action["crop"] = str(beside) if beside.exists() else None
     return record(actions, contract, example_values,
                   discovered_by=run.name, **kwargs)
+
+
+def watcher_from_run(run_dir: str, values: dict) -> tuple[dict | None, str]:
+    """A Business Outcome Watcher from a run that ended in `report_outcome`, or why not.
+
+    The model names the Outcome Code and quotes the screen that says so; code checks
+    the quote was on the last screen the run observed, cuts it at anything masking
+    left there, and writes this run's input values back as placeholders, so the
+    trigger matches every member rather than the one probed. A suggestion for the
+    Reviewer like everything else the Recorder makes: it is offered, not applied.
+    """
+    run = Path(run_dir)
+    events = [json.loads(line) for line in (run / "trail.jsonl").read_text().splitlines()
+              if line.strip()]
+    ended = next((e for e in reversed(events) if e["event"] == "ended"), None)
+    if ended is None or ended.get("ending") != "report_outcome":
+        return None, f"the run ended {ended.get('ending') if ended else 'without an ending'}"
+    code, quote = ended.get("outcome"), " ".join((ended.get("detail") or "").split())
+    seen = next((e for e in reversed(events) if e["event"] == "observed"), None)
+    screen = " ".join((seen or {}).get("controls", "").split())
+    if not quote or quote not in screen:
+        return None, f"the quote {quote!r} is not on the last screen the run saw"
+
+    fragment = max(MASKS.split(quote), key=len).strip()
+    for name, value in sorted(values.items(), key=lambda kv: -len(str(kv[1]))):
+        if str(value):
+            fragment = fragment.replace(str(value), f"{{{{{name}}}}}")
+    if len(re.sub(r"\{\{\s*\w+\s*\}\}", "", fragment).strip()) < MIN_TRIGGER:
+        return None, f"the quote {quote!r} leaves too little text to identify a screen"
+    return {"id": f"w_{slug(code)}", "trigger": {"type": "text_present", "value": fragment},
+            "condition": "business_outcome", "outcome": code,
+            "provenance": f"discovery:{run.name}"}, "learnt"

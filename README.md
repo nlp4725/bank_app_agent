@@ -334,8 +334,11 @@ action**; code checks it against policy and performs it. It never sees a passwor
 value outside a declared Readable Region. When the goal is reached the Recorder compiles a
 draft Artifact and the **second review** starts in the same terminal. Every click arrives
 Consequential and only a person downgrades it; every Outcome Code the Contract promises
-needs a Watcher that can recognise it, borrowed from another approved capability when one
-exists, or it is dropped. The answers are a decisions file, applied mechanically, and
+needs a Watcher that can recognise it. After the happy path, discovery probes each outcome
+with the input the Discovery Request names for it (`outcome_examples`: 99999 for
+MEMBER_NOT_FOUND, 22222 for NOT_AUTHORIZED); the model reports the outcome and quotes the
+screen, code checks the quote was on that screen, and the review offers it for a yes. An
+outcome with no probe borrows a Watcher from another approved capability, or is dropped. The answers are a decisions file, applied mechanically, and
 approval is refused unless the result lints clean **and** verify-replays, with no model,
 on a member discovery never saw. To redo that review from a saved run, give it the
 `runs/disc_…` folder your discovery printed, or the committed one:

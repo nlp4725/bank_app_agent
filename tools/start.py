@@ -28,12 +28,15 @@ The *Artifact* — the plan of steps — is reviewed once discovery has produced
 """
 
 import argparse
+import json
 import sys
+from pathlib import Path
 
 from cua.discovery import ProposalError, discover, propose_contract, request_from_spec
 from tools._cli import load_dotenv, report, require_api_key
-from tools.authoring.review import review_artifact
-from tools.discovery.contract import ask_values, known_outcomes, save, show, spec_for_run
+from tools.authoring.review import PROBES, review_artifact
+from tools.discovery.contract import (ask_outcome_examples, ask_values, known_outcomes, save,
+                                      show, spec_for_run)
 
 VENDOR_APP = "demo-core-servicing"
 
@@ -71,6 +74,7 @@ def run(goal: str | None = None, *, tenant: str = "bank_a", ask=input,
 
     values = ask_values(spec, ask)
     spec["example_values"] = values
+    spec["outcome_examples"] = ask_outcome_examples(spec, ask)
     path = save(spec)
     if headed is None:
         headed = (ask("Watch the browser? [Y/n]  ").strip().lower() or "y").startswith("y")
@@ -82,9 +86,35 @@ def run(goal: str | None = None, *, tenant: str = "bank_a", ask=input,
     result = discover_fn(request)
     report(result, actions=not result.draft)      # the draft shows the steps in full
     if result.draft:
+        probe_outcomes(spec, values, result.trace_dir, tenant=tenant, headed=headed,
+                       slowmo=slowmo if headed else 0, discover_fn=discover_fn)
         return review_artifact(spec, result.trace_dir, tenant=tenant, ask=ask, replay_fn=replay_fn,
                                watch_fn=watch_fn)
     return 0 if result.ending in ("goal_reached", "report_outcome") else 2
+
+
+def probe_outcomes(spec: dict, values: dict, run_dir: str, *, tenant: str, headed: bool,
+                   slowmo: int, discover_fn=discover) -> dict:
+    """One discovery per Outcome Code, on the inputs that should produce it.
+
+    The happy path never sees the screen that means "no such member", so nothing in its
+    run can recognise one. Each probe is the same goal on a bad input; the model reports
+    the outcome and quotes the screen, and the review offers that quote as the Watcher
+    (tools/authoring/review.py). Which run probed what is written beside the happy run,
+    so `--review` can offer them again without another model call."""
+    probes = {}
+    for code, example in spec.get("outcome_examples", {}).items():
+        print(f"\n  probing {code}: the same goal with "
+              + ", ".join(f"{k}={v}" for k, v in example.items()) + "\n")
+        request = request_from_spec(spec, {**values, **example}, tenant=tenant,
+                                    headed=headed, slowmo=slowmo)
+        request.compile_draft = False
+        result = discover_fn(request)
+        print(f"  {code}: {result}")
+        probes[code] = result.trace_dir
+    if probes:
+        (Path(run_dir) / PROBES).write_text(json.dumps(probes, indent=2) + "\n")
+    return probes
 
 
 def main(argv=None):
