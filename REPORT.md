@@ -67,9 +67,10 @@ observed and an evidence id.
 **Error handling.** There are two kinds of error. An **app-level** error is well known
 and pre-established, such as a timeout, a session expiry or a system notice; it is
 recorded in the App Profile by an engineer stress-testing the app ahead of time. A
-**capability-level** error is derived from runs: an engineer builds the edge cases for
-that capability and uses the LLM to derive what each one looks like and what to do
-about it. Both kinds become Watchers on one list, a Watcher being what a screen means
+**capability-level** error is derived from runs: the Discovery Request names an input
+that should produce each Outcome Code (99999 for MEMBER_NOT_FOUND), discovery probes
+each one, and the model's quote of the screen becomes the Watcher's trigger once code
+has checked it was on screen ([evidence/09](./evidence/09-discovery-learnt-outcomes/)). Both kinds become Watchers on one list, a Watcher being what a screen means
 (its trigger) and what to do about it (its Condition and reaction), and at the Review
 Gate the Reviewer chooses which to add (every Condition, its reaction and Run Result:
 supplement Figures S4 and S5).
