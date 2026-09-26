@@ -4,12 +4,15 @@
 
 Recorded against First Credit Union. Run unchanged against Lakeside Savings, which
 renamed the controls and moved the search icon — first without an Overlay, then with.
+The capability commits, so it only runs attended: a scripted Operator approves the
+commit and declines to take over a screen the Artifact does not recognise.
 """
 
 import urllib.request
 
 from cua.governance.store import load_capability, origin_for, overlay_for
 from cua.replay.engine import RunContext, replay
+from tools._cli import scripted_operator
 
 CAPABILITY = "member.open_sub_account"
 BANK1 = origin_for("bank_a", "demo-core-servicing")
@@ -19,7 +22,14 @@ INPUTS = {"member_number": "12345", "account_type": "savings", "nickname": "B2 d
 
 def run(art, origin, tenant, overlay=None):
     urllib.request.urlopen(f"{origin}/reset").read()
-    return replay(art, INPUTS, RunContext(origin=origin, tenant=tenant, overlay=overlay))
+    return replay(art, INPUTS, RunContext(origin=origin, tenant=tenant, overlay=overlay,
+                                          attended=True, operator=scripted_operator))
+
+
+def handed_over_because(result) -> str:
+    """Why the run stopped and asked its Operator, from its trail."""
+    return next((e.get("reason") for e in result.trail
+                 if e["event"] == "intervention_raised"), "") or "no handover"
 
 
 def main():
@@ -32,7 +42,7 @@ def main():
     print("2. Lakeside Savings — same product, renamed controls, no Overlay")
     r = run(art, BANK2, "lakeside")
     print(f"   {r}")
-    print(f"   step {r.step}: expected {r.expected}\n")
+    print(f"   handed to the Operator because: {handed_over_because(r)}\n")
 
     print("3. Lakeside Savings — the same artifact, with a 20-line Overlay")
     r = run(art, BANK2, "lakeside", overlay)

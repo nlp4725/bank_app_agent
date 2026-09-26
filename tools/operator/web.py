@@ -12,6 +12,8 @@ from pathlib import Path
 
 from flask import Flask, redirect, request, send_file, url_for
 
+from cua.replay.handoff import open_requests, waiting_request
+
 app = Flask(__name__)
 RUNS = Path("runs")
 
@@ -45,18 +47,9 @@ CARD = """<div class="card">
 </div>"""
 
 
-STALE_AFTER_S = 30 * 60
-
-
-def open_requests():
-    """Unanswered, and recent. A request nobody is waiting on any more is noise."""
-    import time
-    for path in sorted([*RUNS.glob("*/intervention.json"), *RUNS.glob("*/approval.json")],
-                       key=lambda p: p.stat().st_mtime, reverse=True):
-        if (path.parent / "decision.json").exists():
-            continue
-        if time.time() - path.stat().st_mtime > STALE_AFTER_S:
-            continue
+def waiting():
+    """Only requests a live run is still waiting on: a finished run's stay on disk."""
+    for path in open_requests(RUNS):
         yield path.parent.name, json.loads(path.read_text())
 
 
@@ -73,15 +66,16 @@ def index():
                          go_value="approve" if r.get("kind") == "approval" else "resume",
                          go_label=("Approve this action" if r.get("kind") == "approval"
                                    else "Resume now"))
-             for run, r in open_requests()]
+             for run, r in waiting()]
     body = "".join(cards) or '<div class="card none">No interventions waiting.</div>'
     return PAGE.format(body=body)
 
 
 @app.route("/shot/<run>")
 def shot(run):
-    request_file = next(p for p in (RUNS / run / "approval.json", RUNS / run / "intervention.json")
-                        if p.exists())
+    request_file = waiting_request(RUNS / run) or next(
+        p for p in (RUNS / run / "approval.json", RUNS / run / "intervention.json")
+        if p.exists())
     path = json.loads(request_file.read_text())["screenshot"]
     return send_file(Path(path).resolve())
 

@@ -73,3 +73,11 @@ def terminal_operator(ask=input):
                      f"(control found by {request.matched_by}). Approve? [Y/n]  ")
         return "abort" if answer.strip().lower().startswith("n") else "approve"
     return operator
+
+
+def scripted_operator(request, surface):
+    """An Operator for the demos, which have nobody at the keyboard. A capability that
+    commits only runs attended, so this one approves each Consequential Action, and
+    declines to take the session on an escalation: a screen the Artifact does not
+    recognise then stops the run at once instead of waiting for a person."""
+    return "approve" if request.kind == "approval" else "abort"

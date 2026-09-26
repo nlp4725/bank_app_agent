@@ -102,6 +102,52 @@ def wait_for_decision(directory: Path, timeout_s: float, poll,
     return "timeout", ""
 
 
+# What a run writes when it asks, and what settles the question. A request file stays
+# in the run's directory after it is answered (it is evidence), and decision.json is
+# deleted once read, so neither file alone says whether anyone is still waiting.
+# The trail does: the last of these events is the answer.
+REQUEST_FILES = {"approval_requested": "approval.json",
+                 "intervention_raised": "intervention.json"}
+SETTLED = {"operator_acted", "result"}
+STALE_AFTER_S = 30 * 60      # a run killed while waiting never writes its result
+
+
+def waiting_request(run_dir: Path, now: float | None = None,
+                    stale_after_s: float = STALE_AFTER_S) -> Path | None:
+    """The request this run is waiting on right now, or None.
+
+    A run is waiting when its trail's last request is not followed by the Operator
+    acting or by a result, nobody has written a decision the run has yet to read,
+    and it was raised recently enough that the run could still be alive."""
+    run_dir = Path(run_dir)
+    trail = run_dir / "trail.jsonl"
+    if not trail.exists() or (run_dir / "decision.json").exists():
+        return None
+    pending = None
+    for line in trail.read_text().splitlines():
+        try:
+            event = json.loads(line).get("event")
+        except ValueError:
+            continue          # a line cut short by a crash
+        if event in REQUEST_FILES:
+            pending = REQUEST_FILES[event]
+        elif event in SETTLED:
+            pending = None
+    if pending is None or not (run_dir / pending).exists():
+        return None
+    path = run_dir / pending
+    now = time.time() if now is None else now
+    return None if now - path.stat().st_mtime > stale_after_s else path
+
+
+def open_requests(runs_root: Path = Path("runs"), now: float | None = None) -> list[Path]:
+    """Every request a live run is waiting on, newest first."""
+    runs_root = Path(runs_root)
+    found = [p for d in runs_root.glob("run_*") if d.is_dir()
+             if (p := waiting_request(d, now)) is not None]
+    return sorted(found, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
 def observe_operator(surface, before_url: str) -> dict:
     """What changed while the Operator held control — never what they typed."""
     return {"url_before": before_url, "url_after": surface.url,

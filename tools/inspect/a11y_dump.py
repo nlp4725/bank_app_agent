@@ -8,8 +8,8 @@ which interactive controls could be found by role+name alone — rung 1 of a Tar
 ladder — and which would need a fallback.
 """
 
+import argparse
 import re
-import sys
 
 from playwright.sync_api import sync_playwright
 
@@ -47,6 +47,18 @@ def dump(url: str, show_tree: bool = True):
         browser.close()
 
 
+def main(argv=None):
+    p = argparse.ArgumentParser(prog="python -m tools.inspect.a11y_dump", description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("urls", nargs="*", metavar="URL",
+                   default=["http://localhost:5001/login"],
+                   help="pages to inspect (default http://localhost:5001/login)")
+    p.add_argument("--no-tree", action="store_true",
+                   help="skip the full ARIA snapshot; print only the rung-1 check")
+    args = p.parse_args(argv)
+    for url in args.urls:
+        dump(url, show_tree=not args.no_tree)
+
+
 if __name__ == "__main__":
-    for url in sys.argv[1:] or ["http://localhost:5001/login"]:
-        dump(url)
+    main()

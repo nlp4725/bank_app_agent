@@ -1,6 +1,8 @@
 """B1: a control with no name, found anyway — and the log line that says how.
 
     python -m tools.demos.b1
+
+The capability commits, so it only runs attended: a scripted Operator approves it.
 """
 
 import urllib.request
@@ -8,6 +10,7 @@ import urllib.request
 from cua.governance.store import load_capability, origin_for
 from cua.replay.engine import RunContext, replay
 from cua.surface import Surface
+from tools._cli import scripted_operator
 
 CAPABILITY = "member.open_sub_account"
 ORIGIN = origin_for("bank_a", "demo-core-servicing")
@@ -41,7 +44,8 @@ def main():
     print("-" * 64)
     urllib.request.urlopen(f"{ORIGIN}/reset").read()
     r = replay(art, {"member_number": "12345", "account_type": "savings",
-                     "nickname": "B1 demo"}, RunContext(origin=ORIGIN))
+                     "nickname": "B1 demo"},
+               RunContext(origin=ORIGIN, attended=True, operator=scripted_operator))
     for e in r.trail:
         if e["event"] == "done" and e.get("matched_by"):
             flag = "   <-- no accessible name" if e["target"].endswith("_button") else ""

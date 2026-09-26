@@ -37,7 +37,7 @@ No API key is needed for steps 1–7. Step 8 needs one: export `ANTHROPIC_API_KE
 python -m tools.replay 12345 --capability member.read_savings_balance   # one approved capability, no model: succeeded
 python -m tools.replay 99999 --capability member.read_savings_balance   # the same Artifact meets "No records found": business_outcome
 python -m tools.replay 12345 bank_b --capability member.open_sub_account   # a Tenant that grants no such Role: refused, nothing touched
-python -m pytest -q                                                     # 211 tests against the demo app, no model
+python -m pytest -q                                                     # 216 tests against the demo app, no model
 ```
 
 Each is explained in the walkthrough below.
@@ -125,9 +125,11 @@ caption beside it.*
 
 ### 2. The conditions, one command each
 
-Every one of these is the *same approved Artifact* meeting a different screen.
+Every one of these is the *same approved Artifact* meeting a different screen. Name it
+once, so no command stops to ask which capability:
 
 ```bash
+export CAPABILITY=member.open_sub_account
 python -m tools.replay 99999 --attended   # Business Outcome — the app's legitimate answer
 python -m tools.replay 54321 --attended   # Recoverable — dismisses an interstitial, carries on
 python -m tools.replay 88888 --attended   # Recoverable — session expires, the system signs in again
@@ -143,7 +145,7 @@ What you should see:
 | `99999` | `business_outcome · MEMBER_NOT_FOUND` | not an error: the answer, with `retry_same_inputs: never` and a hint for the caller |
 | `54321` | `succeeded` | a Watcher recognised the notice, dismissed it, re-checked, continued |
 | `88888` | `succeeded` | the automation holds the service account, so it re-authenticates itself |
-| `44444` | `failed · escalation_required` | a supervisor's own ID and PIN — no Role holds those |
+| `44444` | `failed · escalation_timeout` | a supervisor's own ID and PIN — no Role holds those, and nobody took the session within 5 s |
 | `33333` | `failed · unknown_state` | no Watcher covers "maximum accounts reached"; it refuses to guess |
 
 `33333` is the point of the design: the Artifact has **never seen** this screen. It does not
@@ -242,7 +244,8 @@ What each of the four layers contributes, by example:
 ### 5. One Artifact, two institutions
 
 Lakeside Savings runs the same vendor product with renamed controls and the search icon
-moved. The same approved Artifact, unchanged:
+moved. The same approved Artifact, unchanged. It commits, so it runs attended: a scripted
+Operator approves the commit and declines to take over a screen it does not recognise.
 
 ```bash
 python -m tools.demos.b2
@@ -253,7 +256,8 @@ python -m tools.demos.b2
    succeeded
 
 2. Lakeside Savings — same product, renamed controls, no Overlay
-   failed · unknown_state · at s1_login
+   aborted · stopped by operator:callback · at s3_password_entered
+   handed to the Operator because: no Watcher recognises this screen
 
 3. Lakeside Savings — the same artifact, with a 20-line Overlay
    succeeded   savings_balance=$4210.00 account=SA-2001
@@ -274,7 +278,8 @@ python -m tools.demos.b1
 ```
 
 Prints the accessibility view of the search control (it has no name at all), then the ladder
-recorded for it, then a replay showing which rung actually resolved each Target. A rising
+recorded for it, then a replay showing which rung actually resolved each Target. The replay
+runs attended, with the same scripted Operator approving the commit. A rising
 rate of fallback matches for a tenant is the signal that their app has drifted —
 see [docs/targeting.md](./docs/targeting.md).
 
@@ -352,7 +357,7 @@ goal that strays outside its Role, and the redaction chain the model sits behind
 ### 9. The tests
 
 ```bash
-python -m pytest -q          # 211 passing, ~5 minutes
+python -m pytest -q          # 216 passing, ~5 minutes
 ```
 
 Nothing is mocked: the demo app is the fixture, and each test reads as "replay for 99999 and

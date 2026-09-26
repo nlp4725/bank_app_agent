@@ -15,15 +15,14 @@ import json
 import sys
 from pathlib import Path
 
+from cua.replay.handoff import open_requests
+
 
 def open_intervention() -> Path | None:
-    candidates = sorted([*Path("runs").glob("run_*/intervention.json"),
-                         *Path("runs").glob("run_*/approval.json")],
-                        key=lambda p: p.stat().st_mtime, reverse=True)
-    for path in candidates:
-        if not (path.parent / "decision.json").exists():
-            return path
-    return None
+    """The newest request a run is still waiting on. A finished run's request stays
+    on disk as evidence, so the file existing is not enough: see waiting_request."""
+    waiting = open_requests(Path("runs"))
+    return waiting[0] if waiting else None
 
 
 def main(argv=None):
