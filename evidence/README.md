@@ -32,7 +32,7 @@ its suggestions.
 | 7 | `07-replay-refused-by-policy` | the same artifact at a tenant that has not granted its role | `Refused`, nothing touched |
 | 8 | `08-discovery-read-balance` | a second capability, discovered from a goal typed in words, under the current masking and crop rules | `goal_reached`, 7 turns |
 | 9 | `09-discovery-learnt-outcomes` | `read_savings_balance` from an empty store: the happy path, then one probe per outcome | `goal_reached` + `report_outcome` ×2 |
-| 10 | `10-replay-learnt-outcomes` | the Watchers those probes taught, at replay with no model | `Business Outcome` MEMBER_NOT_FOUND, NOT_AUTHORIZED |
+| 10 | `10-replay-learnt-outcomes` | that Artifact at replay with no model: clean, and the Watchers the probes taught | `Succeeded`; `Business Outcome` MEMBER_NOT_FOUND, NOT_AUTHORIZED |
 | 11 | `11-replay-human-handoff` | member 44444 cleared by a person in the live browser | `Succeeded` after handoff |
 
 ## 1 — discovery, goal reached
@@ -173,7 +173,8 @@ with no model call: `python -m tools.start --review evidence/09-discovery-learnt
 
 ## 10 — replay, the learnt Watchers
 
-The approved Artifact on the two probed members, no model:
+The approved Artifact with no model. `succeeded`: member 12345, the balance returned to the
+caller and absent from the trail. Then the two probed members:
 `member-not-found` matches `w_member_not_found` → `business_outcome MEMBER_NOT_FOUND`;
 `not-authorized` matches `w_not_authorized` → `business_outcome NOT_AUTHORIZED`. Each with
 its resolver, caller hint and `retry_same_inputs: never`.
