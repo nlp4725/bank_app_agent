@@ -3,6 +3,9 @@
 Eight runs, chosen to show the whole thread once: a real LLM discovery run, the draft it
 compiled, and five replays of the approved capability — one clean, one business outcome, one
 escalation a person resolves, one held-out condition, one refused before the browser opened.
+Folders 9–11 add a second capability made the current way: its Business Outcome Watchers
+learnt by probing rather than typed in review, used at replay, and a flag cleared by a person
+at the keyboard rather than a scripted Operator.
 
 The five replay folders are regenerated from the code as it stands with
 `python -m tools.replay.make_evidence`, so what they show is what the system does now rather
@@ -28,6 +31,9 @@ its suggestions.
 | 6 | `06-replay-unknown-state` | a condition the artifact has never seen | `Failed unknown_state`, effect verified absent |
 | 7 | `07-replay-refused-by-policy` | the same artifact at a tenant that has not granted its role | `Refused`, nothing touched |
 | 8 | `08-discovery-read-balance` | a second capability, discovered from a goal typed in words, under the current masking and crop rules | `goal_reached`, 7 turns |
+| 9 | `09-discovery-learnt-outcomes` | `read_savings_balance` from an empty store: the happy path, then one probe per outcome | `goal_reached` + `report_outcome` ×2 |
+| 10 | `10-replay-learnt-outcomes` | the Watchers those probes taught, at replay with no model | `Business Outcome` MEMBER_NOT_FOUND, NOT_AUTHORIZED |
+| 11 | `11-replay-human-handoff` | member 44444 cleared by a person in the live browser | `Succeeded` after handoff |
 
 ## 1 — discovery, goal reached
 
@@ -142,6 +148,45 @@ carries no name (`grep -c "Jane" trail.jsonl` → 0), the screenshots paint ever
 value, and the two crops (`03_target.png`, `05_target.png`) are of the Sign in button and the
 search icon, taken before the click. The figure "one turn, three representations" in the
 REPORT is drawn from turn 5 of this folder.
+
+## 9 — discovery, outcomes learnt by probing
+
+Recorded with no approved Artifact on disk, so there was no Watcher to borrow. Three real
+model runs from one `tools.start` sitting:
+
+| Run | Input | Ending |
+|---|---|---|
+| `disc_e21d888a` | member 12345, the happy path | `goal_reached`, 7 turns — `draft.yaml` compiled |
+| `disc_c8ec23aa` | member 99999, probing MEMBER_NOT_FOUND | `report_outcome`, quote "No records found" |
+| `disc_f07651e8` | member 22222, probing NOT_AUTHORIZED | `report_outcome`, quote "You are not authorized to view member 22222." |
+
+The probe inputs come from `outcome_examples` in
+[`contracts/read_savings_balance.yaml`](../contracts/read_savings_balance.yaml).
+`disc_e21d888a/probes.json` names which run probed what. The Recorder's `watcher_from_run`
+checked each quote against the last screen that run observed, and wrote the probed member
+back as a placeholder, so the second trigger is
+`You are not authorized to view member {{member_number}}.` and matches any member. The
+Reviewer accepted both with a yes, and dropped NO_SAVINGS_ACCOUNT, which the demo bank never
+shows. Result: [`artifact/read_savings_balance.1.0.0.yaml`](./artifact/), each Watcher's
+`provenance` naming the probe run it came from. The review can be redone from these folders
+with no model call: `python -m tools.start --review evidence/09-discovery-learnt-outcomes/disc_e21d888a`.
+
+## 10 — replay, the learnt Watchers
+
+The approved Artifact on the two probed members, no model:
+`member-not-found` matches `w_member_not_found` → `business_outcome MEMBER_NOT_FOUND`;
+`not-authorized` matches `w_not_authorized` → `business_outcome NOT_AUTHORIZED`. Each with
+its resolver, caller hint and `retry_same_inputs: never`.
+
+## 11 — replay, a person takes the live session
+
+The same escalation as `05`, with a person rather than a scripted Operator: the run paused
+on the supervisor screen (`intervention_raised` + `intervention.json` + `screen_1.png`), a
+person signed off in the browser the automation was using, and the engine saw the blocking
+screen gone, re-oriented and finished `succeeded`. The trail records
+`operator_acted by=auto:blocker cleared`, the URL before and after, and nothing typed —
+no supervisor ID or PIN appears in this folder. Resuming from the console
+(`python -m tools.operator resume`) instead records the Operator's own name.
 
 ## Reproducing these
 

@@ -2,7 +2,7 @@
 capability_id: member.read_savings_balance
 vendor_app: demo-core-servicing
 role: balance_reader
-goal: Look up member {member_number} and read that member's savings balance.
+goal: Look up the member identified by {member_number} and read their current savings balance.
 example_values:
   member_number: '12345'
 outcome_examples:
@@ -29,8 +29,8 @@ contract:
   - code: NOT_AUTHORIZED
     meaning: This login may not view that member.
     resolver: institution_staff
-    caller_hint: Have staff grant this login access to the member's records.
+    caller_hint: Ask institution staff to grant this login access to the member record.
   - code: NO_SAVINGS_ACCOUNT
     meaning: The member exists but holds no savings account to read.
     resolver: member
-    caller_hint: Ask the member which account they meant; no savings balance exists.
+    caller_hint: The member must open a savings account before a balance can be read.

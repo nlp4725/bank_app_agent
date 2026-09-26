@@ -1,0 +1,14 @@
+{
+  "run_id": "run_193d62b9",
+  "capability": "member.read_savings_balance",
+  "state": "s5_member_number_entered",
+  "reason": "This member is flagged; only a supervisor may clear it.",
+  "watcher": "w_approval_required",
+  "url": "http://127.0.0.1:5001/members",
+  "screenshot": "runs/run_193d62b9/screen_1.png",
+  "instruction": "Sign off on the screen in front of you with your own supervisor ID and PIN, then Acknowledge. The run continues by itself once the flag is cleared. The automation does not hold these credentials.",
+  "kind": "escalation",
+  "target": null,
+  "matched_by": null,
+  "raised_at": 1790423587.548059
+}
