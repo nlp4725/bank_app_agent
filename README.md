@@ -302,8 +302,10 @@ Regions already painted black — look at
 you will see the member's name and date of birth blacked out while the balances, which are
 the answer, remain.
 
-Eight runs are committed in **[evidence/](./evidence/)** with a guide to reading them. The
-five replays regenerate from the current code with `python -m tools.replay.make_evidence`.
+Eleven runs are committed in **[evidence/](./evidence/)** with a guide to reading them —
+among them outcomes learnt by probing (`09`–`10`) and a person clearing a flag in the live
+session (`11`). The five replays `03`–`07` regenerate from the current code with
+`python -m tools.replay.make_evidence`.
 
 ### 8. Discovery — where the Artifact came from
 

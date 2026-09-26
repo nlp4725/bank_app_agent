@@ -1,0 +1,19 @@
+{"ts": "2026-09-26T12:03:01.660+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-26T12:03:01.661+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:01.682+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:01.754+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s2_user_id_entered", "path": "/login", "action": "type"}
+{"ts": "2026-09-26T12:03:01.755+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:01.815+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:01.886+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s3_password_entered", "path": "/login", "action": "click"}
+{"ts": "2026-09-26T12:03:01.887+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-26T12:03:01.949+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
+{"ts": "2026-09-26T12:03:02.020+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s4_search", "path": "/search", "action": "type"}
+{"ts": "2026-09-26T12:03:02.020+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s4_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.024+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s4_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.075+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s5_member_number_entered", "path": "/search", "action": "click"}
+{"ts": "2026-09-26T12:03:02.075+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.125+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.856+00:00", "run_id": "run_f105e96c", "event": "policy_allow", "step": "s6_members_id", "path": "/members/12345", "action": "read"}
+{"ts": "2026-09-26T12:03:02.856+00:00", "run_id": "run_f105e96c", "event": "about_to", "step": "s6_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.858+00:00", "run_id": "run_f105e96c", "event": "done", "step": "s6_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T12:03:02.945+00:00", "run_id": "run_f105e96c", "event": "result", "status": "succeeded", "reason": null, "outcome": null}
