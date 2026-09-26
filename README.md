@@ -5,7 +5,19 @@ non-production copy. That run is compiled into a reviewable **Artifact**. Therea
 **Replay Engine** executes it with given inputs and **no model in the decision loop** — the
 only way a capability runs in production.
 
+![system architecture](./docs/figures/architecture.svg)
+
+*Discovery (top) runs once, against a non-production copy, behind two human gates: the
+Contract before any run, the Artifact before it can replay. Replay (bottom) is the only
+production path: typed inputs in, one Run Result out, an Operator when it escalates.*
+
+![read_savings_balance as a state machine](./docs/figures/state_chain.svg)
+
+*What discovery produces: an Artifact is a state machine. Each state has a checkpoint the
+replay verifies before it acts; each arrow is one action on a Target.*
+
 Write-up: **[REPORT.md](./REPORT.md)** · worked runs: **[evidence/](./evidence/)** ·
+screen recording: **[youtu.be/xtuRJwX2Wsw](https://youtu.be/xtuRJwX2Wsw)** ·
 language: [CONTEXT.md](./docs/CONTEXT.md) · decisions: [docs/adr](./docs/adr)
 
 ---
