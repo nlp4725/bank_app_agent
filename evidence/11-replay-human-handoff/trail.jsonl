@@ -1,0 +1,24 @@
+{"ts": "2026-09-26T11:52:56.310+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-26T11:52:56.311+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:52:57.219+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:52:57.304+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s2_user_id_entered", "path": "/login", "action": "type"}
+{"ts": "2026-09-26T11:52:57.304+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:52:58.235+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:52:58.276+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s3_password_entered", "path": "/login", "action": "click"}
+{"ts": "2026-09-26T11:52:58.277+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-26T11:52:59.273+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
+{"ts": "2026-09-26T11:52:59.346+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s4_search", "path": "/search", "action": "type"}
+{"ts": "2026-09-26T11:52:59.346+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s4_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:00.273+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s4_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:00.318+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s5_member_number_entered", "path": "/search", "action": "click"}
+{"ts": "2026-09-26T11:53:00.318+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:01.297+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:07.378+00:00", "run_id": "run_193d62b9", "event": "checkpoint_missed", "step": "s6_members_id", "predicate": "element_present", "expected": "t_savings_balance", "url": "http://127.0.0.1:5001/members", "timeout_ms": 6000, "blocked_requests": [], "frames": ["http://127.0.0.1:5001/members"]}
+{"ts": "2026-09-26T11:53:07.409+00:00", "run_id": "run_193d62b9", "event": "watcher_matched", "watcher": "w_approval_required", "condition": "escalate", "step": "s5_member_number_entered"}
+{"ts": "2026-09-26T11:53:07.548+00:00", "run_id": "run_193d62b9", "event": "intervention_raised", "step": "s5_member_number_entered", "watcher": "w_approval_required", "reason": "This member is flagged; only a supervisor may clear it.", "request": "runs/run_193d62b9/intervention.json"}
+{"ts": "2026-09-26T11:53:08.900+00:00", "run_id": "run_193d62b9", "event": "operator_acted", "by": "auto:blocker cleared", "decision": "resume", "url_before": "http://127.0.0.1:5001/members", "url_after": "http://127.0.0.1:5001/members/44444", "navigated": true}
+{"ts": "2026-09-26T11:53:08.958+00:00", "run_id": "run_193d62b9", "event": "resumed", "step": "s6_members_id"}
+{"ts": "2026-09-26T11:53:09.060+00:00", "run_id": "run_193d62b9", "event": "policy_allow", "step": "s6_members_id", "path": "/members/44444", "action": "read"}
+{"ts": "2026-09-26T11:53:09.060+00:00", "run_id": "run_193d62b9", "event": "about_to", "step": "s6_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:09.062+00:00", "run_id": "run_193d62b9", "event": "done", "step": "s6_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
+{"ts": "2026-09-26T11:53:09.111+00:00", "run_id": "run_193d62b9", "event": "result", "status": "succeeded", "reason": null, "outcome": null}
