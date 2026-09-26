@@ -107,12 +107,15 @@ The two responsibilities behind those questions:
   "read" arrive Safe. The Reviewer changes a click to Safe (the ones that only navigate)
   and leaves the unsafe ones as they are. During replay an unsafe action requires a human
   in the loop to confirm it, and if no human is present the run is refused automatically.
-- **Error handling.** The current approach is prebuilt: an engineer drives the LLM through
-  the known errors ahead of time, and each error's signature and how to deal with it is
-  recorded as a Watcher, either before discovery or during it. The Reviewer chooses which
-  to add to the capability (see Figures S4 and S5 of
-  [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md)). We acknowledge the current approach is very manual and requires prior knowledge
-  of the system and the workflow.
+- **Error handling.** Business Outcomes are learnt by probing. The Discovery Request names,
+  per Outcome Code, an input that should produce it (`outcome_examples`); after the happy
+  path, discovery runs the same goal on each, the model ends with `report_outcome` and
+  quotes the screen, and the Recorder (`watcher_from_run`) turns the quote into a Watcher —
+  only if the quote is on the last screen the run observed, cut at anything masking left,
+  with the probed input written back as a placeholder. The review offers each for a yes.
+  What still needs prior knowledge is the test data (which member does not exist), not the
+  screen text. Recoverable conditions stay in the App Profile (see Figures S4 and S5 of
+  [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md)).
 
 The Recorder decides nothing; each question is one it could not answer from the run. Every
 click arrives Consequential and only a person downgrades it. A declared outcome needs a

@@ -90,12 +90,46 @@ def ask_values(spec: dict, ask=input) -> dict:
     return values
 
 
+def ask_outcome_examples(spec: dict, ask=input) -> dict:
+    """Per Outcome Code, the inputs that should produce it: discovery probes each one
+    so the screen that means it is learnt rather than typed. Test data a tester knows —
+    "99999 does not exist" — kept in the Discovery Request file once given.
+
+    Values already in the file for this capability are kept without asking. Otherwise
+    the first input is asked for (the others stay as the happy path's); Enter skips
+    the outcome, which the review then drops unless a Watcher can be borrowed."""
+    first = next(iter(spec["contract"]["inputs"]), None)
+    codes = [o["code"] for o in spec["contract"]["outcomes"]]
+    kept = {c: v for c, v in (spec.get("outcome_examples") or previous(spec).get(
+        "outcome_examples") or {}).items() if c in codes}
+    for code in codes:
+        if code in kept or first is None:
+            continue
+        rule = spec["contract"]["inputs"][first]
+        while True:
+            raw = ask(f"  {first} that gives {code} (Enter to skip): ").strip()
+            raw = "" if raw.lower() in ("n", "no") else raw
+            problem = check(rule, raw) if raw else None
+            if problem is None:
+                break
+            print(f"    {first}: {problem}")
+        if raw:
+            kept[code] = {first: raw}
+    return kept
+
+
+def previous(spec: dict) -> dict:
+    """The saved Discovery Request for this capability, if there is one."""
+    path = CONTRACTS / f"{spec['capability_id'].split('.')[-1]}.yaml"
+    return (yaml.safe_load(path.read_text()) or {}) if path.exists() else {}
+
+
 def save(spec: dict) -> Path:
     CONTRACTS.mkdir(exist_ok=True)
     stem = spec["capability_id"].split(".")[-1]
     path = CONTRACTS / f"{stem}.yaml"
     out = {k: spec[k] for k in ("capability_id", "vendor_app", "role", "goal",
-                                "example_values", "contract")}
+                                "example_values", "outcome_examples", "contract") if k in spec}
     path.write_text("# Proposed by the model from a goal typed in words; confirmed by a "
                     "Reviewer in tools.start.\n" + yaml.safe_dump(out, sort_keys=False, width=100))
     return path

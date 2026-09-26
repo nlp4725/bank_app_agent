@@ -4,12 +4,13 @@ save — and offer to watch the approved capability replay.
     python -m tools.start --review runs/disc_<id>           # redo it for an existing run
 """
 
+import json
 import os
 from pathlib import Path
 
 import yaml
 
-from cua.authoring.recorder import record_from_run
+from cua.authoring.recorder import record_from_run, watcher_from_run
 from cua.authoring.review import apply_decisions, approve
 from cua.domain.artifact import Artifact, merged
 from cua.governance.profile import load_profile
@@ -23,6 +24,27 @@ from tools.replay import run_replay
 ARTIFACTS = Path("artifacts")
 VERIFY_MEMBERS = ["12345", "54321"]      # normal members; verify on one discovery never saw
 WATCH_PACE_MS = 2000                     # between steps when watching a replay after approval
+PROBES = "probes.json"                   # beside a run: Outcome Code -> the run that probed it
+
+
+def learnt_watchers(spec: dict, run_dir: str) -> dict:
+    """Outcome Code -> Watcher, from the probe runs recorded beside this run.
+
+    `probes.json` names, per Outcome Code, the run discovery made on inputs that should
+    produce it; the inputs themselves stay in the Discovery Request file, not here."""
+    probes = Path(run_dir) / PROBES
+    if not probes.exists():
+        return {}
+    learnt = {}
+    for code, probe_dir in json.loads(probes.read_text()).items():
+        values = {**spec["example_values"], **spec.get("outcome_examples", {}).get(code, {})}
+        watcher, why = watcher_from_run(probe_dir, values)
+        if watcher is None or watcher["outcome"] != code:
+            why = why if watcher is None else f"the run reported {watcher['outcome']}"
+            print(f"  {code}: nothing learnt from {Path(probe_dir).name} — {why}")
+            continue
+        learnt[code] = watcher
+    return learnt
 
 
 def _watch(capability: str, member: str, tenant: str) -> None:
@@ -47,7 +69,8 @@ def review_artifact(spec: dict, run_dir: str, *, tenant: str = "bank_a", ask=inp
               f"  python -m tools.start --review {run_dir}")
         return 0
 
-    decisions = decide(draft, suggestions, spec, run_id, ask, reviewer)
+    decisions = decide(draft, suggestions, spec, run_id, ask, reviewer,
+                       learnt=learnt_watchers(spec, run_dir))
     ARTIFACTS.mkdir(exist_ok=True)
     dpath = ARTIFACTS / f"{stem}.decisions.yaml"
     dpath.write_text(f"# What the Reviewer decided about the draft compiled from {run_id}.\n"

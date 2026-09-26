@@ -27,8 +27,12 @@ def known_watchers(vendor_app: str) -> dict[str, tuple[str, dict]]:
 
 
 def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=input,
-           reviewer: str = "reviewer") -> dict:
-    """The Reviewer's answers, as a decisions file cua/authoring/review.py applies mechanically."""
+           reviewer: str = "reviewer", learnt: dict | None = None) -> dict:
+    """The Reviewer's answers, as a decisions file cua/authoring/review.py applies mechanically.
+
+    `learnt` is Outcome Code -> Watcher, from the probe runs discovery made on inputs
+    that should produce each outcome (tools/start.py); each is offered, not applied."""
+    learnt = learnt or {}
     decisions = {"version": draft["capability"]["version"], "approvals": [],
                  "safe_targets": [], "interruptions": [], "watchers": [], "keep_outcomes": []}
 
@@ -75,6 +79,13 @@ def decide(draft: dict, suggestions: list[str], spec: dict, run_id: str, ask=inp
         if code in have:
             decisions["keep_outcomes"].append(code)
             continue
+        if code in learnt:
+            w = learnt[code]
+            if (ask(f"  {code}: learnt from {w['provenance'].split(':', 1)[-1]} — text "
+                    f"{w['trigger']['value']!r}. Use it? [Y/n]  ").strip().lower() or "y").startswith("y"):
+                decisions["watchers"].append(w)
+                decisions["keep_outcomes"].append(code)
+                continue
         if code in known:
             owner, w = known[code]
             if (ask(f"  {code}: reuse watcher {w['id']} — text {w['trigger'].get('value')!r} "

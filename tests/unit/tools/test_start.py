@@ -26,7 +26,8 @@ def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path,
             def __str__(self): return "ok"
         return R()
 
-    code = start.run(ask=scripted_answers(["read the savings balance of a member", "y", "12345", "n"]),
+    code = start.run(ask=scripted_answers(["read the savings balance of a member", "y", "12345",
+                                           "99999", "n"]),
                      propose=lambda goal, app, **kw: spec_from_proposal(PROPOSAL, app),
                      discover_fn=fake_discover)
     assert code == 0
@@ -35,7 +36,8 @@ def test_the_conversation_asks_goal_then_values_then_confirms_and_runs(tmp_path,
     assert r.role == "balance_reader" and r.capability_id == "member.read_savings_balance"
     assert r.example_values == {"member_number": "12345"}
     assert r.headless is True                       # answered "n" to watching
-    assert (tmp_path / "read_savings_balance.yaml").exists()
+    saved = __import__("yaml").safe_load((tmp_path / "read_savings_balance.yaml").read_text())
+    assert saved["outcome_examples"] == {"MEMBER_NOT_FOUND": {"member_number": "99999"}}
 
 
 def test_a_value_that_breaks_the_contract_is_asked_again(tmp_path, monkeypatch):
@@ -272,3 +274,71 @@ def test_the_watch_step_finds_an_artifact_approved_into_an_empty_store(tmp_path,
         watch_fn=lambda cap, member, tenant: watched.update(art=load_capability(cap)))
     assert code == 0
     assert watched["art"].capability.status == "approved"
+
+
+# ── outcomes learnt by probing, not typed ─────────────────────────────────────
+
+def test_outcome_examples_already_saved_are_not_asked_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(contract, "CONTRACTS", tmp_path)
+    spec = spec_from_proposal(PROPOSAL, "demo-core-servicing")
+    spec["example_values"] = {"member_number": "12345"}
+    spec["outcome_examples"] = {"MEMBER_NOT_FOUND": {"member_number": "99999"}}
+    contract.save(spec)
+    fresh = spec_from_proposal(PROPOSAL, "demo-core-servicing")      # proposed again
+    asked = contract.ask_outcome_examples(fresh, ask=lambda p: pytest.fail(f"asked: {p}"))
+    assert asked == {"MEMBER_NOT_FOUND": {"member_number": "99999"}}
+
+
+def test_each_outcome_with_an_example_is_probed_and_recorded_beside_the_run(tmp_path):
+    import json
+    spec = yaml_spec("contracts/read_savings_balance.yaml")
+    requests = []
+    def fake_discover(request):
+        requests.append(request)
+        class R:
+            trace_dir = str(tmp_path / f"disc_{len(requests)}")
+            def __str__(self): return "report_outcome"
+        return R()
+    probes = start.probe_outcomes(spec, {"member_number": "12345"}, str(tmp_path),
+                                  tenant="bank_a", headed=False, slowmo=0,
+                                  discover_fn=fake_discover)
+    assert [r.example_values["member_number"] for r in requests] == ["99999", "22222"]
+    assert all(r.compile_draft is False for r in requests)         # a probe is not a capability
+    assert json.loads((tmp_path / review.PROBES).read_text()) == probes
+    assert set(probes) == {"MEMBER_NOT_FOUND", "NOT_AUTHORIZED"}
+
+
+def test_the_review_offers_the_learnt_watcher_instead_of_asking_for_text(tmp_path, monkeypatch):
+    import json, shutil
+    monkeypatch.setattr(review, "ARTIFACTS", tmp_path / "artifacts")
+    run = tmp_path / "happy"
+    shutil.copytree(RUN, run)
+    (run / review.PROBES).write_text(json.dumps(
+        {"MEMBER_NOT_FOUND": "evidence/02-discovery-business-outcome"}))
+    spec = yaml_spec("contracts/open_sub_account.yaml")
+    prompts = []
+    def ask(prompt):
+        prompts.append(prompt)
+        if "MEMBER_NOT_FOUND: learnt from" in prompt: return "y"
+        if "reuse watcher" in prompt: return "n"
+        if "no watcher can recognise" in prompt: return "d"
+        if "is this action safe" in prompt: return "n" if "t_continue" in prompt else "y"
+        if "interruption" in prompt: return "y" if "'OK'" in prompt else "n"
+        if "identifies it" in prompt: return "System notice"
+        if "page to open afterwards" in prompt: return ""
+        if "proves it happened" in prompt: return "{{nickname}}"
+        if "second approver" in prompt: return "reviewer:sam"
+        if "Watch it replay" in prompt or "show the approved" in prompt: return "n"
+        return "y" if "?" in prompt else "reviewer:nasi"
+    code = review.review_artifact(spec, str(run), ask=ask, replay_fn=lambda a, i: VerifyOk())
+    assert code == 0, prompts
+    assert not any("MEMBER_NOT_FOUND: no watcher" in p for p in prompts)
+    d = yaml_spec(str(tmp_path / "artifacts" / "open_sub_account.decisions.yaml"))
+    learnt = next(w for w in d["watchers"] if w["outcome"] == "MEMBER_NOT_FOUND")
+    assert learnt["trigger"] == {"type": "text_present", "value": "No records found"}
+    assert learnt["provenance"] == "discovery:02-discovery-business-outcome"
+
+
+def yaml_spec(path):
+    import yaml
+    return yaml.safe_load(open(path))
