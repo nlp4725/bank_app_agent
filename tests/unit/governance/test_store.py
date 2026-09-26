@@ -74,3 +74,25 @@ def test_every_target_asset_the_shipped_artifact_names_exists():
                 assert not rung.asset.startswith("runs/"), \
                     f"{name} pins its picture rung to a run directory"
                 assert Path(rung.asset).exists(), f"{name}: missing {rung.asset}"
+
+
+# ── a file written while the process runs ────────────────────────────────────
+
+def _empty_root(tmp_path, monkeypatch):
+    """A root with the real config and no artifacts: the store before any approval."""
+    from cua.settings import settings
+    (tmp_path / "config").symlink_to(Path("config").resolve())
+    (tmp_path / "artifacts").mkdir()
+    monkeypatch.setattr(settings, "root", tmp_path)
+    return tmp_path / "artifacts"
+
+
+def test_an_artifact_written_after_the_store_was_read_is_found_once_refreshed(tmp_path, monkeypatch):
+    """The review asks the store for Watchers to borrow, then saves, then replays."""
+    from cua.governance.store import artifacts, refresh
+    shelf = _empty_root(tmp_path, monkeypatch)
+    assert artifacts() == []                                   # read while empty
+    (shelf / "read_savings_balance.1.0.0.yaml").write_text(
+        Path("artifacts/read_savings_balance.1.0.0.yaml").read_text())
+    refresh()
+    assert load_capability("member.read_savings_balance").capability.status == "approved"
