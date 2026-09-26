@@ -1,6 +1,6 @@
 # How a Target finds a control
 
-Terms in [CONTEXT.md](../CONTEXT.md). Everything below was measured against the
+Terms in [CONTEXT.md](./CONTEXT.md). Everything below was measured against the
 demo app, not assumed; the commands are in `tools/inspect/a11y_dump.py`.
 
 ## The problem, on one screen

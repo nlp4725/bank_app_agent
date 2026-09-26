@@ -111,7 +111,7 @@ add(f'<path d="M {mids[0]} {BUS_Y} L {mids[-1]} {BUS_Y}" stroke="{RED}" stroke-w
     f'fill="none" stroke-dasharray="4 3"/>')
 text(fx + 10, BUS_Y - 22, "which Watcher fires?", size=10.5, fill=RED, style="italic", anchor="start")
 
-for (member, wid, reaction), x, mx in zip(SCENARIOS, bx, mids):
+for (member, wid, reaction), x, mx in zip(SCENARIOS, bx, mids, strict=False):
     w = watchers[wid]
     cond = w["condition"]
     fg, bg = {"business_outcome": (GREEN, GREEN_BG), "recoverable": (BLUE, BLUE_BG),

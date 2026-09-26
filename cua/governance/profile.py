@@ -3,7 +3,7 @@
 Session expiry, interstitials, error pages and the Readable/Sensitive Regions are
 properties of the app, not of any one capability: learnt once, they reach every
 Artifact. They are governance data a Reviewer owns, so they live beside the Roles in
-`config/`, not inside any caller. See CONTEXT.md, "App Profile".
+`config/`, not inside any caller. See docs/CONTEXT.md, "App Profile".
 """
 
 from functools import cache

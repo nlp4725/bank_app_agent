@@ -19,4 +19,4 @@ replaying for member 99999 at bank_a (http://127.0.0.1:5001) — no model in the
 
 RESULT  business_outcome · MEMBER_NOT_FOUND
 OUTCOME {'code': 'MEMBER_NOT_FOUND', 'resolver': 'member', 'caller_hint': 'Ask the member to re-check the number.', 'retry_same_inputs': 'never', 'data': {}}
-TIME    7.7s     evidence: runs/run_07143064
+TIME    7.2s     evidence: runs/run_f81b4fe2

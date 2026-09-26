@@ -6,7 +6,7 @@ Condition in the error taxonomy. See docs/error-taxonomy.md.
 
 from copy import deepcopy
 
-# Service accounts. Two roles, mirroring the Role model in CONTEXT.md:
+# Service accounts. Two roles, mirroring the Role model in docs/CONTEXT.md:
 # a read-only login that cannot open accounts at all, and a servicing officer.
 USERS = {
     "svc_read": {"password": "read-only-pw", "can_open_accounts": False},

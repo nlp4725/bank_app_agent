@@ -1,6 +1,6 @@
 # PRD: Computer-Use Automation System (interface.ai take-home)
 
-Vocabulary: [CONTEXT.md](../CONTEXT.md). Decisions: [docs/adr](./adr). Error handling: [error-taxonomy.md](./error-taxonomy.md). Safety: [security-model.md](./security-model.md).
+Vocabulary: [CONTEXT.md](./CONTEXT.md). Decisions: [docs/adr](./adr). Error handling: [error-taxonomy.md](./error-taxonomy.md). Safety: [security-model.md](./security-model.md).
 
 ## Problem Statement
 
@@ -144,4 +144,4 @@ Prior art worth citing in REPORT.md: PreAct (verify-before-act, verify-before-st
 
 Build order: Flask app → schema and a hand-written Artifact → Replay Engine → safety → real discovery run (early, and budget for it) → Recorder → handoff → Overlay and unlabelled-control demos → evidence, README, REPORT.
 
-Keep `NOTES.md` from the first commit: the bug stories are the report and the interview answers.
+Keep `docs/NOTES.md` from the first commit: the bug stories are the report and the interview answers.

@@ -19,9 +19,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from cua.replay import RunContext, replay                      # noqa: E402
-from cua.governance.store import load_capability, origin_for               # noqa: E402
-from tools.replay.make_evidence import clears_the_flag               # noqa: E402
+from cua.governance.store import load_capability, origin_for  # noqa: E402
+from cua.replay import RunContext, replay  # noqa: E402
+from tools.replay.make_evidence import on_shift  # noqa: E402
 
 CAPABILITY = "member.read_savings_balance"
 OUT = Path(__file__).resolve().parent / "read_savings_balance_paths.svg"
@@ -42,7 +42,7 @@ RUNS = [
     ("99999", "a Business Outcome: the app's legitimate answer", {}),
     ("88888", "a Recoverable: the session expires, the engine signs in again", {}),
     ("44444", "an Escalate: a supervisor acts in the live session",
-     {"attended": True, "operator": clears_the_flag}),
+     {"attended": True, "operator": on_shift}),
 ]
 
 W = 1240
@@ -91,7 +91,7 @@ for member, caption, extra in RUNS:
 
 def passes(trail):
     """The States a run visited, split into passes: a re-entry starts a new pass."""
-    runs, current, miss, watcher, human = [[]], [], None, None, None
+    runs, miss, watcher, human = [[]], None, None, None
     for e in trail:
         kind = e["event"]
         if kind == "about_to" and e["step"] not in runs[-1]:

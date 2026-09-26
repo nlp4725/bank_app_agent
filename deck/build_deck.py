@@ -11,7 +11,7 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
-from pptx.util import Emu, Inches, Pt
+from pptx.util import Inches, Pt
 
 OUT = Path(__file__).resolve().parent / "current-system.pptx"
 
@@ -67,7 +67,7 @@ def para(tf, text, *, size=12, bold=False, color=INK, align=PP_ALIGN.LEFT,
 
 def _segments(text):
     """*emphasis* inside a string becomes a bold run."""
-    out, buf, strong = [], "", False
+    out, strong = [], False
     for part in text.split("*"):
         out.append((part, strong))
         strong = not strong
@@ -729,7 +729,7 @@ for i, (title, body) in enumerate(gaps):
     text(s, 7.05, y + 0.09, 5.5, 0.25, title, size=11, color=RED, bold=True)
     text(s, 7.05, y + 0.34, 5.5, 0.7, body, size=9.5, color=INK, spacing=2)
 
-footnote(s, "NOTES.md carries the full build log: what broke, why, and what changed as a result.")
+footnote(s, "docs/NOTES.md carries the full build log: what broke, why, and what changed as a result.")
 
 prs.save(OUT)
 print(f"wrote {OUT}  ({len(prs.slides.__iter__.__self__._sldIdLst)} slides)")

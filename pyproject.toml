@@ -53,3 +53,4 @@ ignore_missing_imports = true
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E701", "E702", "E741"]     # one-line scripted answers and fixtures read better on one line
+"docs/figures/**" = ["E402", "E702"]      # figure scripts: imports after path setup, coordinate tables on one line

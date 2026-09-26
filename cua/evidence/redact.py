@@ -56,7 +56,7 @@ def mask_value(target_name: str | None, value: str, readable: set[str],
 class Redactor:
     """The Redaction Chokepoint: one module every channel passes through.
 
-    The four layers of CONTEXT.md, "Redaction", in one place — structural (a password
+    The four layers of docs/CONTEXT.md, "Redaction", in one place — structural (a password
     is never read), origin (a value is hidden unless its Target is a Readable Region),
     pattern (the net under what does come through), and pixels (declared Sensitive
     Regions painted black at capture). Built from the App Profile, because what is

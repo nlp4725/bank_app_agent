@@ -1,39 +1,39 @@
-{"ts": "2026-09-25T15:11:06.593+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
-{"ts": "2026-09-25T15:11:06.594+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.610+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.681+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s2_user_id_entered", "path": "/login", "action": "type"}
-{"ts": "2026-09-25T15:11:06.681+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.741+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.794+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s3_password_entered", "path": "/login", "action": "click"}
-{"ts": "2026-09-25T15:11:06.794+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:06.848+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:06.910+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s4_search", "path": "/search", "action": "type"}
-{"ts": "2026-09-25T15:11:06.910+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s4_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.917+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s4_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:06.965+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s5_member_number_entered", "path": "/search", "action": "click"}
-{"ts": "2026-09-25T15:11:06.965+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:07.025+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:07.727+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s7_members_id", "path": "/members/33333", "action": "read"}
-{"ts": "2026-09-25T15:11:07.727+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:07.729+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:07.889+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s8_savings_balance_read", "path": "/members/33333", "action": "click"}
-{"ts": "2026-09-25T15:11:07.890+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:07.941+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:08.010+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s9_members_id", "path": "/members/33333/subaccounts/new?", "action": "select"}
-{"ts": "2026-09-25T15:11:08.010+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s9_members_id", "action": "select", "target": "t_account_type", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:08.015+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s9_members_id", "action": "select", "target": "t_account_type", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:08.067+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s10_account_type_entered", "path": "/members/33333/subaccounts/new?", "action": "type"}
-{"ts": "2026-09-25T15:11:08.067+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "risk": "safe", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:08.072+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "matched_by": "label_anchor"}
-{"ts": "2026-09-25T15:11:08.106+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s11_nickname_entered", "path": "/members/33333/subaccounts/new?", "action": "click"}
-{"ts": "2026-09-25T15:11:08.106+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "risk": "safe", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:08.143+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:08.158+00:00", "run_id": "run_25556dfd", "event": "policy_allow", "step": "s12_members_id", "path": "/members/33333/subaccounts/review", "action": "click"}
-{"ts": "2026-09-25T15:11:08.302+00:00", "run_id": "run_25556dfd", "event": "approval_requested", "step": "s12_members_id", "target": "t_continue", "matched_by": "role_name", "request": "runs/run_25556dfd/approval.json"}
-{"ts": "2026-09-25T15:11:08.302+00:00", "run_id": "run_25556dfd", "event": "operator_acted", "by": "operator:callback", "decision": "approve", "url_before": "http://127.0.0.1:5001/members/33333/subaccounts/review", "url_after": "http://127.0.0.1:5001/members/33333/subaccounts/review", "navigated": false}
-{"ts": "2026-09-25T15:11:08.302+00:00", "run_id": "run_25556dfd", "event": "approved", "step": "s12_members_id", "by": "operator:callback"}
-{"ts": "2026-09-25T15:11:08.304+00:00", "run_id": "run_25556dfd", "event": "about_to", "step": "s12_members_id", "action": "click", "target": "t_continue", "risk": "consequential", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:08.359+00:00", "run_id": "run_25556dfd", "event": "done", "step": "s12_members_id", "action": "click", "target": "t_continue", "matched_by": "role_name"}
-{"ts": "2026-09-25T15:11:14.501+00:00", "run_id": "run_25556dfd", "event": "checkpoint_missed", "step": "s13_members_id", "predicate": "element_present", "expected": "t_new_account_number", "url": "http://127.0.0.1:5001/members/33333/subaccounts/commit", "timeout_ms": 6000, "blocked_requests": [], "frames": ["http://127.0.0.1:5001/members/33333/subaccounts/commit"]}
-{"ts": "2026-09-25T15:11:17.605+00:00", "run_id": "run_25556dfd", "event": "verification_check", "step": "s12_members_id", "took_effect": false}
-{"ts": "2026-09-25T15:11:18.337+00:00", "run_id": "run_25556dfd", "event": "result", "status": "failed", "reason": "unknown_state", "outcome": null}
+{"ts": "2026-09-25T23:17:29.797+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s1_login", "path": "/login", "action": "type"}
+{"ts": "2026-09-25T23:17:29.797+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s1_login", "action": "type", "target": "t_user_id", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:29.813+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s1_login", "action": "type", "target": "t_user_id", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:29.874+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s2_user_id_entered", "path": "/login", "action": "type"}
+{"ts": "2026-09-25T23:17:29.874+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:29.900+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s2_user_id_entered", "action": "type", "target": "t_password", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:29.935+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s3_password_entered", "path": "/login", "action": "click"}
+{"ts": "2026-09-25T23:17:29.935+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:29.985+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s3_password_entered", "action": "click", "target": "t_sign_in", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:30.048+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s4_search", "path": "/search", "action": "type"}
+{"ts": "2026-09-25T23:17:30.048+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s4_search", "action": "type", "target": "t_member_number", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.052+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s4_search", "action": "type", "target": "t_member_number", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.087+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s5_member_number_entered", "path": "/search", "action": "click"}
+{"ts": "2026-09-25T23:17:30.087+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.132+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s5_member_number_entered", "action": "click", "target": "t_member_number_button", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.771+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s7_members_id", "path": "/members/33333", "action": "read"}
+{"ts": "2026-09-25T23:17:30.771+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.773+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s7_members_id", "action": "read", "target": "t_savings_balance", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.884+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s8_savings_balance_read", "path": "/members/33333", "action": "click"}
+{"ts": "2026-09-25T23:17:30.884+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:30.927+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s8_savings_balance_read", "action": "click", "target": "t_open", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:30.991+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s9_members_id", "path": "/members/33333/subaccounts/new?", "action": "select"}
+{"ts": "2026-09-25T23:17:30.991+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s9_members_id", "action": "select", "target": "t_account_type", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:30.996+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s9_members_id", "action": "select", "target": "t_account_type", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:31.031+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s10_account_type_entered", "path": "/members/33333/subaccounts/new?", "action": "type"}
+{"ts": "2026-09-25T23:17:31.032+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "risk": "safe", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:31.035+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s10_account_type_entered", "action": "type", "target": "t_nickname", "matched_by": "label_anchor"}
+{"ts": "2026-09-25T23:17:31.059+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s11_nickname_entered", "path": "/members/33333/subaccounts/new?", "action": "click"}
+{"ts": "2026-09-25T23:17:31.059+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "risk": "safe", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:31.105+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s11_nickname_entered", "action": "click", "target": "t_review", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:31.125+00:00", "run_id": "run_a70dadef", "event": "policy_allow", "step": "s12_members_id", "path": "/members/33333/subaccounts/review", "action": "click"}
+{"ts": "2026-09-25T23:17:31.258+00:00", "run_id": "run_a70dadef", "event": "approval_requested", "step": "s12_members_id", "target": "t_continue", "matched_by": "role_name", "request": "runs/run_a70dadef/approval.json"}
+{"ts": "2026-09-25T23:17:31.259+00:00", "run_id": "run_a70dadef", "event": "operator_acted", "by": "operator:callback", "decision": "approve", "url_before": "http://127.0.0.1:5001/members/33333/subaccounts/review", "url_after": "http://127.0.0.1:5001/members/33333/subaccounts/review", "navigated": false}
+{"ts": "2026-09-25T23:17:31.259+00:00", "run_id": "run_a70dadef", "event": "approved", "step": "s12_members_id", "by": "operator:callback"}
+{"ts": "2026-09-25T23:17:31.260+00:00", "run_id": "run_a70dadef", "event": "about_to", "step": "s12_members_id", "action": "click", "target": "t_continue", "risk": "consequential", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:31.316+00:00", "run_id": "run_a70dadef", "event": "done", "step": "s12_members_id", "action": "click", "target": "t_continue", "matched_by": "role_name"}
+{"ts": "2026-09-25T23:17:37.462+00:00", "run_id": "run_a70dadef", "event": "checkpoint_missed", "step": "s13_members_id", "predicate": "element_present", "expected": "t_new_account_number", "url": "http://127.0.0.1:5001/members/33333/subaccounts/commit", "timeout_ms": 6000, "blocked_requests": [], "frames": ["http://127.0.0.1:5001/members/33333/subaccounts/commit"]}
+{"ts": "2026-09-25T23:17:40.623+00:00", "run_id": "run_a70dadef", "event": "verification_check", "step": "s12_members_id", "took_effect": false}
+{"ts": "2026-09-25T23:17:41.225+00:00", "run_id": "run_a70dadef", "event": "result", "status": "failed", "reason": "unknown_state", "outcome": null}

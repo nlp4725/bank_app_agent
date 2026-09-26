@@ -4,7 +4,7 @@ Every caller — the Replay Engine's entry points, the demo tools, the tests —
 here rather than opening a file, so there is one model of a capability and not two.
 The Store owns the three things a caller would otherwise assemble by hand: finding
 the approved Artifact, merging its App Profile, and the per-Tenant address and
-Overlay. See CONTEXT.md, "Artifact" and "Tenant Overlay".
+Overlay. See docs/CONTEXT.md, "Artifact" and "Tenant Overlay".
 """
 
 from functools import cache

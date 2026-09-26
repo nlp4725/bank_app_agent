@@ -1,14 +1,14 @@
 {
-  "run_id": "run_0c198850",
+  "run_id": "run_72ad7567",
   "capability": "member.open_sub_account",
   "state": "s5_member_number_entered",
   "reason": "This member is flagged; only a supervisor may clear it.",
   "watcher": "w_approval_required",
   "url": "http://127.0.0.1:5001/members",
-  "screenshot": "runs/run_0c198850/screen_1.png",
+  "screenshot": "runs/run_72ad7567/screen_1.png",
   "instruction": "Sign off on the screen in front of you with your own supervisor ID and PIN, then Acknowledge. The run continues by itself once the flag is cleared. The automation does not hold these credentials.",
   "kind": "escalation",
   "target": null,
   "matched_by": null,
-  "raised_at": 1790349063.569782
+  "raised_at": 1790378247.342103
 }

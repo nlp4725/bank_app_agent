@@ -10,7 +10,7 @@ def unfinished(evidence_root) -> list[dict]:
     Each action is written down before it is performed and again after, and the line
     is flushed, so a run that stopped between the two leaves the pair unbalanced.
     On restart this is what turns "the process was killed mid-commit" into an answer
-    — Outcome Unknown, do not retry — rather than silence. See CONTEXT.md, the error
+    — Outcome Unknown, do not retry — rather than silence. See docs/CONTEXT.md, the error
     table's last row.
     """
     found = []

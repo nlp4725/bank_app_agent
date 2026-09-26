@@ -4,7 +4,7 @@ The four tests that paint a screenshot or read a live page are in
 tests/app/test_pixels.py.
 
 A name and a birthday have no shape a regex can find, so the mechanism that has to
-work is knowing *which field* a value came from. See CONTEXT.md, "Redaction".
+work is knowing *which field* a value came from. See docs/CONTEXT.md, "Redaction".
 """
 
 import pytest

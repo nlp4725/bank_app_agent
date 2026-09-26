@@ -3,7 +3,7 @@
 Every module, in the order the data flows through it, with what goes in and what comes
 out. `cua/` is the system; `tools/` are entry points that only wire it together;
 `fake_bank/` is the target. Nothing in `cua/` imports from `tools/`. Examples are the
-demo's real values. Vocabulary: [CONTEXT.md](../CONTEXT.md).
+demo's real values. Vocabulary: [CONTEXT.md](./CONTEXT.md).
 
 | Module | In → Out (example) | Does |
 |---|---|---|

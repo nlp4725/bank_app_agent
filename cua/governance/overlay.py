@@ -2,7 +2,7 @@
 
 A patch that could add a step, alter the Contract or widen Needs would let a
 cosmetic per-tenant file change what a reviewed capability does, so those keys
-are rejected outright rather than merged. See CONTEXT.md, "Tenant Overlay".
+are rejected outright rather than merged. See docs/CONTEXT.md, "Tenant Overlay".
 """
 
 from ..domain.artifact import Artifact

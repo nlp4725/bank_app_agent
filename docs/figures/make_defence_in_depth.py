@@ -4,7 +4,7 @@
 
 One band per layer of Figure 6.1 in REPORT.md. The left column is the threat that
 arrives at that band, the band names the layer, its principle and the code that
-enforces it, and the right column is what a failure there becomes. Terms in CONTEXT.md.
+enforces it, and the right column is what a failure there becomes. Terms in docs/CONTEXT.md.
 """
 
 from pathlib import Path

@@ -120,7 +120,7 @@ for i, sid in enumerate(order):
     lines = action_label(transitions[i])
     nx, ny = slot(i + 1)
 
-    def label(cx, cy, anchor="middle"):
+    def label(cx, cy, anchor="middle", lines=lines):
         for k, line in enumerate(lines):
             text(cx, cy + k * 14, line, size=11, style="italic", anchor=anchor)
 

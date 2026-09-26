@@ -6,7 +6,7 @@ non-production copy. That run is compiled into a reviewable **Artifact**. Therea
 only way a capability runs in production.
 
 Write-up: **[REPORT.md](./REPORT.md)** · worked runs: **[evidence/](./evidence/)** ·
-language: [CONTEXT.md](./CONTEXT.md) · decisions: [docs/adr](./docs/adr)
+language: [CONTEXT.md](./docs/CONTEXT.md) · decisions: [docs/adr](./docs/adr)
 
 ---
 
@@ -375,9 +375,9 @@ cannot reach past the acting interface of the Surface.
 
 Every runtime condition and what the engine does about it, then where each Watcher lives
 and how it was learnt, are Figures S4 and S5 of
-[REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md). The short form: every surprise becomes
+[REPORT_SUPPLEMENT.md](./docs/REPORT_SUPPLEMENT.md). The short form: every surprise becomes
 one of four Conditions, and the test is who can act, the system alone within a budget, a
-person during the run, or nobody in time. Vocabulary in [CONTEXT.md](./CONTEXT.md);
+person during the run, or nobody in time. Vocabulary in [CONTEXT.md](./docs/CONTEXT.md);
 budgets in [docs/error-taxonomy.md](./docs/error-taxonomy.md).
 
 ---
@@ -466,4 +466,4 @@ scripted model, a scripted person at the prompt).
 | `artifacts/` | `<name>.draft.yaml` as recorded, `<name>.decisions.yaml` as the Reviewer answered, `<name>.1.0.0.yaml` approved, the only thing that replays. `assets/` holds crops of clicked controls. |
 | `evidence/` | Eight committed runs with a guide; the replays regenerate from the current code. |
 | `runs/<id>/` (gitignored) | Every run's masked record: `trail.jsonl`, screenshots, `actions.json`, `intervention.json`, `decision.json`. |
-| `docs/` | The error taxonomy, security model, targeting, discovery walkthrough, evaluation, the ADRs, and the scripts that draw the figures. [docs/modules.md](./docs/modules.md) has every module with an in → out example. |
+| `docs/` | The glossary (`CONTEXT.md`), the build log (`NOTES.md`), the report supplement, the error taxonomy, security model, targeting, discovery walkthrough, evaluation, the ADRs, and the scripts that draw the figures. [docs/modules.md](./docs/modules.md) has every module with an in → out example. |

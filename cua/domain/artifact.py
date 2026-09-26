@@ -197,7 +197,7 @@ class Transition(Strict):
 
 class Extract(Strict):
     """What a Watcher may return from the screen: a declared capture group, never
-    free page text. Allowlist by construction — see CONTEXT.md, "Redaction"."""
+    free page text. Allowlist by construction — see docs/CONTEXT.md, "Redaction"."""
     from_: Literal["regex"] = Field(default="regex", alias="from")
     pattern: str
 
@@ -265,7 +265,7 @@ class AppProfile(Strict):
     """What every capability on one vendor app shares.
 
     Session expiry, interstitials and error pages are properties of the app, not of
-    any one capability: learnt once, they reach every Artifact. See CONTEXT.md.
+    any one capability: learnt once, they reach every Artifact. See docs/CONTEXT.md.
     """
     app_profile: str
     watchers: list[Watcher] = Field(default_factory=list)

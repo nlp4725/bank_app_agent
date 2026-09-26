@@ -3,7 +3,7 @@
 The half of the system with a model in it, end to end: the goal typed in words, the two
 reviews, the flag-driven form for scripts, what the model sees and what it never sees, and
 the same chain run from a committed discovery run with no key. Vocabulary in
-[CONTEXT.md](../CONTEXT.md); the argument in [REPORT.md](../REPORT.md) §1 and §6. The
+[CONTEXT.md](./CONTEXT.md); the argument in [REPORT.md](../REPORT.md) §1 and §6. The
 README's step 8 is the short form of this page.
 
 Discovery only ever runs against a non-production environment; the code refuses otherwise
@@ -111,7 +111,7 @@ The two responsibilities behind those questions:
   the known errors ahead of time, and each error's signature and how to deal with it is
   recorded as a Watcher, either before discovery or during it. The Reviewer chooses which
   to add to the capability (see Figures S4 and S5 of
-  [REPORT_SUPPLEMENT.md](../REPORT_SUPPLEMENT.md)). We acknowledge the current approach is very manual and requires prior knowledge
+  [REPORT_SUPPLEMENT.md](./REPORT_SUPPLEMENT.md)). We acknowledge the current approach is very manual and requires prior knowledge
   of the system and the workflow.
 
 The Recorder decides nothing; each question is one it could not answer from the run. Every

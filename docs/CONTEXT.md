@@ -71,7 +71,7 @@ A Predicate, plus where to look for it, that answers "did this Consequential Act
 _Avoid_: Idempotency check, dedupe
 
 **Target**:
-The control an Action acts on, named once and described by the frame it lives in plus an ordered ladder of ways to find it. Replay tries the rungs in order, records which one matched, and stops rather than guessing when none do. The ladder exists because each rung breaks for a different reason — see [docs/targeting.md](./docs/targeting.md):
+The control an Action acts on, named once and described by the frame it lives in plus an ordered ladder of ways to find it. Replay tries the rungs in order, records which one matched, and stops rather than guessing when none do. The ladder exists because each rung breaks for a different reason — see [docs/targeting.md](./targeting.md):
 
 | Rung | Reads | Survives | Breaks on |
 |---|---|---|---|
@@ -199,7 +199,7 @@ A Target whose **value** may be seen — by the model, and in evidence. Everythi
 _Avoid_: Whitelist, visible field
 
 **Sensitive Region**:
-A Target whose **pixels** are painted black when a screenshot is captured, on top of the default: every value cell whose caption is not a Readable Anchor is painted too, and so is any on-screen text matching a declared pattern. Controls are never painted — blacking out a control the model must act on would blind it — which is the residual risk recorded in [docs/security-model.md](./docs/security-model.md).
+A Target whose **pixels** are painted black when a screenshot is captured, on top of the default: every value cell whose caption is not a Readable Anchor is painted too, and so is any on-screen text matching a declared pattern. Controls are never painted — blacking out a control the model must act on would blind it — which is the residual risk recorded in [docs/security-model.md](./security-model.md).
 _Avoid_: Blackout, redaction zone
 
 **Two-Person Approval**:

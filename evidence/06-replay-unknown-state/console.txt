@@ -24,4 +24,4 @@ replaying for member 33333 at bank_a (http://127.0.0.1:5001) — no model in the
   s12_members_id   -> s13_members_id   click  t_continue                                        rung=role_name risk=consequential
 
 RESULT  failed · unknown_state · at s12_members_id
-TIME    12.6s     evidence: runs/run_25556dfd
+TIME    12.2s     evidence: runs/run_a70dadef

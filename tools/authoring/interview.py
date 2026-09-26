@@ -1,6 +1,6 @@
 """The Reviewer's answers, as a decisions file.
 
-The Recorder decides nothing (CONTEXT.md). What it could not decide is asked here, one
+The Recorder decides nothing (docs/CONTEXT.md). What it could not decide is asked here, one
 question each, and the answers are written to a decisions file before they are
 applied — so the review is a file, and `tools.start --review runs/<id>` can redo it.
 `cua/authoring/review.py` applies the file mechanically; nothing here is inferred.

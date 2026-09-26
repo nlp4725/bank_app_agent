@@ -5,7 +5,7 @@ compiled, and five replays of the approved capability — one clean, one busines
 escalation a person resolves, one held-out condition, one refused before the browser opened.
 
 The five replay folders are regenerated from the code as it stands with
-`python -m tools.make_evidence`, so what they show is what the system does now rather
+`python -m tools.replay.make_evidence`, so what they show is what the system does now rather
 than what it did when somebody last copied a folder. The two discovery folders are real
 model runs and stay as recorded.
 
@@ -155,4 +155,4 @@ python -m tools.replay.make_evidence          # all of 3–7 with a scripted Ope
 ```
 
 Discovery needs `ANTHROPIC_API_KEY` and costs a few cents:
-`python -m tools.discover`. Runs land in `runs/<run_id>/`; the folders here are copies.
+`python -m tools.start`. Runs land in `runs/<run_id>/`; the folders here are copies.

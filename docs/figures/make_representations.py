@@ -65,8 +65,10 @@ shot = RUN / "screens" / f"{TURN:02d}.png"
 crop = RUN / "screens" / f"{TURN:02d}_target.png"
 matched = None
 import urllib.request
-from cua.replay import RunContext, replay
+
 from cua.governance.store import load_capability, origin_for
+from cua.replay import RunContext, replay
+
 _art = load_capability("member.read_savings_balance")
 _origin = origin_for("bank_a", _art.capability.vendor_app)
 urllib.request.urlopen(f"{_origin}/reset", timeout=5).read()
@@ -88,7 +90,7 @@ xs = [58 + i * (PANEL_W + GAP) for i in range(3)]
 titles = [("SCREENSHOT", "what the model saw — Sensitive Regions painted at capture", AMBER, AMBER_BG),
           ("ACCESSIBILITY LIST", "what the model read — values (hidden), one number per control", BLUE, BLUE_BG),
           ("RECORDED TARGET", "what code kept — a ladder, strongest rung first; no API exists", GREEN, GREEN_BG)]
-for x, (t, sub, colour, bg) in zip(xs, titles):
+for x, (t, sub, colour, bg) in zip(xs, titles, strict=True):
     add(f'<rect x="{x}" y="{TOP}" width="{PANEL_W}" height="{PANEL_H}" rx="9" fill="{bg}" '
         f'stroke="{colour}" stroke-width="1.4"/>')
     text(x + 16, TOP + 24, t, size=11.5, weight="700", fill=colour)
@@ -129,6 +131,7 @@ text(x + 124, cy + 46, "a picture of a control, never of a value", size=9.5, fil
 x = xs[1]
 y = TOP + 62
 import textwrap
+
 # Every line in full: a line that names the caption the model used must not be cut
 # off at the caption. Long ones wrap, with the continuation indented under the text.
 for line in observed["controls"].splitlines()[:12]:

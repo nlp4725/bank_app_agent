@@ -1,6 +1,6 @@
 # Error taxonomy: detection and reactions
 
-Terms are defined in [CONTEXT.md](../CONTEXT.md); this file holds the operational detail.
+Terms are defined in [CONTEXT.md](./CONTEXT.md); this file holds the operational detail.
 
 ## The order of checks for every Transition
 

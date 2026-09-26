@@ -12,7 +12,7 @@ Three axes can be, and all three are real.
 ## The two ground truths, both written before any model runs
 
 1. **The scenario table** — member number to expected Run Result, a property of the app.
-2. **The hand-written Artifact** (`tests/fixtures.py`) — a known-good flow for this app,
+2. **The hand-written Artifact** (`tests/support/artifact.py`) — a known-good flow for this app,
    against which the Replay Engine is built with no model involved.
 
 ## What a discovered Artifact is scored on
