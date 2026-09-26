@@ -12,6 +12,8 @@ language: [CONTEXT.md](./docs/CONTEXT.md) · decisions: [docs/adr](./docs/adr)
 
 ## Setup
 
+Python 3.11 or newer. The macOS system Python is 3.9, which will not install this.
+
 ```bash
 pip install -r requirements.txt
 python -m playwright install chromium
