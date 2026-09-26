@@ -31,7 +31,7 @@ import argparse
 import sys
 
 from cua.discovery import ProposalError, discover, propose_contract, request_from_spec
-from tools._cli import load_dotenv, report
+from tools._cli import load_dotenv, report, require_api_key
 from tools.authoring.review import review_artifact
 from tools.discovery.contract import ask_values, known_outcomes, save, show, spec_for_run
 
@@ -94,12 +94,13 @@ def main(argv=None):
     p.add_argument("--tenant", default="bank_a")
     p.add_argument("--headless", action="store_true", help="never ask; no browser window")
     p.add_argument("--review", metavar="RUN_DIR",
-                   help="skip discovery: review the draft of an existing run, e.g. runs/disc_12e097f2")
+                   help="skip discovery: review the draft of an existing run, e.g. runs/disc_<id> or evidence/01-discovery-goal-reached")
     args = p.parse_args(argv)
     load_dotenv()
     try:
         if args.review:
             return review_artifact(spec_for_run(args.review), args.review, tenant=args.tenant)
+        require_api_key()
         return run(args.goal, tenant=args.tenant, headed=False if args.headless else None)
     except (KeyboardInterrupt, EOFError):
         print("\nstopped.")

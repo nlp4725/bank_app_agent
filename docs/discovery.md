@@ -120,10 +120,11 @@ watcher that can recognise it — borrowed from another approved capability on t
 one exists — or it is dropped, because an answer the caller is promised but can never
 receive is worse than none. The answers are a file, `artifacts/<name>.decisions.yaml`,
 applied mechanically; approval is refused unless the result lints clean **and** replays
-successfully, with no model, on a member the discovery run never saw. To redo a review:
+successfully, with no model, on a member the discovery run never saw. To redo a review,
+give it the `runs/disc_…` folder your discovery printed, or the committed one:
 
 ```bash
-python -m tools.start --review runs/disc_12e097f2
+python -m tools.start --review evidence/01-discovery-goal-reached
 ```
 
 The flag-driven equivalent, for scripts:

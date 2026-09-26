@@ -192,7 +192,7 @@ The automation never types the supervisor PIN, and it is never written to the tr
 ### 4. Safety refuses before the browser opens
 
 ```bash
-python -m tools.replay 12345 bank_b
+python -m tools.replay 12345 bank_b --capability member.open_sub_account
 ```
 
 ```
@@ -286,9 +286,12 @@ see [docs/targeting.md](./docs/targeting.md).
 ### 7. Read any run afterwards
 
 ```bash
-python -m tools.inspect.show_run                  # the most recent
-python -m tools.inspect.show_run runs/run_8de312d4
+python -m tools.inspect.show_run                                  # your most recent run
+python -m tools.inspect.show_run evidence/05-replay-escalation-handoff   # a committed one
 ```
+
+Any run folder works: the `evidence:` line at the end of every replay names one under
+`runs/`.
 
 Every run leaves an append-only redacted trail: each policy decision, each action, which rung
 matched, every Watcher that fired, and a screenshot on failure with the declared Sensitive
@@ -332,10 +335,11 @@ Consequential and only a person downgrades it; every Outcome Code the Contract p
 needs a Watcher that can recognise it, borrowed from another approved capability when one
 exists, or it is dropped. The answers are a decisions file, applied mechanically, and
 approval is refused unless the result lints clean **and** verify-replays, with no model,
-on a member discovery never saw. To redo that review from a saved run:
+on a member discovery never saw. To redo that review from a saved run, give it the
+`runs/disc_…` folder your discovery printed, or the committed one:
 
 ```bash
-python -m tools.start --review runs/disc_12e097f2
+python -m tools.start --review evidence/01-discovery-goal-reached
 ```
 
 **Without a key**, the same chain runs from a committed discovery run:
@@ -357,7 +361,7 @@ goal that strays outside its Role, and the redaction chain the model sits behind
 ### 9. The tests
 
 ```bash
-python -m pytest -q          # 216 passing, ~5 minutes
+python -m pytest -q          # 216 passing, ~10 minutes
 ```
 
 Nothing is mocked: the demo app is the fixture, and each test reads as "replay for 99999 and

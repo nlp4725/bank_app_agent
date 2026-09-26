@@ -24,7 +24,7 @@ from pathlib import Path
 import yaml
 
 from cua.discovery import DiscoveryRequest, discover, request_from_spec
-from tools._cli import load_dotenv, report
+from tools._cli import load_dotenv, report, require_api_key
 
 DEFAULT_CONTRACT = Path("contracts/open_sub_account.yaml")
 
@@ -111,6 +111,7 @@ def main(argv=None):
     if args.dry_run:
         return
 
+    require_api_key()
     report(discover(request))
 
 

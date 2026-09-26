@@ -1,7 +1,7 @@
 """The second review, end to end: show the draft, ask the decisions, apply, verify,
 save — and offer to watch the approved capability replay.
 
-    python -m tools.start --review runs/disc_12e097f2      # redo it for an existing run
+    python -m tools.start --review runs/disc_<id>           # redo it for an existing run
 """
 
 import os

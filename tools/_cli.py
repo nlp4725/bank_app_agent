@@ -30,6 +30,21 @@ def load_dotenv(path: Path = DOTENV) -> list[str]:
     return loaded
 
 
+def require_api_key() -> None:
+    """Stop with a plain message, before any model call, when there is no key.
+
+    Without this the Anthropic SDK raises a TypeError deep inside its client, and a
+    reader following the README sees a traceback that looks like broken code."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    raise SystemExit(
+        "\nANTHROPIC_API_KEY is not set, and discovery needs a model.\n"
+        "  export ANTHROPIC_API_KEY=sk-ant-...   or put that line in a .env file here.\n"
+        "Without a key, the same chain runs from a committed discovery run:\n"
+        "  python -m tools.authoring.record  evidence/01-discovery-goal-reached\n"
+        "  python -m tools.authoring.approve evidence/01-discovery-goal-reached\n")
+
+
 def report(result, actions: bool = True) -> None:
     print("\n=== result ===")
     print(result)
